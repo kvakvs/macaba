@@ -1,4 +1,10 @@
 macaba-server
 =============
 
-Anonymous high-load message board server made with Erlang, frontend is in separate repo, see rebar.config
+High-load anonymous message board server made in Erlang, designed with scalability
+and extensibility in mind. Meant to be familiar for wakaba/futaba users.
+
+Project status
+==============
+
+Planning-prealpha
