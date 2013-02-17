@@ -19,6 +19,7 @@
 start() ->
   application:start(sasl),
   macaba:ensure_started(gproc),
+  macaba:ensure_started(riak_pool),
   lager:start(),
   application:start(macaba).
 

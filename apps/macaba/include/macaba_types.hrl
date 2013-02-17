@@ -13,6 +13,16 @@
 -type ipaddr_t() :: ipv4_t() | ipv6_t().
 
 -record(mcb_board, {
-          id :: atom(),
+          id    :: atom(),
           title :: string()
          }).
+
+-record(mcb_thread, {
+          id         :: integer(),
+          subject    :: string(),
+          author     :: string(),
+          created    :: integer(),
+          flags = [] :: orddict:orddict()
+         }).
+
+-type macaba_dbobject() :: mcb_board | mcb_thread | mcb_thread_list.
