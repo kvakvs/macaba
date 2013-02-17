@@ -1,4 +1,6 @@
--module(macaba_sup).
+%%% @doc Session supervisor, keeps track of active user sessions
+%%%
+-module(macaba_ses_sup).
 
 -behaviour(supervisor).
 
@@ -9,7 +11,8 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
-child(I, Type) -> {I, {I, start_link, []}, permanent, 5000, Type, [I]}.
+child(I, Type, Persistency) ->
+    {I, {I, start_link, []}, Persistency, 5000, Type, [I]}.
 
 %% ===================================================================
 %% API functions
@@ -23,9 +26,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  {ok, { {one_for_one, 5, 10}, [
-                                child(macaba_ses_sup, supervisor)
-                               ]} }.
+  {ok, { {simple_one_for_one, 5, 10},
+         [ child(macaba_ses, worker, transient) ]} }.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

@@ -5,4 +5,5 @@
               {applications,[kernel,stdlib]},
               {mod,{macaba_app,[]}},
               {env,[]},
-              {modules,[macaba,macaba_app,macaba_sup]}]}.
+              {modules,[macaba,macaba_app,macaba_board,macaba_html_handler,
+                        macaba_ses,macaba_ses_sup,macaba_sup,macaba_web]}]}.

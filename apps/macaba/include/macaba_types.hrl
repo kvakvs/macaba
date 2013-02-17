@@ -12,3 +12,7 @@
              }.
 -type ipaddr_t() :: ipv4_t() | ipv6_t().
 
+-record(mcb_board, {
+          id :: atom(),
+          title :: string()
+         }).

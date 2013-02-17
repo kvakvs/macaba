@@ -1,0 +1,26 @@
+{% comment %}-------------------------------------------------------------------
+| This is board template (thread index), meant to display list of 'threads' in
+| this board (with pagination) with each thread preview (first and few last
+| posts), also list of 'boards' for rendering top menu is available.
+|
+| A thread is represented by id, has subject, author and creation time
+| To get contents of thread preview, use \{\{ ???TODO??? }}
+|
+| Incoming parameters: 'board_info'
+| 'boards' - a property list, see macaba_server.config
+| 'threads' - a list of property lists [{id,string}, {subject,"utf8"},
+| {author,"utf8"}, {created,unixtime}]
++---------------------------------------------------------------{% endcomment %}
+{% include "header.html" %}
+
+<h1>Macaba: {{ board_info.id }} - {{ board_info.title }}</h1>
+
+<h3>Threads list</h3>
+
+<ul>
+  {% for t in threads %}
+  <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }}; created {{ t.created }}</div>
+  {% endfor %}
+</ul>
+
+{% include "footer.html" %}

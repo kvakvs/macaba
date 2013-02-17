@@ -1,0 +1,20 @@
+{% comment %}-------------------------------------------------------------------
+| This is index template (board index), meant to display welcome message and
+| selection of available boards as well as links to Rules
+|
+| Incoming parameters: boards - an indexable property list, see
+| macaba_server.config for options description
++---------------------------------------------------------------{% endcomment %}
+{% include "header.html" %}
+
+<h1>Macaba</h1>
+
+<h3>Boards list</h3>
+
+<ul>
+  {% for b in boards %}
+  <li><a href="/board/{{ b.id }}">{{ b.id }}</a> - {{ b.title }}</li>
+  {% endfor %}
+</ul>
+
+{% include "footer.html" %}
