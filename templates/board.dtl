@@ -13,14 +13,46 @@
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
 
-<h1>Macaba: {{ board_info.id }} - {{ board_info.title }}</h1>
+<div class="row">
+  <div class="span12">
+    <h1>Macaba: {{ board_info.id }} - {{ board_info.title }}</h1>
+  </div>
+</div>
 
-<h3>Threads list</h3>
+<div class="row">
+  <div class="span2"></div>
+  <div class="span8">
+    <h3>Create new thread</h3>
 
-<ul>
-  {% for t in threads %}
-  <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }}; created {{ t.created }}</div>
-  {% endfor %}
-</ul>
+    <form method="post" action="/board/{{ board_info.id }}/new">
+      <fieldset>
+        <input type="hidden" name="thread_id" value="new">
+        <label>Name</label>
+        <input type="text" name="name" size="40" /><br />
+        <label>Subject</label>
+        <input type="text" name="subject" size="40" />
+        <input type="submit" value="New thread" /><br />
+        <label>Post</label>
+        <textarea name="message" rows="10" cols="80"></textarea><br />
+        <label>Attach</label>
+        <input type="file" name="attach" size="40" /><br />
+        <label>Captcha</label>
+        <input type="text" name="captcha" size="20" /><br />
+      </fieldset>
+    </form>
+  </div>
+</div>
+
+<div class="row">
+  <div class="span12">
+    <h3>Threads list</h3>
+
+    <ul>
+      {% for t in threads %}
+      <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }}; created {{ t.created }}</div>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
 
 {% include "footer.html" %}

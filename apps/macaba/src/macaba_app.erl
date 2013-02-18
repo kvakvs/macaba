@@ -24,6 +24,7 @@ start() ->
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
+  macaba_board:start(),
   start_web(),
   macaba_sup:start_link().
 
@@ -51,6 +52,7 @@ start_web() ->
                      {"/css/[...]", cowboy_static, [{directory, CSSPath}, Mime]}
                    , {"/js/[...]",  cowboy_static, [{directory, JSPath},  Mime]}
                    , {"/img/[...]", cowboy_static, [{directory, ImgPath}, Mime]}
+                   , {"/board/:mcb_board/new", Html, [board_new]}
                    , {"/board/:mcb_board/[...]", Html, [board]}
                    , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
                    , {"/", Html, [index]}

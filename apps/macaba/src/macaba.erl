@@ -15,6 +15,13 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+record_to_proplist(#mcb_board{}=Rec) ->
+  lists:zip(record_info(fields, mcb_board), tl(tuple_to_list(Rec)));
+record_to_proplist(#mcb_thread{}=Rec) ->
+  lists:zip(record_info(fields, mcb_thread), tl(tuple_to_list(Rec)));
+record_to_proplist(#mcb_post{}=Rec) ->
+  lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)));
+record_to_proplist(X) -> error({badarg, X}).
 
 %%--------------------------------------------------------------------
 propget(K, Proplist) ->
