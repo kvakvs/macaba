@@ -19,11 +19,12 @@
 start() ->
   application:start(sasl),
   macaba:ensure_started(gproc),
-  macaba:ensure_started(riak_pool),
   lager:start(),
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
+  macaba_db_mnesia:start(),
+  macaba_db_riak:start(),
   macaba_board:start(),
   start_web(),
   macaba_sup:start_link().
