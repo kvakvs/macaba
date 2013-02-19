@@ -28,7 +28,7 @@
       <fieldset>
         <input type="hidden" name="thread_id" value="new">
         <label>Name</label>
-        <input type="text" name="name" size="40" /><br />
+        <input type="text" name="author" size="40" /><br />
         <label>Subject</label>
         <input type="text" name="subject" size="40" />
         <input type="submit" value="New thread" /><br />
@@ -49,7 +49,8 @@
 
     <ul>
       {% for t in threads %}
-      <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }}; created {{ t.created }}</div>
+      <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }};
+       created {{ t.created }}</div>
       {% endfor %}
     </ul>
   </div>

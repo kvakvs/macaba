@@ -5,13 +5,14 @@
 -module(macaba).
 
 -export([ ensure_started/1
-        , propget/2
-        , propget/3
         , as_string/1
         , as_bool/1
         , as_binary/1
         , as_ipv4/1
         , as_existing_atom/1
+        , propget/2
+        , propget/3
+        , record_to_proplist/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").

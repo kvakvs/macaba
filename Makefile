@@ -1,13 +1,15 @@
 .PHONY: rel deps test
 
+all: deps compile
+
 run: deps compile
 	erl -sname macaba@localhost -config macaba_server.config -pa ebin apps/*/ebin deps/*/ebin -s macaba_app
 
-fast:
-	./rebar compile skip_deps=true && \
+runf: deps compilef
 	erl -sname macaba@localhost -config macaba_server.config -pa ebin apps/*/ebin deps/*/ebin -s macaba_app
 
-all: deps compile
+compilef:
+	./rebar compile skip_deps=true
 
 compile: rebar
 	./rebar compile

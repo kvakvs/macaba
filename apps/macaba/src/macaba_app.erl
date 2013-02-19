@@ -54,7 +54,7 @@ start_web() ->
                    , {"/img/[...]", cowboy_static, [{directory, ImgPath}, Mime]}
                    , {"/board/:mcb_board/new", Html, [board_new]}
                    , {"/board/:mcb_board/[...]", Html, [board]}
-                   , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
+                , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
                    , {"/", Html, [index]}
                    ]}
            ]),

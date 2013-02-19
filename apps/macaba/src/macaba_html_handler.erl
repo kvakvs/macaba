@@ -1,9 +1,7 @@
 %%%------------------------------------------------------------------------
 %%% @doc This module has few predefined handlers (init, handle and terminate)
 %%% which are called by cowboy on incoming HTTP request.
-%%%
 %%% Serves HTML templates, and provides basic HTTP access to the board.
-%%%
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_html_handler).
@@ -67,14 +65,14 @@ macaba_handle(board_new, <<"POST">>, Req0, State0) ->
 
   {ok, PostVals, Req2} = cowboy_req:body_qs(Req1),
   ThreadId = macaba:propget(<<"thread_id">>, PostVals, undefined),
-  Name     = macaba:propget(<<"name">>,      PostVals, undefined),
+  Author   = macaba:propget(<<"author">>,    PostVals, undefined),
   Subject  = macaba:propget(<<"subject">>,   PostVals, undefined),
   Message  = macaba:propget(<<"message">>,   PostVals, undefined),
   Attach   = macaba:propget(<<"attach">>,    PostVals, undefined),
   Captcha  = macaba:propget(<<"captcha">>,   PostVals, undefined),
 
   PostOpt = [ {thread_id, macaba:as_integer(ThreadId)}
-            , {name, Name}
+            , {author, Author}
             , {subject, Subject}
             , {message, Message}
             , {attach, Attach}
@@ -95,7 +93,7 @@ macaba_handle(_, _, Req, _State) ->
 
 %%%------------------------------------------------------------------------
 %% @private
-render_page(TemplateName, Req0, 
+render_page(TemplateName, Req0,
             State=#mcb_html_state{ page_vars = PageVars }) ->
   Body = macaba_web:render(TemplateName, PageVars),
   Headers = [{<<"Content-Type">>, <<"text/html">>}],

@@ -6,3 +6,4 @@ deps
 *~
 *.log
 rebar
+.emacs*
