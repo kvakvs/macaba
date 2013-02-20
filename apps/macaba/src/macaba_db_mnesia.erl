@@ -7,7 +7,9 @@
 -module(macaba_db_mnesia).
 
 -export([ start/0
+        , read/2
         , update/3
+        , write/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -33,8 +35,16 @@ create_mem_table(Record, RecInfo) ->
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
            Key  :: any()) -> orddict:orddict() | tuple() | {error, not_found}.
-read(Tab = mcb_board_dynamic, Key) ->
+read(Tab, Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
+  {atomic, [Row]} = mnesia:transaction(RFun),
+  Row.
+
+%%--------------------------------------------------------------------
+-spec write(Type :: macaba_mnesia_object(),
+            Value :: any()) -> ok.
+write(Tab, Value) ->
+  RFun = fun() -> mnesia:write(Tab, Value, write) end,
   {atomic, [Row]} = mnesia:transaction(RFun),
   Row.
 

@@ -20,24 +20,31 @@ start() ->
   ok.
 
 %%%-----------------------------------------------------------------------------
-%% @doc Returns list of configured boards + dynamic data from ETS
+%% @doc Returns list of configured boards
+-spec get_boards() -> [#mcb_board{}].
 get_boards() ->
-  [ macaba:record_to_proplist(B) || B <- db_get_boards()].
+  case macaba_db_riak:read(mcb_site_config, <<"default">>) of
+    #mcb_site_config{ boards=B } -> B;
+    {error, not_found} -> fake_default_boards()
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of configured boards (TODO: cache in memory?)
--spec get_board(BoardId :: binary()) -> orddict:orddict() | {error, not_found}.
+-spec get_board(BoardId :: binary()) -> #mcb_board{} | {error, not_found}.
 get_board(BoardId) ->
   case lists:keysearch(BoardId, #mcb_board.board_id, db_get_boards()) of
     {value, X} -> X;
     false -> {error, not_found}
   end.
 
+%%%-----------------------------------------------------------------------------
 %% @private
-%% @doc Reads site config and returns boards list
-db_get_boards() ->
-  Site = macaba_db_riak:read(mcb_site_config, <<"default">>),
-  Site#mcb_site_config.boards.
+fake_default_boards() ->
+  [#mcb_board{
+      board_id= <<"default">>,
+      category="default",
+      title="Default board"
+     }].
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of threads in board (only info headers, no contents!)
@@ -89,7 +96,7 @@ new_post(Opts) ->
   Post.
 
 %%%-----------------------------------------------------------------------------
-%% @doc Creates structure for a new post, returns post structure. Does not write.
+%% @doc Creates structure for a new post, returns it. Does not write.
 construct_post(Opts) ->
   BoardId   = macaba:propget(board_id,  Opts),
   ThreadId  = macaba:propget(thread_id, Opts),
