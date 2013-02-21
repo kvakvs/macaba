@@ -17,24 +17,15 @@
 
 %%%-----------------------------------------------------------------------------
 start() ->
-  %% TODO: reorder start calls to db and board and leader (spawned under sup)
-  ThisN = node(),
-  case gen_leader:call(macaba_masternode, get_leader) of
-    ThisN ->
-      load_board_dynamics(),
-      load_thread_dynamics();
-    _ ->
-      lager:info("This node is not masternode, skipping database refresh")
-  end,
   ok.
 
 %%%-----------------------------------------------------------------------------
 %% @private
-%% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread 
+%% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread
 %% lists for boards. Do this only on one node of the macaba cluster.
 load_board_dynamics() ->
-  lager:info("[load_board_dynamics] enumerating boards and threads and caching..."),
-  %% TODO: if record in Mnesia exists, we have this job running on >1 node, fatal!
+  lager:info("[load_board_dynamics] enumerating threads and caching..."),
+  %% TODO: if record in Mnesia exists, we have this job on >1 node, fatal!
   ok.
 
 %%%-----------------------------------------------------------------------------
@@ -43,7 +34,7 @@ load_board_dynamics() ->
 %% for threads. Do this only on one node of the macaba cluster.
 load_thread_dynamics() ->
   lager:info("[load_thread_dynamics] enumerating thread posts and caching..."),
-  %% TODO: if record in Mnesia exists, we have this job running on >1 node, fatal!
+  %% TODO: if record in Mnesia exists, we have this job  on >1 node, fatal!
   ok.
 
 %%%-----------------------------------------------------------------------------

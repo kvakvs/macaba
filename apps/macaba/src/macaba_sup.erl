@@ -9,7 +9,12 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
-child(I, Type) -> {I, {I, start_link, []}, permanent, 5000, Type, [I]}.
+child(I, Type) ->
+  child(I, Type, permanent, []).
+child(I, Type, Persist) ->
+  child(I, Type, Persist, []).
+child(I, Type, Persist, StartLinkParams) ->
+  {I, {I, start_link, StartLinkParams}, Persist, 5000, Type, [I]}.
 
 %% ===================================================================
 %% API functions
@@ -23,10 +28,21 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  {ok, { {one_for_one, 5, 10}, [ child(macaba_ses_sup, supervisor)
-                               , child(macaba_masternode, worker)
-                               ]} }.
+  Nodes = case application:get_env(macaba, cluster) of
+            {ok, Value} -> Value;
+            undefined -> [node()]
+          end,
+  {ok, { {one_for_one, 5, 10},
+         [ child(macaba_masternode, worker)
+         , child(macaba_ses_sup, supervisor)
+         , child(macaba_startup, worker, transient, [Nodes])
+         ]} }.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2
 %%% End:
+
+
+
+
+
