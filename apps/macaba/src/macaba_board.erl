@@ -17,6 +17,33 @@
 
 %%%-----------------------------------------------------------------------------
 start() ->
+  %% TODO: reorder start calls to db and board and leader (spawned under sup)
+  ThisN = node(),
+  case gen_leader:call(macaba_masternode, get_leader) of
+    ThisN ->
+      load_board_dynamics(),
+      load_thread_dynamics();
+    _ ->
+      lager:info("This node is not masternode, skipping database refresh")
+  end,
+  ok.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread 
+%% lists for boards. Do this only on one node of the macaba cluster.
+load_board_dynamics() ->
+  lager:info("[load_board_dynamics] enumerating boards and threads and caching..."),
+  %% TODO: if record in Mnesia exists, we have this job running on >1 node, fatal!
+  ok.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc SLOW! Enumerates RIAK keys in thread bucket, and calculates post lists
+%% for threads. Do this only on one node of the macaba cluster.
+load_thread_dynamics() ->
+  lager:info("[load_thread_dynamics] enumerating thread posts and caching..."),
+  %% TODO: if record in Mnesia exists, we have this job running on >1 node, fatal!
   ok.
 
 %%%-----------------------------------------------------------------------------
@@ -32,7 +59,7 @@ get_boards() ->
 %% @doc Returns list of configured boards (TODO: cache in memory?)
 -spec get_board(BoardId :: binary()) -> #mcb_board{} | {error, not_found}.
 get_board(BoardId) ->
-  case lists:keysearch(BoardId, #mcb_board.board_id, db_get_boards()) of
+  case lists:keysearch(BoardId, #mcb_board.board_id, get_boards()) of
     {value, X} -> X;
     false -> {error, not_found}
   end.
@@ -49,7 +76,10 @@ fake_default_boards() ->
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of threads in board (only info headers, no contents!)
 get_threads(BoardId) when is_binary(BoardId) ->
-  D = macaba_db_mnesia:read(mcb_board_dynamic, BoardId),
+  D = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+        {error, not_found} -> #mcb_board_dynamic{};
+        {atomic, #mcb_board_dynamic{}=BD} -> BD
+      end,
   D#mcb_board_dynamic.threads.
 
 %%%-----------------------------------------------------------------------------
@@ -65,11 +95,15 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 
   Thread = #mcb_thread{
     thread_id = PostId,
-    post_ids  = [PostId],
     hidden    = Hidden,
     pinned    = Pinned,
     read_only = ReadOnly
    },
+  ThreadDyn = #mcb_thread_dynamic{
+    thread_id = PostId,
+    post_ids  = [PostId]
+   },
+  macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
   %% link post to thread
   Post = Post0#mcb_post{ thread_id = PostId },
   macaba_db_riak:write(mcb_post, Post),
@@ -88,11 +122,14 @@ new_post(Opts) ->
   ThreadId = macaba:propget(thread_id, Opts),
 
   %% update thread post list
-  Thread0  = macaba_db_riak:read(mcb_thread, ThreadId),
-  NewIds = Thread0#mcb_thread.post_ids ++ [Post#mcb_post.post_id],
-  Thread = Thread0#mcb_thread{ post_ids=NewIds },
-  macaba_db_riak:write(mcb_thread, Thread),
-
+  F = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
+          TD#mcb_thread_dynamic{ post_ids = L++[Post#mcb_post.post_id] }
+      end,
+  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, ThreadId, F),
+  %% ThreadD0 = macaba_db_riak:read(mcb_thread, ThreadId),
+  %% NewIds = Thread0#mcb_thread.post_ids ++ [Post#mcb_post.post_id],
+  %% Thread = Thread0#mcb_thread{ post_ids=NewIds },
+  %% macaba_db_riak:write(mcb_thread, Thread),
   Post.
 
 %%%-----------------------------------------------------------------------------
@@ -127,6 +164,7 @@ get_now_utc() ->
   calendar:datetime_to_gregorian_seconds({UTCD, UTCT}) - ?SECONDS_1970.
 
 %%%-----------------------------------------------------------------------------
+%% @doc Generates new post_id for creating thread on the board
 next_board_post_id(BoardId) when is_binary(BoardId) ->
   F = fun(BD = #mcb_board_dynamic{ last_post_id=L }) ->
           BD#mcb_board_dynamic{ last_post_id = L+1 }

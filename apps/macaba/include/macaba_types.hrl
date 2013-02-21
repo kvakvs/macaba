@@ -30,21 +30,26 @@
          }).
 
 %%-define(MCB_BOARD_DYNAMIC_VER, 1).
-%% @doc Dynamic data for board stored in Mnesia and written using transactions
+%% @doc Concurrently changed part of board stored in memory
 -record(mcb_board_dynamic, {
             board_id         :: binary()
           , last_post_id = 1 :: integer()
-          , threads          :: [binary()]
+          , threads = []     :: [binary()]
          }).
 
 -define(MCB_THREAD_VER, 1).
 -record(mcb_thread, {
-          %% first post id equals to thread id but we never display thread id
+          %% first post_id equals to thread_id but we never display thread_id
             thread_id         :: binary()
-          , post_ids = []     :: [binary()]
           , hidden = false    :: boolean() % invisible
           , pinned = false    :: boolean() % doesn't sink
           , read_only = false :: boolean() % admins only can post
+         }).
+
+%% @doc Concurrently changed part of thread stored in memory
+-record(mcb_thread_dynamic, {
+            thread_id     :: binary()
+          , post_ids = [] :: [binary()]
          }).
 
 -define(MCB_POST_VER, 1).
@@ -68,9 +73,13 @@
           , hash            :: binary() % file checksum, also key to file body
          }).
 
--type macaba_mnesia_object() :: mcb_board_dynamic.
+%% @doc Mnesia objects are stored in memory only and built on node start
+-type macaba_mnesia_object() :: mcb_board_dynamic | mcb_thread_dynamic.
+%% @doc RIAK objects are written once and changed rarely, and persist on disk
+%% RIAK also stores all Mnesia objects, they are updated regularly by leader
+%% node, and reloaded on cluster1 restart
 -type macaba_riak_object()   :: mcb_site_config | mcb_thread | mcb_post
-                              | mcb_attachment.
--type macaba_db_object()     :: macaba_mnesia_object() | macaba_riak_object().
+                              | mcb_attachment | macaba_mnesia_object().
+-type macaba_db_object()     :: macaba_riak_object().
 
 -endif. % MACABA_TYPES_HRL

@@ -23,6 +23,7 @@ start() ->
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
+  %% TODO: reorder start calls to db and board and leader (spawned under sup)
   macaba_db_mnesia:start(),
   macaba_db_riak:start(),
   macaba_board:start(),

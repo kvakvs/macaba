@@ -19,14 +19,18 @@
 %% @doc Prepare database for use
 start() ->
   macaba:ensure_started(riak_pool).
+  %% Mult = [{allow_mult, true}],
+  %% riak_pool_auto:set_bucket(bucket_for(mcb_board_dynamic), Mult),
+  %% riak_pool_auto:set_bucket(bucket_for(mcb_thread_dynamic), Mult).
 
 %%--------------------------------------------------------------------
 %% @private
 -spec bucket_for(macaba_riak_object()) -> binary().
 
-bucket_for(mcb_site_config)    -> <<"board-conf">>;
-bucket_for(mcb_board_dynamic)   -> <<"board-count">>;
+bucket_for(mcb_site_config)    -> <<"site-conf">>;
+%% bucket_for(mcb_board_dynamic)   -> <<"board-dyn">>; % in db_mnesia
 bucket_for(mcb_thread)          -> <<"thread-head">>;
+%% bucket_for(mcb_thread_dynamic)   -> <<"thread-dyn">>; % in db_mnesia
 bucket_for(mcb_post)            -> <<"post">>;
 bucket_for(mcb_attachment)      -> <<"attach-head">>;
 bucket_for(mcb_attachment_body) -> <<"attach-body">>.
@@ -74,8 +78,7 @@ read_internal(Type, B, K) ->
 %% Performs the inplace data upgrade and returns whole Riak object with metadata
 %% and vector clocks. Reader is suggested to perform merge on conflict
 -spec read_riakobj(Type :: macaba_riak_object(),
-                   Key  :: any()) ->
-                      riakc_obj() | {error, not_found}.
+                   Key  :: any()) -> riakc_obj() | {error, not_found}.
 
 read_riakobj(Type, Key) when is_binary(Key) ->
   read_riakobj_internal(Type, bucket_for(Type), Key).
@@ -92,16 +95,39 @@ read_riakobj_internal(Type, B, K) ->
     {error, notfound} ->
       {error, not_found};
     {ok, RObject} ->
-      X = riakc_obj:get_value(RObject),
-      {Version, Value} = binary_to_term(X, [safe]),
-      NewValue = macaba_db:upgrade(Type, Version, Value),
-      riakc_obj:update_value(RObject, NewValue)
+      VList0 = riakc_obj:get_values(RObject),
+      VList = lists:map(fun(X) -> binary_to_term(X, [safe]) end, VList0),
+      NewVList = [macaba_db:upgrade(Type, Version, Value)
+                  || {Version, Value} <- VList],
+      %% Now if we got multiple values, try to resolve conflict and merge
+      resolve_conflict(NewVList)
+      %%riakc_obj:update_value(RObject, Resolved)
   end.
 
 %%--------------------------------------------------------------------
-get_key_for_object(      #mcb_post{ post_id   = Id }) -> Id;
-get_key_for_object(    #mcb_thread{ thread_id = Id }) -> Id;
-get_key_for_object(#mcb_attachment{ attach_id = Id }) -> Id.
+%% @doc Take list of objects and try to merge conflicting changes
+resolve_conflict([First|_]) -> First.
+%% resolve_conflict([First = #mcb_board_dynamic{} | _] = L ) ->
+%%   %% Assumption: mcb_board_dynamics can only conflict on 'threads' field while
+%%   %% users do fast concurrent posting to board.
+%%   MergedThreads = ordsets:from_list(
+%%                     lists:flatten( [X#mcb_board_dynamic.threads || X <- L] )
+%%                    ),
+%%   %% Assumption: If there are conflicting post_ids, increase post_id to cover
+%%   MergedPostId = lists:max(
+%%                    [X#mcb_board_dynamic.last_post_id || X <- L]
+%%                   ) + length(L) - 1,
+%%   First#mcb_board_dynamic{
+%%     threads = MergedThreads,
+%%     last_post_id = MergedPostId
+%%    }.
+
+%%--------------------------------------------------------------------
+get_key_for_object(#mcb_board_dynamic{  board_id  = Id }) -> Id;
+get_key_for_object(#mcb_thread{         thread_id = Id }) -> Id;
+get_key_for_object(#mcb_thread_dynamic{ thread_id = Id }) -> Id;
+get_key_for_object(#mcb_post{           post_id   = Id }) -> Id;
+get_key_for_object(#mcb_attachment{     attach_id = Id }) -> Id.
 
 %%--------------------------------------------------------------------
 -spec write(Type :: macaba_riak_object(), Value :: any()) ->

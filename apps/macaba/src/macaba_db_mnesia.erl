@@ -18,15 +18,18 @@
 %% @doc Prepare database for use
 start() ->
   macaba:ensure_started(mnesia),
-  create_mem_table(mcb_board_dynamic, record_info(fields, mcb_board_dynamic)).
+  create_mem_table(mcb_board_dynamic, record_info(fields, mcb_board_dynamic),
+                  [#mcb_board_dynamic.board_id]),
+  create_mem_table(mcb_thread_dynamic, record_info(fields, mcb_thread_dynamic),
+                  [#mcb_thread_dynamic.thread_id]).
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc Create Mnesia table in memory
-create_mem_table(Record, RecInfo) ->
+create_mem_table(Record, RecInfo, IndexPositions) ->
   mnesia:create_table(Record,
                       [ {ram_copies, [node()]}
-                      , {index, [2]} % indexing 1st record field
+                      , {index, IndexPositions}
                       , {attributes, RecInfo}
                       ]),
   %%mnesia:add_table_index(mcb_board, field1),
@@ -37,19 +40,22 @@ create_mem_table(Record, RecInfo) ->
            Key  :: any()) -> orddict:orddict() | tuple() | {error, not_found}.
 read(Tab, Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
-  {atomic, [Row]} = mnesia:transaction(RFun),
-  Row.
+  case mnesia:transaction(RFun) of
+    {atomic, [Row]} -> Row;
+    _ -> {error, not_found}
+  end.
 
 %%--------------------------------------------------------------------
 -spec write(Type :: macaba_mnesia_object(),
-            Value :: any()) -> ok.
+            Value :: any()) -> {atomic, any()} | {error, any()}.
 write(Tab, Value) ->
   RFun = fun() -> mnesia:write(Tab, Value, write) end,
-  {atomic, [Row]} = mnesia:transaction(RFun),
-  Row.
+  mnesia:transaction(RFun).
 
 %%--------------------------------------------------------------------
 %% @doc Start transaction, read, do Fun(Object), write, return new value
+-spec update(Tab :: atom(), Key :: any(), Fun :: fun()) ->
+                {atomic, any()} | {error, any()}.
 update(Tab, Key, Fun) ->
   UF = fun() ->
            [Object] = mnesia:read({Tab, Key}),

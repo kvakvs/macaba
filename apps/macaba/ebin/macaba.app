@@ -7,4 +7,5 @@
               {env,[]},
               {modules,[macaba,macaba_app,macaba_board,macaba_db,
                         macaba_db_mnesia,macaba_db_riak,macaba_html_handler,
-                        macaba_ses,macaba_ses_sup,macaba_sup,macaba_web]}]}.
+                        macaba_masternode,macaba_ses,macaba_ses_sup,
+                        macaba_sup,macaba_web]}]}.

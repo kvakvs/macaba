@@ -39,27 +39,36 @@ terminate(_Reason, _Req, _State) ->
                     State :: #mcb_html_state{}) ->
                        {Req2 :: tuple(), State2 :: #mcb_html_state{}}.
 
+
+%%%---------------------------------------------------
+%% @doc GET /
 macaba_handle(index, <<"GET">>, Req0, State0) ->
-  State1 = state_set_var(boards, macaba_board:get_boards(), State0),
+  Boards = lists:map(fun macaba:record_to_proplist/1,
+                     macaba_board:get_boards()),
+  State1 = state_set_var(boards, Boards, State0),
   {Req, State} = render_page("index", Req0, State1),
   {Req, State};
 
 %%%---------------------------------------------------
-%% @doc Do GET action on specified board
+%% @doc Do GET board/id/
 macaba_handle(board, <<"GET">>, Req0, State0) ->
-  State1 = state_set_var(boards, macaba_board:get_boards(), State0),
+  Boards = lists:map(fun macaba:record_to_proplist/1,
+                     macaba_board:get_boards()),
+  State1 = state_set_var(boards, Boards, State0),
 
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
-  BoardInfo = macaba_board:get_board(BoardId),
+  BoardInfo = macaba:record_to_proplist(macaba_board:get_board(BoardId)),
   State2 = state_set_var(board_info, BoardInfo, State1),
 
-  State3 = state_set_var(threads, macaba_board:get_threads(BoardId), State2),
+  Threads = lists:map(fun macaba:record_to_proplist/1,
+                      macaba_board:get_threads(BoardId)),
+  State3 = state_set_var(threads, Threads, State2),
 
   {Req, State} = render_page("board", Req1, State3),
   {Req, State};
 
 %%%---------------------------------------------------
-%% @doc Do some POST action on specified board
+%% @doc Create thread POST on board/id/new
 macaba_handle(board_new, <<"POST">>, Req0, State0) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
 

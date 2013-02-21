@@ -23,8 +23,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  {ok, { {one_for_one, 5, 10}, [
-                                child(macaba_ses_sup, supervisor)
+  {ok, { {one_for_one, 5, 10}, [ child(macaba_ses_sup, supervisor)
+                               , child(macaba_masternode, worker)
                                ]} }.
 
 %%% Local Variables:

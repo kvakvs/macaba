@@ -8,6 +8,7 @@
         , as_string/1
         , as_bool/1
         , as_binary/1
+        , as_integer/1
         , as_ipv4/1
         , as_existing_atom/1
         , propget/2
@@ -16,15 +17,20 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+
+%%-----------------------------------------------------------------------------
 record_to_proplist(#mcb_board{}=Rec) ->
   lists:zip(record_info(fields, mcb_board), tl(tuple_to_list(Rec)));
 record_to_proplist(#mcb_thread{}=Rec) ->
   lists:zip(record_info(fields, mcb_thread), tl(tuple_to_list(Rec)));
 record_to_proplist(#mcb_post{}=Rec) ->
   lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)));
+record_to_proplist(#mcb_attachment{}=Rec) ->
+  lists:zip(record_info(fields, mcb_attachment), tl(tuple_to_list(Rec)));
 record_to_proplist(X) -> error({badarg, X}).
 
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
+%% @doc Faster replacement for proplists:get_value
 propget(K, Proplist) ->
   case lists:keyfind(K, 1, Proplist) of
     false ->
@@ -33,7 +39,8 @@ propget(K, Proplist) ->
       V
   end.
 
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
+%% @doc Faster replacement for proplists:get_value with default value
 propget(K, Proplist, Default) ->
   case lists:keyfind(K, 1, Proplist) of
     false ->

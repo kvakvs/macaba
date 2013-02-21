@@ -8,8 +8,8 @@
 |
 | Incoming parameters: 'board_info'
 | 'boards' - a property list, see macaba_server.config
-| 'threads' - a list of property lists [{id,string}, {subject,"utf8"},
-| {author,"utf8"}, {created,unixtime}]
+| 'threads' - a list of property lists [{thread_id,string}, {subject,"utf8"},
+|             {author,"utf8"}, {created,unixtime}]
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
 
@@ -24,7 +24,7 @@
   <div class="span8">
     <h3>Create new thread</h3>
 
-    <form method="post" action="/board/{{ board_info.id }}/new">
+    <form method="post" action="/board/{{ board_info.board_id }}/new">
       <fieldset>
         <input type="hidden" name="thread_id" value="new">
         <label>Name</label>
@@ -49,7 +49,7 @@
 
     <ul>
       {% for t in threads %}
-      <div>Thread {{ t.id }} by {{ t.author }}: {{ t.subject }};
+      <div>Thread {{ t.thread_id }} by {{ t.author }}: {{ t.subject }};
        created {{ t.created }}</div>
       {% endfor %}
     </ul>
