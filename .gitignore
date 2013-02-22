@@ -8,3 +8,4 @@ deps
 rebar
 .emacs*
 log/
+macaba_masternode_macaba*

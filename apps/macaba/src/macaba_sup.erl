@@ -32,17 +32,13 @@ init([]) ->
             {ok, Value} -> Value;
             undefined -> [node()]
           end,
-  {ok, { {one_for_one, 5, 10},
-         [ child(macaba_masternode, worker)
+  {ok, { {one_for_one, 15, 60},
+         [ child(macaba_masternode, worker, permanent, [Nodes])
          , child(macaba_ses_sup, supervisor)
-         , child(macaba_startup, worker, transient, [Nodes])
+         , child(macaba_startup, worker, transient)
          ]} }.
+
 
 %%% Local Variables:
 %%% erlang-indent-level: 2
 %%% End:
-
-
-
-
-

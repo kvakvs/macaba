@@ -31,7 +31,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, { }).
+-record(leader_state, { }).
 
 %%%===================================================================
 %%% API
