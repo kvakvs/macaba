@@ -102,6 +102,7 @@ surrendered(State, _Synch, _Eelection) ->
                             {stop, Reason :: any(), Reply :: any(),
                              #leader_state{}} |
                             {stop, Reason :: any(), #leader_state{}}.
+
 handle_leader_call(_Request, _From, State, _Election) ->
   {reply, ok, State}.
 

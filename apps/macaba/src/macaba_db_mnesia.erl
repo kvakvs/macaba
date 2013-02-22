@@ -17,23 +17,39 @@
 %%--------------------------------------------------------------------
 %% @doc Prepare database for use
 start() ->
+  lager:info("macaba_db_mnesia: starting"),
+  {ok, Nodes} = application:get_env(macaba, cluster),
+  CS = mnesia:create_schema(Nodes),
+  lager:debug("create schema: ~p", [CS]),
   macaba:ensure_started(mnesia),
-  create_mem_table(mcb_board_dynamic, record_info(fields, mcb_board_dynamic),
-                  [#mcb_board_dynamic.board_id]),
-  create_mem_table(mcb_thread_dynamic, record_info(fields, mcb_thread_dynamic),
-                  [#mcb_thread_dynamic.thread_id]).
+  BD = mnesia:create_table(
+         mcb_board_dynamic,
+         [ {ram_copies, [node()]}
+         , {attributes, record_info(fields, mcb_board_dynamic)}
+         %% , {index, [#mcb_board_dynamic.board_id]}
+         , {type, set}
+         ]),
+  lager:debug("creating board dynamics table: ~p", [BD]),
+  TD = mnesia:create_table(
+         mcb_thread_dynamic,
+         [ {ram_copies, [node()]}
+         , {attributes, record_info(fields, mcb_thread_dynamic)}
+         %% , {index, [#mcb_thread_dynamic.thread_id]}
+         , {type, set}
+         ]),
+  lager:debug("creating thread dynamics table: ~p", [TD]).
 
 %%--------------------------------------------------------------------
-%% @private
-%% @doc Create Mnesia table in memory
-create_mem_table(Record, RecInfo, IndexPositions) ->
-  mnesia:create_table(Record,
-                      [ {ram_copies, [node()]}
-                      , {index, IndexPositions}
-                      , {attributes, RecInfo}
-                      ]),
+%% @!private
+%% @!doc Create Mnesia table in memory
+%% create_mem_table(Record, RecInfo, IndexPositions) ->
+%%   {atomic, ok} = mnesia:create_table(Record,
+%%                                      [ {ram_copies, [node()]}
+%%                                      %% , {index, IndexPositions}
+%%                                      , {attributes, RecInfo}
+%%                                      ]).
   %%mnesia:add_table_index(mcb_board, field1),
-  mnesia:add_table_copy(Record, node(), ram_copies).
+  %%{atomic, ok} = mnesia:add_table_copy(Record, node(), ram_copies).
 
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
@@ -49,7 +65,7 @@ read(Tab, Key) ->
 -spec write(Type :: macaba_mnesia_object(),
             Value :: any()) -> {atomic, any()} | {error, any()}.
 write(Tab, Value) ->
-  RFun = fun() -> mnesia:write(Tab, Value, write) end,
+  RFun = fun() -> mnesia:write(Value) end,
   mnesia:transaction(RFun).
 
 %%--------------------------------------------------------------------
@@ -58,10 +74,10 @@ write(Tab, Value) ->
                 {atomic, any()} | {error, any()}.
 update(Tab, Key, Fun) ->
   UF = fun() ->
-           [Object] = mnesia:read({Tab, Key}),
-           NewObject = Fun(Object),
-           mnesia:write(NewObject),
-           NewObject
+           [Object1] = mnesia:read(Tab, Key, read),
+           Object = Fun(Object1),
+           mnesia:write(Object),
+           Object
        end,
   mnesia:transaction(UF).
 

@@ -6,7 +6,8 @@
 %%%------------------------------------------------------------------------
 -module(macaba_db_riak).
 
--export([ start/0
+-export([ bucket_for/1
+        , start/0
         , read/2
         , read_riakobj/2
         , write/2
@@ -27,10 +28,10 @@ start() ->
 %% @private
 -spec bucket_for(macaba_riak_object()) -> binary().
 
-bucket_for(mcb_site_config)    -> <<"site-conf">>;
-%% bucket_for(mcb_board_dynamic)   -> <<"board-dyn">>; % in db_mnesia
+bucket_for(mcb_site_config)     -> <<"site-conf">>;
+bucket_for(mcb_board_dynamic)   -> <<"board-dyn">>;  % also in _db_mnesia
 bucket_for(mcb_thread)          -> <<"thread-head">>;
-%% bucket_for(mcb_thread_dynamic)   -> <<"thread-dyn">>; % in db_mnesia
+bucket_for(mcb_thread_dynamic)  -> <<"thread-dyn">>; % also in _db_mnesia
 bucket_for(mcb_post)            -> <<"post">>;
 bucket_for(mcb_attachment)      -> <<"attach-head">>;
 bucket_for(mcb_attachment_body) -> <<"attach-body">>.
@@ -108,7 +109,7 @@ read_riakobj_internal(Type, B, K) ->
 %% @doc Take list of objects and try to merge conflicting changes
 resolve_conflict([First|_]) -> First.
 %% resolve_conflict([First = #mcb_board_dynamic{} | _] = L ) ->
-%%   %% Assumption: mcb_board_dynamics can only conflict on 'threads' field while
+%%  %% Assumption: mcb_board_dynamics can only conflict on 'threads' field while
 %%   %% users do fast concurrent posting to board.
 %%   MergedThreads = ordsets:from_list(
 %%                     lists:flatten( [X#mcb_board_dynamic.threads || X <- L] )
@@ -138,12 +139,13 @@ write(Type, Value) ->
   write_internal(Type, bucket_for(Type), Key, Value).
 
 %%--------------------------------------------------------------------
-write_internal(Type, B, K, Value) ->
+write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   %%------------------------------------
   %% TODO: vector clocks and shit
   %%------------------------------------
   Bin = macaba_db:encode(Type, Value),
-  riak_pool_auto:put(B, K, Bin).
+  Obj = riakc_obj:new(B, K, Bin),
+  riak_pool_auto:put(Obj).
 
 %%riak_pool_auto::put_raw(Pid, riakc_obj:new_obj(Bucket, Key, Vclock, Contents))
 

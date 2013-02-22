@@ -29,7 +29,7 @@
           offline = false :: boolean()
          }).
 
-%%-define(MCB_BOARD_DYNAMIC_VER, 1).
+-define(MCB_BOARD_DYNAMIC_VER, 1).
 %% @doc Concurrently changed part of board stored in memory
 -record(mcb_board_dynamic, {
             board_id         :: binary()
@@ -40,12 +40,16 @@
 -define(MCB_THREAD_VER, 1).
 -record(mcb_thread, {
           %% first post_id equals to thread_id but we never display thread_id
-            thread_id         :: binary()
-          , hidden = false    :: boolean() % invisible
-          , pinned = false    :: boolean() % doesn't sink
-          , read_only = false :: boolean() % admins only can post
+          thread_id         :: binary(),
+          hidden = false    :: boolean(), % invisible
+          pinned = false    :: boolean(), % doesn't sink
+          read_only = false :: boolean(), % admins only can post
+          author            :: string(),  % copy of first post' author
+          subject           :: string(),  % copy of first post' subject
+          created = 0       :: integer() % unix time
          }).
 
+-define(MCB_THREAD_DYNAMIC_VER, 1).
 %% @doc Concurrently changed part of thread stored in memory
 -record(mcb_thread_dynamic, {
             thread_id     :: binary()
@@ -59,7 +63,7 @@
           , subject = ""   :: string()  % trusted HTML
           , author  = ""   :: string()  % trusted HTML
           , message = ""   :: string()  % trusted HTML
-          , created = ""   :: integer() % unix time
+          , created        :: integer() % unix time
           , attach_id = "" :: binary()
           , sage = false   :: boolean()
          }).

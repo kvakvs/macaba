@@ -11,7 +11,7 @@
 -export([terminate/3]).
 
 %%-include_lib("macaba/include/macaba_types.hrl").
--type board_cmd_t() :: index | board | board_new | thread.
+-type board_cmd_t() :: index | board | thread | thread_new.
 -record(mcb_html_state, {
           mode           :: board_cmd_t(),
           page_vars = [] :: orddict:orddict()
@@ -26,8 +26,14 @@ init(_Transport, Req, [Mode]) ->
 %%%-----------------------------------------------------------------------------
 handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
   {Method, Req1} = cowboy_req:method(Req0),
-  {Req, State} = macaba_handle(Mode, Method, Req1, State0),
-  {ok, Req, State}.
+  lager:debug("http ~p: ~p", [Method, Mode]),
+  try
+    {Req, State} = macaba_handle(Mode, Method, Req1, State0),
+    {ok, Req, State}
+  catch E ->
+      lager:debug("~p ~p", [E, erlang:get_stacktrace()]),
+      {ok, Req0, State0}
+  end.
 
 %%%-----------------------------------------------------------------------------
 terminate(_Reason, _Req, _State) ->
@@ -69,7 +75,7 @@ macaba_handle(board, <<"GET">>, Req0, State0) ->
 
 %%%---------------------------------------------------
 %% @doc Create thread POST on board/id/new
-macaba_handle(board_new, <<"POST">>, Req0, State0) ->
+macaba_handle(thread_new, <<"POST">>, Req0, State0) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
 
   {ok, PostVals, Req2} = cowboy_req:body_qs(Req1),
@@ -80,25 +86,25 @@ macaba_handle(board_new, <<"POST">>, Req0, State0) ->
   Attach   = macaba:propget(<<"attach">>,    PostVals, undefined),
   Captcha  = macaba:propget(<<"captcha">>,   PostVals, undefined),
 
-  PostOpt = [ {thread_id, macaba:as_integer(ThreadId)}
-            , {author, Author}
-            , {subject, Subject}
-            , {message, Message}
-            , {attach, Attach}
-            , {captcha, Captcha} % TODO: check captcha before creating
-            ],
-  ThreadOpt = [
-              ],
-  _Thread = macaba_board:new_thread(ThreadOpt, PostOpt),
-
-  lager:info("detected POST ~p", [Req0]),
+  PostOpt = orddict:from_list(
+              [ {thread_id, macaba:as_integer(ThreadId)}
+              , {author, Author}
+              , {subject, Subject}
+              , {message, Message}
+              , {attach, Attach}
+              , {captcha, Captcha} % TODO: captcha support
+              ]),
+  ThreadOpt = orddict:from_list(
+                [
+                ]),
+  _Thread = macaba_board:new_thread(BoardId, ThreadOpt, PostOpt),
   {Req, State} = redirect("/board/" ++ macaba:as_string(BoardId),
                           Req2, State0),
-  {Req, State};
+  {Req, State}.
 
 %%%---------------------------------------------------
-macaba_handle(_, _, Req, _State) ->
-  cowboy_req:reply(404, Req). % Method not allowed.
+%% macaba_handle(_, _, Req, _State) ->
+%%   cowboy_req:reply(404, Req). % Method not allowed.
 
 %%%------------------------------------------------------------------------
 %% @private

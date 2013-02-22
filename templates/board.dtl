@@ -15,7 +15,7 @@
 
 <div class="row">
   <div class="span12">
-    <h1>Macaba: {{ board_info.id }} - {{ board_info.title }}</h1>
+    <h1>Macaba: {{ board_info.board_id }} - {{ board_info.title }}</h1>
   </div>
 </div>
 
@@ -24,7 +24,7 @@
   <div class="span8">
     <h3>Create new thread</h3>
 
-    <form method="post" action="/board/{{ board_info.board_id }}/new">
+    <form method="post" action="/board/{{ board_info.board_id }}/thread/new">
       <fieldset>
         <input type="hidden" name="thread_id" value="new">
         <label>Name</label>

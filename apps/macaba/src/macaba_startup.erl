@@ -50,8 +50,10 @@ init([]) ->
   ThisNode = node(),
   case gen_leader:call(macaba_masternode, get_leader) of
     ThisNode ->
-      macaba_masternode ! load_board_dynamics,
-      macaba_masternode ! load_thread_dynamics;
+      R = try macaba_board:load_board_dynamics()
+          catch E ->
+              lager:error("load_board_dyn ~p", [E])
+          end;
     _ ->
       lager:info("This node is not masternode, skipping master init")
   end,

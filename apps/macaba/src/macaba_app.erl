@@ -51,14 +51,14 @@ start_web() ->
   Html = macaba_html_handler,
   Disp = cowboy_router:compile(
            [ {'_', [
-                     {"/css/[...]", cowboy_static, [{directory, CSSPath}, Mime]}
-                   , {"/js/[...]",  cowboy_static, [{directory, JSPath},  Mime]}
-                   , {"/img/[...]", cowboy_static, [{directory, ImgPath}, Mime]}
-                   , {"/board/:mcb_board/new", Html, [board_new]}
-                   , {"/board/:mcb_board/[...]", Html, [board]}
-                , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
-                   , {"/", Html, [index]}
-                   ]}
+             {"/css/[...]", cowboy_static, [{directory, CSSPath}, Mime]}
+             , {"/js/[...]",  cowboy_static, [{directory, JSPath},  Mime]}
+             , {"/img/[...]", cowboy_static, [{directory, ImgPath}, Mime]}
+             , {"/board/:mcb_board/thread/new", Html, [thread_new]}
+             , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
+             , {"/board/:mcb_board/[...]", Html, [board]}
+             , {"/", Html, [index]}
+             ]}
            ]),
   {ok, HttpPort} = application:get_env(macaba, http_port),
   {ok, Listeners} = application:get_env(macaba, http_listeners),
