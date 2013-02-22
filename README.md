@@ -1,20 +1,37 @@
 macaba-server
 =============
 
-High-load anonymous message board server made in Erlang, designed with scalability
-and extensibility in mind. Meant to be familiar for wakaba/futaba users.
+Anonymous message board server made in Erlang, designed with high load,
+scalability and extensibility in mind. The database storage concept is meant to
+be familiar for wakaba/futaba users:
+
+* site contains boards, boards contain threads, threads contain posts;
+
+* posts use an unique monotonically increasing counter, one per board);
+
+* posts contain optional image attachment (or several attachments)
+
+* name field is optional, supports special hash tags for identifying without
+discovering the user's identity;
+
+* post body has a special markup which is postprocessed to HTML markup.
+
+Currently only HTTP HTML interface is supported. Websocket and REST API is in
+plans for beta.
 
 Project status
 ==============
 
-Planning-prealpha
+Pre-Alpha/Alpha
 
-Using RIAK - a key/value distributed and fault tolerant store, initially works on a single node, but
-allows creating multiple-node cluster. Data is self-balanced when you add a node, and if some node
-randomly crashes or goes down, data is rebalanced to survive the crash without degrading performance.
+Using RIAK - a key/value distributed and fault tolerant store, allows to create
+multiple-node cluster. Data in RIAK is self-balanced when you add a node, and
+if some node randomly crashes or goes down, data is rebalanced to survive the
+crash without degrading performance.
 
-For synchronizing thread/post counters across multiple nodes gproc library is used. Normally it runs
-in single-node mode with zero configuration required, but for running in cluster, see CLUSTERING.md
+For synchronizing thread/post counters across multiple nodes Mnesia memory
+tables are used. Hopefully this will be fast enough to allow for up to hundreds
+posts per board per second in a multinode setup.
 
 Prerequisites
 =============
@@ -24,14 +41,17 @@ Prerequisites
 * Erlang/OTP R15 or R16, get from https://www.erlang-solutions.com/downloads/download-erlang-otp -
 requires no configuration
 
-* RIAK database, get from http://docs.basho.com/riak/latest/downloads/ - requires no configuration
-just install and ensure its started by doing sudo /etc/init.d/riak restart
+* RIAK database, get from http://docs.basho.com/riak/latest/downloads/ -
+requires no configuration just install and ensure its started by doing
+sudo /etc/init.d/riak restart
 
 Compiling
 =========
 
 * Checkout from github by using git clone <url>
-* run: make
+* $ make
+* $ make run (or make runf to run without recompiling all deps)
 
-This will download 'rebar', using rebar it will check out dependencies to 'deps/' subdirectory,
-compile dependencies, compile macaba, and run locally on port 8000.
+This will download 'rebar', using rebar it will check out dependencies to
+'deps/' subdirectory, compile dependencies, compile macaba, and run locally
+on port 8000.
