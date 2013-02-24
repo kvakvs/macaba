@@ -1,7 +1,8 @@
 -ifndef(MACABA_TYPES_HRL).
 -define(MACABA_TYPES_HRL, true).
 
--type proplist_t() :: [ {K :: term(), V :: term()} ].
+-type proplist_t() :: [ {K :: atom()|binary()|string(), V :: any()} ].
+-type proplist_of(T) :: [ {K :: atom()|binary()|string(), V :: T} ].
 
 -type ipv4_t() :: {
               non_neg_integer(),non_neg_integer(),

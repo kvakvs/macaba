@@ -29,7 +29,7 @@ clean: rebar
 	./rebar clean
 
 .PHONY: test
-test: compile
+test: compilef
 	@./rebar skip_deps=true eunit
 
 .PHONY: rel

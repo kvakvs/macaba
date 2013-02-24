@@ -39,26 +39,30 @@ start_web() ->
   ok = application:start(cowboy),
 
   CurrentDir = filename:absname(""),
-  CSSPath = filename:join([CurrentDir, "priv", "web", "css"]),
-  JSPath  = filename:join([CurrentDir, "priv", "web", "js"]),
-  ImgPath = filename:join([CurrentDir, "priv", "web", "img"]),
+  CSSPath = filename:join([CurrentDir, "priv", "css"]),
+  JSPath  = filename:join([CurrentDir, "priv", "js"]),
+  ImgPath = filename:join([CurrentDir, "priv", "img"]),
 
   Mime = {mimetypes, [ {<<".css">>, [<<"text/css">>]}
                      , {<<".js">>,  [<<"application/javascript">>]}
+                     , {<<".jpg">>,  [<<"image/jpeg">>]}
+                     , {<<".png">>,  [<<"image/png">>]}
                      ]},
-  %% a module to handle HTML interface to the board, render templates, board
-  %% and thread lists
-  Html = macaba_html_handler,
+  S = cowboy_static,
+  H = macaba_html_handler,
+  St1 = {"/css/[...]", S, [{directory, CSSPath}, Mime]},
+  St2 = {"/js/[...]",  S, [{directory, JSPath},  Mime]},
+  St3 = {"/img/[...]", S, [{directory, ImgPath}, Mime]},
+  TNew = {"/board/:mcb_board/thread/new", H, [thread_new]},
+  TShow = {"/board/:mcb_board/thread/:mcb_thread/:mcb_page", H, [thread]},
+  BShow1 = {"/board/:mcb_board/:mcb_page", H, [board]},
+  BShow2 = {"/board/:mcb_board", H, [board]},
   Disp = cowboy_router:compile(
-           [ {'_', [
-             {"/css/[...]", cowboy_static, [{directory, CSSPath}, Mime]}
-             , {"/js/[...]",  cowboy_static, [{directory, JSPath},  Mime]}
-             , {"/img/[...]", cowboy_static, [{directory, ImgPath}, Mime]}
-             , {"/board/:mcb_board/thread/new", Html, [thread_new]}
-             , {"/board/:mcb_board/thread/:mcb_thread/[...]", Html, [thread]}
-             , {"/board/:mcb_board/[...]", Html, [board]}
-             , {"/", Html, [index]}
-             ]}
+           [ {'_', [ St1, St2, St3
+                   , TNew, TShow
+                   , BShow1, BShow2
+                   , {"/", H, [index]}
+                   ]}
            ]),
   {ok, HttpPort} = application:get_env(macaba, http_port),
   {ok, Listeners} = application:get_env(macaba, http_listeners),

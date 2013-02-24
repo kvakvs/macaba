@@ -1,5 +1,6 @@
 %%%------------------------------------------------------------------------
-%%% @doc Board and board list handling
+%%% @doc Board data model, is used by board client (macaba_board_cli) and then
+%%% formatted to HTML or JSON etc
 %%% Created: 2013-02-17 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_board).
@@ -8,6 +9,7 @@
         , get_board/1
         , get_boards/0
         , get_threads/1
+        , get_thread_contents/2
         , new_post/2
         , new_thread/3
         , start/0
@@ -106,17 +108,55 @@ fake_default_boards() ->
      }].
 
 %%%-----------------------------------------------------------------------------
-%% @doc Returns list of threads in board (only info headers, no contents!)
+%% @doc Returns list of threads in board (only info headers, no contents!), also
+%% a proplist with board contents (first post and X last posts - configurable)
+-spec get_threads(BoardId :: binary()) ->
+                     {[#mcb_thread{}], [{binary(), [#mcb_post{}]}]}.
 get_threads(BoardId) when is_binary(BoardId) ->
   Ids = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
           {error, not_found} -> [];
           #mcb_board_dynamic{threads=T} -> T
         end,
-  Threads = [case macaba_db_riak:read(mcb_thread, T) of
-               #mcb_thread{}=Value -> Value;
-               {error, _} -> []
-             end || T <- Ids],
-  lists:flatten(Threads).
+  Threads0 = [case macaba_db_riak:read(mcb_thread, T) of
+                #mcb_thread{}=Value -> Value;
+                {error, _} -> []
+              end || T <- Ids],
+  Threads = lists:flatten(Threads0),
+  Threads.
+
+%%%-----------------------------------------------------------------------------
+%% @doc By thread id reads thread dynamic, to get ids of posts, loads first and
+%% configured amount of last posts into a proplist. Give 'all' for LastCount to
+%% load whole thread
+-spec get_thread_contents(ThreadId :: binary(),
+                          LastCount0 :: integer() | 'all') -> [#mcb_post{}].
+
+get_thread_contents(ThreadId, LastCount0) when is_binary(ThreadId) ->
+  TD = case macaba_db_mnesia:read(mcb_thread_dynamic, ThreadId) of
+         {error, not_found} -> #mcb_thread_dynamic{};
+         D -> D
+       end,
+  PostIds = TD#mcb_thread_dynamic.post_ids,
+
+  %% if lastcount was set to 'all' - change it to thread length
+  LastCount1 = case LastCount0 of
+                 all -> length(PostIds);
+                 _ -> LastCount0
+               end,
+  LastCount = min(LastCount1, length(PostIds)),
+
+  %% get first and cut last
+  First = case PostIds of [] -> []; [F|_] -> get_post(F) end,
+  %% FIXME: this may run slow on large threads >1000 posts?
+  LastIds = lists:nthtail(length(PostIds) - LastCount, PostIds),
+  Last = lists:map(fun get_post/1, LastIds),
+  lists:flatten([First | Last]).
+
+%%%-----------------------------------------------------------------------------
+%% @doc Loads post info
+-spec get_post(PostId :: binary()) -> [#mcb_post{}] | {error, not_found}.
+get_post(PostId) when is_binary(PostId) ->
+  macaba_db_riak:read(mcb_post, PostId).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates a new thread with a single post, thread_id is set to the first

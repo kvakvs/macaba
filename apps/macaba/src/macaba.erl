@@ -5,12 +5,14 @@
 -module(macaba).
 
 -export([ ensure_started/1
+        , as_atom/1
         , as_string/1
         , as_bool/1
         , as_binary/1
         , as_integer/1
         , as_ipv4/1
         , as_existing_atom/1
+        , pagination/3
         , propget/2
         , propget/3
         , record_to_proplist/1
@@ -66,6 +68,12 @@ ensure_started_1(App, Retries) ->
   end.
 
 %%-----------------------------------------------------------------------------
+as_atom(A) when is_atom(A) -> A;
+as_atom(A) when is_list(A) -> list_to_existing_atom(A);
+as_atom(A) when is_binary(A) -> binary_to_existing_atom(A, latin1).
+
+%%-----------------------------------------------------------------------------
+as_string(X) when is_atom(X) -> atom_to_list(X);
 as_string(X) when is_list(X) -> X;
 as_string(X) when is_integer(X) -> integer_to_list(X);
 as_string(X) when is_binary(X) -> binary_to_list(X);
@@ -79,14 +87,14 @@ as_bool(X) when is_boolean(X) -> X;
 as_bool(0) -> false;
 as_bool(X) when is_integer(X) -> true;
 as_bool(X) when is_binary(X) -> as_bool(binary_to_list(X));
-as_bool(X) when is_list(X) ->
-    case catch list_to_existing_atom(X) of
-        Y when is_boolean(Y) -> Y;
-        _                    -> false
-    end.            
+as_bool("1") -> true;
+as_bool("0") -> false;
+as_bool("true") -> true;
+as_bool("false") -> false.
 
 %%--------------------------------------------------------------------
--spec as_binary(X :: any()) -> binary().
+-spec as_binary(X :: atom() | integer() | binary() | list()) -> binary().
+as_binary(X) when is_atom(X) -> atom_to_binary(X, latin1);
 as_binary(X) when is_integer(X) -> list_to_binary(integer_to_list(X));
 as_binary(X) when is_binary(X) -> X;
 as_binary(X) when is_list(X) -> list_to_binary(X);
@@ -138,6 +146,22 @@ as_existing_atom(Str) when is_list(Str) ->
   catch error:badarg -> undefined end.
 
 %%--------------------------------------------------------------------
+%% @doc Pagination helper, cuts piece of list according to Page id
+%% TODO: move out of this module
+-spec pagination(L :: list(), Page :: integer(),
+                 PageSize :: integer()) -> list().
+pagination(_L, Page, _PageSize) when Page =< 0 -> [];
+pagination(L, Page, PageSize) when (Page-1) * PageSize > length(L) -> [];
+pagination(L, 1, PageSize0) ->
+  PageSize1 = min(PageSize0, length(L)),
+  {H, _} = lists:split(PageSize1, L),
+  H;
+pagination(L, Page, PageSize0) ->
+  PageSize1 = min(PageSize0, length(L)),
+  {_, T} = lists:split(PageSize1 * (Page-1), L),
+  PageSize2 = min(PageSize0, length(T)),
+  {H, _} = lists:split(PageSize2, T),
+  H.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

@@ -20,39 +20,44 @@
 </div>
 
 <div class="row">
-  <div class="span2"></div>
-  <div class="span8">
+  <div class="span12">
     <h3>Create new thread</h3>
 
-    <form method="post" action="/board/{{ board_info.board_id }}/thread/new">
-      <fieldset>
-        <input type="hidden" name="thread_id" value="new">
-        <label>Name</label>
-        <input type="text" name="author" size="40" /><br />
-        <label>Subject</label>
-        <input type="text" name="subject" size="40" />
-        <input type="submit" value="New thread" /><br />
-        <label>Post</label>
-        <textarea name="message" rows="10" cols="80"></textarea><br />
-        <label>Attach</label>
-        <input type="file" name="attach" size="40" /><br />
-        <label>Captcha</label>
-        <input type="text" name="captcha" size="20" /><br />
-      </fieldset>
+    <form method="post" class="form-inline"
+          action="/board/{{ board_info.board_id }}/thread/new">
+      <input type="hidden" name="thread_id" value="new">
+      <label>Name</label>
+      <input type="text" name="author" size="40" /><br/>
+
+      <label>Subject</label>
+      <input type="text" name="subject" size="40" />
+      <input type="submit" value="New thread" /><br/>
+
+      <textarea name="message" rows="4" cols="80" class="postmsg">
+      </textarea><br/>
+
+      <label>Attach</label>
+      <input type="file" name="attach" size="40" />
+      <!--label>Captcha</label>
+      <input type="text" name="captcha" size="20" /-->
     </form>
-  </div>
 </div>
 
 <div class="row">
   <div class="span12">
     <h3>Threads list</h3>
 
-    <ul>
-      {% for t in threads %}
-      <div>Thread {{ t.thread_id }} by {{ t.author }}: {{ t.subject }};
-       created {{ t.created }}</div>
+    {% for t in threads %}
+    <div class="posthd">
+      Thread {{ t.thread_id }} by {{ t.author }}: {{ t.subject }};
+      created {{ t.created }}
+      {% for p in previews %}
+      <div class="post">
+        {{ p }}
+      </div>
       {% endfor %}
-    </ul>
+    </div>
+    {% endfor %}
   </div>
 </div>
 
