@@ -33,9 +33,9 @@
       {% for p in t.preview %}
         {% include "post.html" %}
         {% if forloop.counter == 1 %}{% if t.skipped_posts > 0 %}
-          Skipped {{ t.skipped_posts }} posts, click
-          <a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">Reply</a>
-          to see full thread
+          {{ t.skipped_posts }} posts and {{ t.skipped_images }} images omitted, click
+          <a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
+            here</a> to view
         {% endif %}{% endif %}
       {% endfor %}
       <hr />

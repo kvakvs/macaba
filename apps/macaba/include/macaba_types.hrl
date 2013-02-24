@@ -65,7 +65,7 @@
           , author  = ""   :: string()  % trusted HTML
           , message = ""   :: string()  % trusted HTML
           , created        :: integer() % unix time
-          , attach_id = "" :: binary()
+          , attach_id      :: binary()
           , sage = false   :: boolean()
          }).
 

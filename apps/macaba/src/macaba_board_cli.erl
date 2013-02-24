@@ -61,11 +61,22 @@ get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
 %% @private
 additional_fields_for_thread(T, PreviewSize) ->
   ThreadId = macaba:propget(thread_id, T),
-  Preview = {preview, get_thread_preview(ThreadId, PreviewSize)},
+  PreviewList = get_thread_preview(ThreadId, PreviewSize),
+  Preview = {preview, PreviewList},
   TD = macaba_board:get_thread_dynamic(ThreadId),
   PostIds = TD#mcb_thread_dynamic.post_ids,
-  Skipped = {skipped_posts, max(0, length(PostIds) - PreviewSize)},
-  [Preview, Skipped | T].
+  SkippedP = {skipped_posts, max(0, length(PostIds) - PreviewSize - 1)},
+  SkippedI = {skipped_images, count_images(tl(PreviewList), PreviewSize)},
+  [Preview, SkippedP, SkippedI | T].
+
+count_images(Posts0, TailSize) ->
+  {Posts, _} = lists:split(max(0, length(Posts0) - TailSize), Posts0),
+  lists:foldl(fun(X, Accum) ->
+                  case macaba:propget(attach_id, X) of
+                    Attach when is_binary(Attach) -> Accum+1;
+                    _ -> Accum
+                  end
+              end, 0, Posts).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns thread preview (first post plus few last posts) or full thread
