@@ -7,7 +7,7 @@
 
 -export([ get_boards/0
         , get_board/1
-        , get_threads/2
+        , get_threads/3
         , get_thread_previews/2
         , get_thread_preview/2
         ]).
@@ -30,14 +30,22 @@ get_board(BoardId) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board contents paginated
 -spec get_threads(BoardId :: binary(),
-                  {Page :: integer(), PageSize :: integer()}) ->
+                  {Page :: integer(), PageSize :: integer()},
+                  PreviewSize :: integer()) ->
                          [proplist_t()].
-get_threads(BoardId, {undefined, PageSize}) ->
-  get_threads(BoardId, {1, PageSize});
-get_threads(BoardId, {Page, PageSize}) ->
+get_threads(BoardId, {undefined, PageSize}, PreviewSize) ->
+  get_threads(BoardId, {1, PageSize}, PreviewSize);
+get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
   Threads = macaba:pagination(
               macaba_board:get_threads(BoardId), Page, PageSize),
-  lists:map(fun macaba:record_to_proplist/1, Threads).
+  Proplists = lists:map(fun macaba:record_to_proplist/1, Threads),
+  case PreviewSize of
+    X when X > 1->
+      [ [{preview, get_thread_preview(
+                     macaba:propget(thread_id, T), PreviewSize)
+         } | T] || T <- Proplists];
+    _ -> Proplists
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns thread preview (first post plus few last posts) or full thread
@@ -47,6 +55,7 @@ get_threads(BoardId, {Page, PageSize}) ->
                                  [proplist_of(proplist_t())].
 get_thread_previews(ThreadIdList, PreviewSize) ->
   %% for each thread get preview
+  lager:debug("cli: get_thread_previews ids=~p psize=~p", [ThreadIdList, PreviewSize]),
   [{T, get_thread_preview(T, PreviewSize)} || T <- ThreadIdList].
 
 %%%-----------------------------------------------------------------------------
@@ -54,9 +63,10 @@ get_thread_previews(ThreadIdList, PreviewSize) ->
                          PreviewSize :: non_neg_integer()) ->
                             [proplist_t()].
 get_thread_preview(ThreadId, PreviewSize) ->
+  lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
   Posts = macaba_board:get_thread_contents(ThreadId, PreviewSize),
   %% convert each record in preview to proplist
-  [{P#mcb_post.post_id, macaba:record_to_proplist(P)} || P <- Posts].
+  [macaba:record_to_proplist(P) || P <- Posts].
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

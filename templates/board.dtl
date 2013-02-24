@@ -6,10 +6,11 @@
 | A thread is represented by id, has subject, author and creation time
 | To get contents of thread preview, use \{\{ ???TODO??? }}
 |
-| Incoming parameters: 'board_info'
-| 'boards' - a property list, see macaba_server.config
-| 'threads' - a list of property lists [{thread_id,string}, {subject,"utf8"},
-|             {author,"utf8"}, {created,unixtime}]
+| Incoming parameters: 'board_info' #mcb_board{}
+| 'boards' - all configured boards, list of #mcb_board{}
+| 'threads' - a list of property lists #mcb_thread{}
+| 'previews' - map<ThreadId::string, [#mcb_post{}]> a preview is first post in
+|            thread plus few last posts (configurable)
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
 
@@ -33,8 +34,7 @@
       <input type="text" name="subject" size="40" />
       <input type="submit" value="New thread" /><br/>
 
-      <textarea name="message" rows="4" cols="80" class="postmsg">
-      </textarea><br/>
+      <textarea name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
 
       <label>Attach</label>
       <input type="file" name="attach" size="40" />
@@ -45,18 +45,22 @@
 
 <div class="row">
   <div class="span12">
-    <h3>Threads list</h3>
-
     {% for t in threads %}
-    <div class="posthd">
-      Thread {{ t.thread_id }} by {{ t.author }}: {{ t.subject }};
-      created {{ t.created }}
-      {% for p in previews %}
-      <div class="post">
-        {{ p }}
-      </div>
-      {% endfor %}
+    {% for p in t.preview %}
+    <div id="post_{{ p.post_id }}" class="{% if forloop.counter == 1 %}oppost{% endif %} post">
+      <span class="title">{{ p.subject }}</span>
+      <span class="author">{{ p.author }}</span>
+      <span class="time">{{ p.created }}</span>
+      <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ t.thread_id }}#i{{ p.post_id }}">
+          №{{ p.post_id }}</a></span>
+      {% if p.attach_id %}
+      <span id="exlink_{{ p.post_id }}"><a href="/attach/{{ p.attach_id }}/thumb">
+          <img class="img" src="/attach/{{ p.attach_id }}"></a></span>
+      {% endif %}
+      <div class="msg" id="m{{ p.post_id }}">{{ p.message }}</div>
     </div>
+    {% endfor %}
+    <hr />
     {% endfor %}
   </div>
 </div>

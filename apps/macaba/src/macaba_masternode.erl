@@ -31,7 +31,18 @@
 
 -define(SERVER, ?MODULE).
 
--record(leader_state, { }).
+-record(leader_state, {
+          riak_sync_tab,
+          sync = false :: boolean(),
+          is_leader = false :: boolean()
+         }).
+%% @doc Represents an value in updated Mnesia memory table. Current cluster
+%% leader fetches records from ETS and sends them to RIAK periodically.
+%% TODO: Stop syncing if leader changes, transfer update lists to new leader?
+-record(mcb_riak_sync, {
+            id     :: {atom(), binary()}
+         }).
+-define(RESYNC_SLEEP_MSEC, 1000).
 
 %%%===================================================================
 %%% API
@@ -61,7 +72,13 @@ start_link(Nodes, Opts) ->
 -spec init(Args :: list()) -> {ok, #leader_state{}} | ignore |
                               {stop, Reason :: any()}.
 init([]) ->
-  {ok, #leader_state{}}.
+  T = ets:new(mcb_riak_sync, [ protected
+                             , {keypos, #mcb_riak_sync.id}
+                             ]),
+  lager:debug("masternode: init"),
+  {ok, #leader_state{
+    riak_sync_tab = T
+    }}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -72,13 +89,15 @@ init([]) ->
               Node :: node() | undefined) ->
                  {ok, Synch :: any(), State :: #leader_state{}}.
 elected(State, _Election, undefined) ->
+  lager:debug("masternode: elected(node=undef)"),
   Synch = [],
-  {ok, Synch, State};
+  {ok, Synch, State#leader_state{is_leader=true}};
 
 %% Called only in the leader process when a new candidate joins the
 %% cluster. The Synch term will be sent to Node.
-elected(State, _Election, _Node) ->
-  {reply, [], State}.
+elected(State, _Election, Node) ->
+  lager:debug("masternode: elected(node=~p)", [Node]),
+  {reply, [], State#leader_state{is_leader=true}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -87,7 +106,9 @@ elected(State, _Election, _Node) ->
 -spec surrendered(#leader_state{}, Synch :: any(),
                   Election :: gen_leader:election()) -> {ok, #leader_state{}}.
 surrendered(State, _Synch, _Eelection) ->
-  {ok, State}.
+  lager:debug("masternode: surrendered"),
+  %% TODO: actions when leader is lost by this node
+  {ok, State#leader_state{is_leader=false}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -103,8 +124,30 @@ surrendered(State, _Synch, _Eelection) ->
                              #leader_state{}} |
                             {stop, Reason :: any(), #leader_state{}}.
 
-handle_leader_call(_Request, _From, State, _Election) ->
-  {reply, ok, State}.
+%% @doc Command from mnesia db that a record was updated. Handled only if sync
+%% flag in state set to true
+handle_leader_call({updated_in_mnesia, Type, Key}, _From,
+                   State=#leader_state{sync=true}, _Election) ->
+  %%lager:debug("masternode: resync mark ~p:~p", [Type, Key]),
+  SyncValue = #mcb_riak_sync{id={Type, Key}},
+  ets:insert(State#leader_state.riak_sync_tab, SyncValue),
+  {reply, ok, State};
+
+%% @doc Starts sync mode for Mnesia data
+handle_leader_call(start_resync, _From, State=#leader_state{sync=false}, _E) ->
+  lager:info("masternode: resync to RIAK enabled"),
+  erlang:send_after(?RESYNC_SLEEP_MSEC, self(), do_resync),
+  {reply, ok, State#leader_state{sync=true}};
+
+handle_leader_call(start_resync, _From, State=#leader_state{sync=true}, _E) ->
+  {reply, already_started, State};
+
+handle_leader_call(get_leader, _, S, Election) ->
+  {reply, gen_leader:leader_node(Election), S};
+
+handle_leader_call(Request, _From, State, _Election) ->
+  lager:error("masternode: unk leader_call ~p", [Request]),
+  {reply, {unknown_leader_call, Request}, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -114,7 +157,8 @@ handle_leader_call(_Request, _From, State, _Election) ->
                                 {ok, Broadcast :: any(), #leader_state{}} |
                                 {noreply, #leader_state{}} |
                                 {stop, Reason :: any(), #leader_state{}}.
-handle_leader_cast(_Request, State, _Election) ->
+handle_leader_cast(Request, State, _Election) ->
+  lager:error("masternode: unk leader_cast ~p", [Request]),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -125,6 +169,7 @@ handle_leader_cast(_Request, State, _Election) ->
                      {ok, #leader_state{}} | {noreply, #leader_state{}} |
                      {stop, Reason :: any(), #leader_state{}}.
 from_leader(_Synch, State, _Election) ->
+  lager:debug("masternode: from_leader", []),
   {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -135,6 +180,7 @@ from_leader(_Synch, State, _Election) ->
                      {ok, #leader_state{}} |
                      {ok, Broadcast :: any(), #leader_state{}}.
 handle_DOWN(_Node, State, _Election) ->
+  lager:debug("masternode: DOWN"),
   {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -146,12 +192,12 @@ handle_DOWN(_Node, State, _Election) ->
                      {noreply, #leader_state{}} |
                      {stop, Reason :: any(), Reply :: any(), #leader_state{}} |
                      {stop, Reason :: any(), #leader_state{}}.
-handle_call(get_leader, _, S, E) ->
-  {reply, gen_leader:leader_node(E), S};
+handle_call(get_leader, _, S, Election) ->
+  {reply, gen_leader:leader_node(Election), S};
 
-handle_call(_Request, _From, State, _Election) ->
-  Reply = ok,
-  {reply, Reply, State}.
+handle_call(Request, _From, State, _Election) ->
+  lager:error("masternode: unk local call ~p", [Request]),
+  {reply, {unknown_local_call, Request}, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -160,7 +206,8 @@ handle_call(_Request, _From, State, _Election) ->
                   Election :: gen_leader:election()) ->
                      {noreply, #leader_state{}} |
                      {stop, Reason :: any(), #leader_state{}}.
-handle_cast(_Msg, State, _Election) ->
+handle_cast(Msg, State, _Election) ->
+  lager:error("masternode: unk cast ~p", [Msg]),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -170,7 +217,19 @@ handle_cast(_Msg, State, _Election) ->
                   Election :: gen_leader:election()) ->
                      {noreply, #leader_state{}} |
                      {stop, Reason :: any(), #leader_state{}}.
-handle_info(_Info, State, _Election) ->
+
+%% @doc Iterates over keys in mcb_riak_sync and writes updated records to Riak
+handle_info(do_resync, State=#leader_state{sync=true}, _E) ->
+  sync_mnesia_to_riak(State#leader_state.riak_sync_tab),
+  erlang:send_after(?RESYNC_SLEEP_MSEC, self(), do_resync),
+  {noreply, State};
+
+handle_info(do_resync, State=#leader_state{sync=false}, _E) ->
+  lager:error("masternode: bad incoming 'do_resync' when sync=false", []),
+  {noreply, State};
+
+handle_info(Info, State, _Election) ->
+  lager:error("masternode: unk info ~p", [Info]),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -181,6 +240,7 @@ handle_info(_Info, State, _Election) ->
 %% with Reason. The return value is ignored.
 -spec terminate(Reason :: any(), #leader_state{}) -> ok.
 terminate(_Reason, _State) ->
+  lager:debug("masternode: terminated"),
   ok.
 
 %%--------------------------------------------------------------------
@@ -198,6 +258,30 @@ code_change(_OldVsn, State, _Election, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% @private
+%% @doc Iterates over ETS mcb_riak_sync tab, each key represents record type
+%% and key to read from Mnesia and save to RIAK.
+sync_mnesia_to_riak(Tab) ->
+  sync_mnesia_to_riak_2(Tab, ets:first(Tab)),
+  %% this is called synchronously from masternode process, so we guarantee
+  %% that there will be no writes to ETS while sync is in progress
+  ets:delete_all_objects(Tab).
+
+%% @private
+sync_mnesia_to_riak_2(_Tab, '$end_of_table') -> ok;
+sync_mnesia_to_riak_2(Tab, K) ->
+  [#mcb_riak_sync{id={Type, Key}}] = ets:lookup(Tab, K),
+  case macaba_db_mnesia:read(Type, Key) of
+    {error, not_found} ->
+      lager:debug("masternode sync: delete ~p key=~p", [Type, Key]),
+      macaba_db_riak:delete(Type, Key);
+    Value ->
+      lager:debug("masternode sync: write ~p key=~p", [Type, Key]),
+      macaba_db_riak:write(Type, Value)
+  end,
+  sync_mnesia_to_riak_2(Tab, ets:next(Tab, K)).
+
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

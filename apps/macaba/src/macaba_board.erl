@@ -42,10 +42,8 @@ update_dynamics_for_board([]) -> ok;
 update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
   BoardId = B#mcb_board.board_id,
   BD = case macaba_db_riak:read(mcb_board_dynamic, BoardId) of
-         {error, not_found} ->
-           #mcb_board_dynamic{board_id = BoardId};
-         {ok, Value} ->
-           Value
+         {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
+         Value -> Value
        end,
   lager:debug("upd_dyn_b bd=~p", [BD]),
   %%T = fun() -> mnesia:write(mcb_board_dynamic, BD, write) end,
@@ -58,10 +56,8 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
 update_dynamics_for_threads([]) -> ok;
 update_dynamics_for_threads([ThreadId | Threads]) when is_binary(ThreadId) ->
   TD = case macaba_db_riak:read(mcb_thread_dynamic, ThreadId) of
-         {error, not_found} ->
-           #mcb_thread_dynamic{thread_id = ThreadId};
-         {ok, Value} ->
-           Value
+         {error, not_found} -> #mcb_thread_dynamic{thread_id = ThreadId};
+         Value -> Value
        end,
   lager:debug("upd_dyn_t td=~p", [TD]),
   %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
@@ -148,7 +144,9 @@ get_thread_contents(ThreadId, LastCount0) when is_binary(ThreadId) ->
   %% get first and cut last
   First = case PostIds of [] -> []; [F|_] -> get_post(F) end,
   %% FIXME: this may run slow on large threads >1000 posts?
-  LastIds = lists:nthtail(length(PostIds) - LastCount, PostIds),
+  PostIds2 = tl(PostIds),
+  T = min(length(PostIds2), max(0, length(PostIds2) - LastCount)),
+  LastIds = lists:nthtail(T, PostIds2),
   Last = lists:map(fun get_post/1, LastIds),
   lists:flatten([First | Last]).
 
@@ -170,13 +168,13 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
   ReadOnly = macaba:propget(read_only, ThreadOpts, false),
 
   Thread = #mcb_thread{
-    thread_id = PostId,
-    hidden    = Hidden,
-    pinned    = Pinned,
-    read_only = ReadOnly,
-    author    = Post0#mcb_post.author,
-    subject   = Post0#mcb_post.subject,
-    created   = Post0#mcb_post.created
+      thread_id = PostId
+    , hidden    = Hidden
+    , pinned    = Pinned
+    , read_only = ReadOnly
+    %%, author    = Post0#mcb_post.author
+    %%, subject   = Post0#mcb_post.subject
+    %%, created   = Post0#mcb_post.created
    },
   ThreadDyn = #mcb_thread_dynamic{
     thread_id = PostId,
@@ -191,7 +189,7 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
           BD#mcb_board_dynamic{ threads = T ++ [PostId]}
       end,
-  {atomic, NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
+  {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   {Thread, Post}.
 
 %%%-----------------------------------------------------------------------------

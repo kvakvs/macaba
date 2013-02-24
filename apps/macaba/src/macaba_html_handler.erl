@@ -91,13 +91,14 @@ chain_get_threads({Req0, State0}) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {Page, Req} = cowboy_req:binding(mcb_page, Req1),
   {ok, BPageSize} = application:get_env(macaba, board_page_size),
-  Threads = macaba_board_cli:get_threads(BoardId, {Page, BPageSize}),
-  State1 = state_set_var(threads, Threads, State0),
+  {ok, PreviewSize} = application:get_env(macaba, thread_preview_last_posts),
+  Threads = macaba_board_cli:get_threads(BoardId, {Page, BPageSize},
+                                         PreviewSize),
+  State = state_set_var(threads, Threads, State0),
 
-  {ok, LastCount} = application:get_env(macaba, thread_preview_last_posts),
-  ThreadIdList = [T || #mcb_thread{thread_id=T} <- Threads],
-  Previews = macaba_board_cli:get_thread_previews(ThreadIdList, LastCount),
-  State = state_set_var(previews, Previews, State1),
+  %% ThreadIdList = [macaba:propget(thread_id, T) || T <- Threads],
+  %% Previews = macaba_board_cli:get_thread_previews(ThreadIdList, LastCount),
+  %% State = state_set_var(previews, Previews, State1),
   {ok, {Req, State}}.
 
 %%%-----------------------------------------------------------------------------
@@ -135,6 +136,7 @@ macaba_handle_thread_new(<<"POST">>, {Req0, State0}) ->
 %% @private
 render_page(TemplateName, Req0,
             State=#mcb_html_state{ page_vars = PageVars }) ->
+  %% lager:debug("Before render: vars=~p", [PageVars]),
   Body = macaba_web:render(TemplateName, PageVars),
   Headers = [{<<"Content-Type">>, <<"text/html">>}],
   {ok, Req} = cowboy_req:reply(200, Headers, Body, Req0),

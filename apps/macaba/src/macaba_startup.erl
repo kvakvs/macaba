@@ -50,13 +50,15 @@ init([]) ->
   ThisNode = node(),
   case gen_leader:call(macaba_masternode, get_leader) of
     ThisNode ->
-      R = try macaba_board:load_board_dynamics()
-          catch E ->
-              lager:error("load_board_dyn ~p", [E])
-          end;
+      lager:info("startup: This node is leader node, attempting database init"),
+      try macaba_board:load_board_dynamics()
+      catch E -> lager:error("startup: load_board_dyn ~p", [E]) end;
     _ ->
-      lager:info("This node is not masternode, skipping master init")
+      lager:info("startup: This node is not leader node, skipping master init")
   end,
+  %% this is called after database is reloaded, so we can allow resyncing
+  %% Mnesia writes and deletes to RIAK
+  gen_leader:leader_call(macaba_masternode, start_resync),
   {ok, #startup_state{
     }}.
 

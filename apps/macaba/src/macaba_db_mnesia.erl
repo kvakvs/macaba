@@ -10,6 +10,7 @@
         , read/2
         , update/3
         , write/2
+        , delete/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -65,8 +66,15 @@ read(Tab, Key) ->
 -spec write(Type :: macaba_mnesia_object(),
             Value :: any()) -> {atomic, any()} | {error, any()}.
 write(Tab, Value) ->
-  RFun = fun() -> mnesia:write(Value) end,
-  mnesia:transaction(RFun).
+  WF = fun() -> mnesia:write(Value) end,
+  case mnesia:transaction(WF) of
+    {atomic, _} = X ->
+      Key = macaba_db:get_key_for_object(Value),
+      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      X;
+    Y ->
+      Y
+  end.
 
 %%--------------------------------------------------------------------
 %% @doc Start transaction, read, do Fun(Object), write, return new value
@@ -79,7 +87,26 @@ update(Tab, Key, Fun) ->
            mnesia:write(Object),
            Object
        end,
-  mnesia:transaction(UF).
+  case mnesia:transaction(UF) of
+    {atomic, _} = X ->
+      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      X;
+    Y ->
+      Y
+  end.
+
+%%--------------------------------------------------------------------
+delete(Tab, Key) ->
+  DF = fun() ->
+           mnesia:delete(Tab, Key, write)
+       end,
+  case mnesia:transaction(DF) of
+    {atomic, _} = X ->
+      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      X;
+    Y ->
+      Y
+  end.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

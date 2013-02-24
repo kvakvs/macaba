@@ -11,6 +11,7 @@
         , read/2
         , read_riakobj/2
         , write/2
+        , delete/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -124,21 +125,15 @@ resolve_conflict([First|_]) -> First.
 %%    }.
 
 %%--------------------------------------------------------------------
-get_key_for_object(#mcb_board_dynamic{  board_id  = Id }) -> Id;
-get_key_for_object(#mcb_thread{         thread_id = Id }) -> Id;
-get_key_for_object(#mcb_thread_dynamic{ thread_id = Id }) -> Id;
-get_key_for_object(#mcb_post{           post_id   = Id }) -> Id;
-get_key_for_object(#mcb_attachment{     attach_id = Id }) -> Id.
-
-%%--------------------------------------------------------------------
 -spec write(Type :: macaba_riak_object(), Value :: any()) ->
                ok | {error, any()}.
 
 write(Type, Value) ->
-  Key = get_key_for_object(Value),
+  Key = macaba_db:get_key_for_object(Value),
   write_internal(Type, bucket_for(Type), Key, Value).
 
 %%--------------------------------------------------------------------
+%% @private
 write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   %%------------------------------------
   %% TODO: vector clocks and shit
@@ -146,6 +141,11 @@ write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   Bin = macaba_db:encode(Type, Value),
   Obj = riakc_obj:new(B, K, Bin),
   riak_pool_auto:put(Obj).
+
+%%--------------------------------------------------------------------
+delete(Type, Value) ->
+  riak_pool_auto:delete(bucket_for(Type),
+                        macaba_db:get_key_for_object(Value)).
 
 %%riak_pool_auto::put_raw(Pid, riakc_obj:new_obj(Bucket, Key, Vclock, Contents))
 
