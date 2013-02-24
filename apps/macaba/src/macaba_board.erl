@@ -8,8 +8,10 @@
 -export([ construct_post/2
         , get_board/1
         , get_boards/0
+        , get_thread/1
         , get_threads/1
         , get_thread_contents/2
+        , get_thread_dynamic/1
         , new_post/2
         , new_thread/3
         , start/0
@@ -33,8 +35,6 @@ load_board_dynamics() ->
   %% TODO: if record in Mnesia exists, we have this job on >1 node, fatal!
   Boards = get_boards(),
   update_dynamics_for_board(Boards).
-  %% {ok, ThreadIds} = riak_pool_auto:list_keys(
-  %%                     macaba_db_riak:bucket_for(mcb_thread_dynamic)).
 
 %% @private
 %% @doc Reloads saved dynamics for each board from RIAK on startup
@@ -52,29 +52,21 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
   update_dynamics_for_threads(BD#mcb_board_dynamic.threads),
   update_dynamics_for_board(Boards).
 
+get_thread_dynamic(ThreadId) ->
+  case macaba_db_riak:read(mcb_thread_dynamic, ThreadId) of
+    {error, not_found} -> #mcb_thread_dynamic{thread_id = ThreadId};
+    Value -> Value
+  end.
+
 %% @private
 update_dynamics_for_threads([]) -> ok;
 update_dynamics_for_threads([ThreadId | Threads]) when is_binary(ThreadId) ->
-  TD = case macaba_db_riak:read(mcb_thread_dynamic, ThreadId) of
-         {error, not_found} -> #mcb_thread_dynamic{thread_id = ThreadId};
-         Value -> Value
-       end,
+  TD = get_thread_dynamic(ThreadId),
   lager:debug("upd_dyn_t td=~p", [TD]),
   %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
   %% {atomic, _} = mnesia:transaction(T),
   macaba_db_mnesia:write(mcb_thread_dynamic, TD),
   update_dynamics_for_threads(Threads).
-
-%%%-----------------------------------------------------------------------------
-%% @!private
-%% @!doc SLOW! Enumerates RIAK keys in thread bucket, and calculates post lists
-%% for threads. Do this only on one node of the macaba cluster.
-%% This is called from macaba_masternode:handle_leader_call after startup been
-%% finished, call initiated by macaba_startup temporary module
-%% load_thread_dynamics() ->
-%% lager:info("[load_thread_dynamics] enumerating thread posts and caching..."),
-%%   %% TODO: if record in Mnesia exists, we have this job  on >1 node, fatal!
-%%   ok.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of configured boards
@@ -119,6 +111,13 @@ get_threads(BoardId) when is_binary(BoardId) ->
               end || T <- Ids],
   Threads = lists:flatten(Threads0),
   Threads.
+
+%%%-----------------------------------------------------------------------------
+get_thread(ThreadId) ->
+  case macaba_db_riak:read(mcb_thread, ThreadId) of
+    #mcb_thread{}=Value -> Value;
+    {error, _} -> {error, not_found}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc By thread id reads thread dynamic, to get ids of posts, loads first and
@@ -172,9 +171,6 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
     , hidden    = Hidden
     , pinned    = Pinned
     , read_only = ReadOnly
-    %%, author    = Post0#mcb_post.author
-    %%, subject   = Post0#mcb_post.subject
-    %%, created   = Post0#mcb_post.created
    },
   ThreadDyn = #mcb_thread_dynamic{
     thread_id = PostId,
@@ -194,29 +190,23 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates new post, writes to database
-new_post(BoardId, Opts) ->
+new_post(BoardId, Opts) when is_binary(BoardId) ->
   Post = construct_post(BoardId, Opts),
   macaba_db_riak:write(mcb_post, Post),
 
-  %%-----------------------------------------------
-  %% TODO vector clocks and conflict resolution
-  %%-----------------------------------------------
   ThreadId = macaba:propget(thread_id, Opts),
 
   %% update thread post list
+  %% lager:debug("new_post board=~p thread=~p post=~p", [BoardId, ThreadId, Post]),
   F = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
           TD#mcb_thread_dynamic{ post_ids = L++[Post#mcb_post.post_id] }
       end,
   {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, ThreadId, F),
-  %% ThreadD0 = macaba_db_riak:read(mcb_thread, ThreadId),
-  %% NewIds = Thread0#mcb_thread.post_ids ++ [Post#mcb_post.post_id],
-  %% Thread = Thread0#mcb_thread{ post_ids=NewIds },
-  %% macaba_db_riak:write(mcb_thread, Thread),
   Post.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates structure for a new post, returns it. Does not write.
-construct_post(BoardId, Opts) ->
+construct_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId  = macaba:propget(thread_id, Opts),
   Author    = macaba:propget(author,    Opts),
   Subject   = macaba:propget(subject,   Opts),
@@ -224,15 +214,15 @@ construct_post(BoardId, Opts) ->
   Attach    = macaba:propget(attach,    Opts),
   AttachId  = write_attachment(Attach),
 
-  PostId = next_board_post_id(BoardId),
+  PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
-    thread_id = ThreadId,
+    thread_id = macaba:as_binary(ThreadId),
     post_id   = PostId,
     subject   = Subject,
     author    = Author,
     message   = Message,
     created   = get_now_utc(),
-    attach_id = AttachId,
+    attach_id = macaba:as_binary(AttachId),
     sage      = false
    }.
 

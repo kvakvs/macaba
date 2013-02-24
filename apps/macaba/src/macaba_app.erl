@@ -54,12 +54,13 @@ start_web() ->
   St2 = {"/js/[...]",  S, [{directory, JSPath},  Mime]},
   St3 = {"/img/[...]", S, [{directory, ImgPath}, Mime]},
   TNew = {"/board/:mcb_board/thread/new", H, [thread_new]},
-  TShow = {"/board/:mcb_board/thread/:mcb_thread/:mcb_page", H, [thread]},
+  TShow = {"/board/:mcb_board/thread/:mcb_thread", H, [thread]},
+  TRepl = {"/board/:mcb_board/post/new", H, [post_new]},
   BShow1 = {"/board/:mcb_board/:mcb_page", H, [board]},
   BShow2 = {"/board/:mcb_board", H, [board]},
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
-                   , TNew, TShow
+                   , TNew, TShow, TRepl
                    , BShow1, BShow2
                    , {"/", H, [index]}
                    ]}

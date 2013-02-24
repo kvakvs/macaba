@@ -23,44 +23,22 @@
 <div class="row">
   <div class="span12">
     <h3>Create new thread</h3>
-
-    <form method="post" class="form-inline"
-          action="/board/{{ board_info.board_id }}/thread/new">
-      <input type="hidden" name="thread_id" value="new">
-      <label>Name</label>
-      <input type="text" name="author" size="40" /><br/>
-
-      <label>Subject</label>
-      <input type="text" name="subject" size="40" />
-      <input type="submit" value="New thread" /><br/>
-
-      <textarea name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
-
-      <label>Attach</label>
-      <input type="file" name="attach" size="40" />
-      <!--label>Captcha</label>
-      <input type="text" name="captcha" size="20" /-->
-    </form>
+    {% with thread_id = "new" %}{% include "post_form.html" %}{% endwith %}
+  </div>
 </div>
 
 <div class="row">
   <div class="span12">
     {% for t in threads %}
-    {% for p in t.preview %}
-    <div id="post_{{ p.post_id }}" class="{% if forloop.counter == 1 %}oppost{% endif %} post">
-      <span class="title">{{ p.subject }}</span>
-      <span class="author">{{ p.author }}</span>
-      <span class="time">{{ p.created }}</span>
-      <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ t.thread_id }}#i{{ p.post_id }}">
-          №{{ p.post_id }}</a></span>
-      {% if p.attach_id %}
-      <span id="exlink_{{ p.post_id }}"><a href="/attach/{{ p.attach_id }}/thumb">
-          <img class="img" src="/attach/{{ p.attach_id }}"></a></span>
-      {% endif %}
-      <div class="msg" id="m{{ p.post_id }}">{{ p.message }}</div>
-    </div>
-    {% endfor %}
-    <hr />
+      {% for p in t.preview %}
+        {% include "post.html" %}
+        {% if forloop.counter == 1 %}{% if t.skipped_posts > 0 %}
+          Skipped {{ t.skipped_posts }} posts, click
+          <a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">Reply</a>
+          to see full thread
+        {% endif %}{% endif %}
+      {% endfor %}
+      <hr />
     {% endfor %}
   </div>
 </div>

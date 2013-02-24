@@ -1,0 +1,17 @@
+<form method="post" class="form-inline"
+      action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
+  <input type="hidden" name="thread_id" value="{{ thread_id }}">
+  <label>Name</label>
+  <input type="text" name="author" size="40" /><br/>
+
+  <label>Subject</label>
+  <input type="text" name="subject" size="40" />
+  <input type="submit" value="{% if thread_id == "new" %}New thread{% else %}Post reply{% endif %}" /><br/>
+
+  <textarea name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
+
+  <label>Attach</label>
+  <input type="file" name="attach" size="40" />
+  <!--label>Captcha</label>
+      <input type="text" name="captcha" size="20" /-->
+</form>

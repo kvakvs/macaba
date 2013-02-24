@@ -1,20 +1,19 @@
-.oppost {
-}
 .post {
-    background: none repeat scroll 0 0 #eee;
+    background: #eee;
     border: 1px solid #ccc;
     border-radius: 5px 5px 5px 5px;
-    margin: 0;
-    padding: 0;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding: 8px;
 }
-textarea.postmsg {
-    width: 100%;
-}
-
-div.oppost {
+.oppost {
     background: white;
     border: 0px;
 }
+textarea.postmsg {
+    width: 75%;
+}
+
 /* Sections of a post */
 .post .title {
     font-weight: bold;

@@ -26,10 +26,22 @@ record_to_proplist(#mcb_board{}=Rec) ->
 record_to_proplist(#mcb_thread{}=Rec) ->
   lists:zip(record_info(fields, mcb_thread), tl(tuple_to_list(Rec)));
 record_to_proplist(#mcb_post{}=Rec) ->
-  lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)));
+  UTC = calendar:gregorian_seconds_to_datetime(Rec#mcb_post.created
+                                               + 1970*365*86400),
+  Local = calendar:universal_time_to_local_time(UTC),
+  lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)))
+    ++ [{created_local, Local}, {created_utc, UTC}];
+    %% ++ [{created_txt, unix_time_to_str(Rec#mcb_post.created)}];
 record_to_proplist(#mcb_attachment{}=Rec) ->
   lists:zip(record_info(fields, mcb_attachment), tl(tuple_to_list(Rec)));
 record_to_proplist(X) -> error({badarg, X}).
+
+%% unix_time_to_str(U) ->
+%%   DT = calendar:gregorian_seconds_to_datetime(U + 1970*365*86400),
+%%   {{Year,Month,Day},{Hour,Min,Sec}} = DT,
+%%   F = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0B ~2.10.0B:~2.10.0B:~2.10.0B",
+%%         [Year, Month, Day, Hour, Min, Sec]),
+%%   lists:flatten(F).
 
 %%-----------------------------------------------------------------------------
 %% @doc Faster replacement for proplists:get_value

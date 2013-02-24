@@ -55,7 +55,7 @@ start() ->
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
            Key  :: any()) -> orddict:orddict() | tuple() | {error, not_found}.
-read(Tab, Key) ->
+read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
   case mnesia:transaction(RFun) of
     {atomic, [Row]} -> Row;
@@ -73,14 +73,15 @@ write(Tab, Value) ->
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
+      lager:error("macaba_db_mnesia: write ~p:", [Y]),
       Y
   end.
 
 %%--------------------------------------------------------------------
 %% @doc Start transaction, read, do Fun(Object), write, return new value
--spec update(Tab :: atom(), Key :: any(), Fun :: fun()) ->
+-spec update(Tab :: atom(), Key :: binary(), Fun :: fun()) ->
                 {atomic, any()} | {error, any()}.
-update(Tab, Key, Fun) ->
+update(Tab, Key, Fun) when is_binary(Key) ->
   UF = fun() ->
            [Object1] = mnesia:read(Tab, Key, read),
            Object = Fun(Object1),
@@ -92,11 +93,12 @@ update(Tab, Key, Fun) ->
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
+      lager:error("macaba_db_mnesia: update ~p:", [Y]),
       Y
   end.
 
 %%--------------------------------------------------------------------
-delete(Tab, Key) ->
+delete(Tab, Key) when is_binary(Key) ->
   DF = fun() ->
            mnesia:delete(Tab, Key, write)
        end,
@@ -105,6 +107,7 @@ delete(Tab, Key) ->
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
+      lager:error("macaba_db_mnesia: delete ~p:", [Y]),
       Y
   end.
 
