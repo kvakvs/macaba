@@ -58,6 +58,7 @@ get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
     _ -> Proplists
   end.
 
+%%%-----------------------------------------------------------------------------
 %% @private
 additional_fields_for_thread(T, PreviewSize) ->
   ThreadId = macaba:propget(thread_id, T),
@@ -69,12 +70,13 @@ additional_fields_for_thread(T, PreviewSize) ->
   SkippedI = {skipped_images, count_images(tl(PreviewList), PreviewSize)},
   [Preview, SkippedP, SkippedI | T].
 
+%%%-----------------------------------------------------------------------------
 count_images(Posts0, TailSize) ->
   {Posts, _} = lists:split(max(0, length(Posts0) - TailSize), Posts0),
   lists:foldl(fun(X, Accum) ->
                   case macaba:propget(attach_id, X) of
-                    Attach when is_binary(Attach) -> Accum+1;
-                    _ -> Accum
+                    [] -> Accum;
+                    L when is_list(L) -> Accum+1
                   end
               end, 0, Posts).
 
@@ -86,7 +88,8 @@ count_images(Posts0, TailSize) ->
                                  [proplist_of(proplist_t())].
 get_thread_previews(ThreadIdList, PreviewSize) ->
   %% for each thread get preview
-  %% lager:debug("cli: get_thread_previews ids=~p psize=~p", [ThreadIdList, PreviewSize]),
+  %% lager:debug("cli: get_thr_previews ids=~p size=~p",
+  %%             [ThreadIdList, PreviewSize]),
   [{T, get_thread_preview(T, PreviewSize)} || T <- ThreadIdList].
 
 %%%-----------------------------------------------------------------------------
@@ -97,7 +100,17 @@ get_thread_preview(ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
   Posts = macaba_board:get_thread_contents(ThreadId, PreviewSize),
   %% convert each record in preview to proplist
-  [macaba:record_to_proplist(P) || P <- Posts].
+  [additional_fields_for_post(P, macaba:record_to_proplist(P)) || P <- Posts].
+
+additional_fields_for_post(P = #mcb_post{}, PropList) ->
+  %% load attachment headers
+  Att0 = lists:map(fun(AttId) ->
+                      macaba_db_riak:read(mcb_attachment, AttId)
+                  end, P#mcb_post.attach_ids),
+  %% filter out only existing attachments
+  Att1 = lists:filter(fun(#mcb_attachment{}) -> true; (_) -> false end, Att0),
+  Att = lists:map(fun macaba:record_to_proplist/1, Att1),
+  [{attach_info, Att} | PropList].
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

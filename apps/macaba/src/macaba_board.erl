@@ -16,6 +16,8 @@
         , new_thread/3
         , start/0
         , load_board_dynamics/0
+        , detect_content_type/1
+        , attachment_exists/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -177,10 +179,23 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
     post_ids  = [PostId]
    },
   macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
+
+  %% Write attach and set attach_id in post
+  %% TODO: Multiple attachments
+  Attach    = macaba:propget(attach, PostOpts),
+  AttachKey = macaba:propget(attach_key, PostOpts),
+  Post1 = case Attach of
+            <<>> -> Post0;
+            Data when byte_size(Data)>4 ->
+              AttachId = write_attachment(AttachKey, Attach),
+              Post0#mcb_post{ attach_ids = [AttachId] }
+          end,
+
   %% link post to thread
-  Post = Post0#mcb_post{ thread_id = PostId },
+  Post = Post1#mcb_post{ thread_id = PostId },
   macaba_db_riak:write(mcb_post, Post),
   macaba_db_riak:write(mcb_thread, Thread),
+
   %% add thread to board
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
           BD#mcb_board_dynamic{ threads = T ++ [PostId]}
@@ -197,7 +212,7 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId = macaba:propget(thread_id, Opts),
 
   %% update thread post list
-  %% lager:debug("new_post board=~p thread=~p post=~p", [BoardId, ThreadId, Post]),
+  %% lager:debug("new_post bo=~p thr=~p pst=~p", [BoardId, ThreadId, Post]),
   F = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
           TD#mcb_thread_dynamic{ post_ids = L++[Post#mcb_post.post_id] }
       end,
@@ -206,13 +221,12 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates structure for a new post, returns it. Does not write.
+%% BUG: Creating post with attachment actually writes attachment to database!
 construct_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId  = macaba:propget(thread_id, Opts),
   Author    = macaba:propget(author,    Opts),
   Subject   = macaba:propget(subject,   Opts),
   Message   = macaba:propget(message,   Opts),
-  Attach    = macaba:propget(attach,    Opts),
-  AttachId  = write_attachment(Attach),
 
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
@@ -222,9 +236,60 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
     author    = Author,
     message   = Message,
     created   = get_now_utc(),
-    attach_id = macaba:as_binary(AttachId),
+    %% attach_ids = [macaba:as_binary(AttachId)],
     sage      = false
    }.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+attachment_exists(<<>>) -> false;
+attachment_exists(Digest) ->
+  case macaba_db_riak:read(mcb_attachment, Digest) of
+    #mcb_attachment{} -> true;
+    {error, not_found} -> false
+  end.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Writes to database, no unique checks or existence check
+write_attachment(_, <<>>) -> <<>>;
+write_attachment(Digest, Data) ->
+  ContentType = detect_content_type(Data),
+  A = #mcb_attachment{
+    size         = byte_size(Data),
+    hash         = Digest,
+    content_type = ContentType
+   },
+  macaba_db_riak:write(mcb_attachment, A),
+  B = #mcb_attachment_body{
+    key  = Digest,
+    data = Data
+   },
+  macaba_db_riak:write(mcb_attachment_body, B),
+  Digest.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+-spec detect_content_type(binary()) -> empty | no_idea | binary().
+detect_content_type(<<>>) ->
+  empty;
+detect_content_type(<<"GIF87a", _/binary>>) ->
+  <<"image/gif">>;
+detect_content_type(<<"GIF89a", _/binary>>) ->
+  <<"image/gif">>;
+detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e0, _:16, "JFIF", 0,
+                      _/binary>>) ->
+  <<"image/jpeg">>; % jpeg without EXIF
+detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e1, _:16, "Exif", 0,
+                      _/binary>>) ->
+  <<"image/jpeg">>; % jpeg with EXIF
+detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e9, _:16, "SPIFF", 0,
+                      _/binary>>) ->
+  <<"image/jpeg">>; % jpeg
+detect_content_type(<<137, 80, 78, 71, 13, 10, 26, 10, _/binary>>) ->
+  <<"image/png">>;
+detect_content_type(_) ->
+  no_idea.
 
 %%%-----------------------------------------------------------------------------
 %% @private
@@ -242,12 +307,6 @@ next_board_post_id(BoardId) when is_binary(BoardId) ->
       end,
   {atomic, NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   macaba:as_binary(NewD#mcb_board_dynamic.last_post_id).
-
-%%%-----------------------------------------------------------------------------
-%% @private
-%% @doc Searches database for existing file, if so - returns {error, exists}
-write_attachment(undefined) -> undefined;
-write_attachment(_A) -> undefined.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

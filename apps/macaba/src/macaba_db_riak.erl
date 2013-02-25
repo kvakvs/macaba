@@ -21,9 +21,6 @@
 %% @doc Prepare database for use
 start() ->
   macaba:ensure_started(riak_pool).
-  %% Mult = [{allow_mult, true}],
-  %% riak_pool_auto:set_bucket(bucket_for(mcb_board_dynamic), Mult),
-  %% riak_pool_auto:set_bucket(bucket_for(mcb_thread_dynamic), Mult).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -55,16 +52,6 @@ read(Type, Key) when is_binary(Key) ->
 -spec read_internal(Type :: macaba_riak_object(),
                     B :: binary(),
                     K :: binary()) -> tuple() | binary().
-
-read_internal(mcb_attachment_body, B, K) ->
-  %% attachment body - no versioning, return as binary
-  case riak_pool_auto:get(B, K) of
-    {error, notfound} ->
-      {error, not_found};
-    {ok, O} ->
-      riakc_obj:get_value(O)
-  end;
-
 read_internal(Type, B, K) ->
   %% versioning on read for all other objects
   case riak_pool_auto:get(B, K) of

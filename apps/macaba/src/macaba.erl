@@ -23,17 +23,25 @@
 %%-----------------------------------------------------------------------------
 record_to_proplist(#mcb_board{}=Rec) ->
   lists:zip(record_info(fields, mcb_board), tl(tuple_to_list(Rec)));
+
 record_to_proplist(#mcb_thread{}=Rec) ->
   lists:zip(record_info(fields, mcb_thread), tl(tuple_to_list(Rec)));
+
 record_to_proplist(#mcb_post{}=Rec) ->
   UTC = calendar:gregorian_seconds_to_datetime(Rec#mcb_post.created
                                                + 1970*365*86400),
   Local = calendar:universal_time_to_local_time(UTC),
   lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)))
     ++ [{created_local, Local}, {created_utc, UTC}];
-    %% ++ [{created_txt, unix_time_to_str(Rec#mcb_post.created)}];
+
 record_to_proplist(#mcb_attachment{}=Rec) ->
-  lists:zip(record_info(fields, mcb_attachment), tl(tuple_to_list(Rec)));
+  HashHex = bin_to_hex:bin_to_hex(Rec#mcb_attachment.hash),
+  lists:zip(record_info(fields, mcb_attachment), tl(tuple_to_list(Rec)))
+    ++ [{hash_hex, HashHex}];
+
+record_to_proplist(#mcb_attachment_body{}=Rec) ->
+  lists:zip(record_info(fields, mcb_attachment_body), tl(tuple_to_list(Rec)));
+
 record_to_proplist(X) -> error({badarg, X}).
 
 %% unix_time_to_str(U) ->

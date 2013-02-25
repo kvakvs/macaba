@@ -62,23 +62,30 @@
 
 -define(MCB_POST_VER, 1).
 -record(mcb_post, {
-            thread_id      :: binary()
-          , post_id        :: binary()
-          , subject = ""   :: string()  % trusted HTML
-          , author  = ""   :: string()  % trusted HTML
-          , message = ""   :: string()  % trusted HTML
-          , created        :: integer() % unix time
-          , attach_id      :: binary()
-          , sage = false   :: boolean()
+            thread_id       :: binary()
+          , post_id         :: binary()
+          , subject = ""    :: string()  % trusted HTML
+          , author  = ""    :: string()  % trusted HTML
+          , message = ""    :: string()  % trusted HTML
+          , created         :: integer() % unix time
+          , attach_ids = [] :: [binary()]
+          , sage = false    :: boolean()
          }).
 
 -define(MCB_ATTACHMENT_VER, 1).
 -record(mcb_attachment, {
-            attach_id = ""  :: binary()
-          , filename = ""   :: string() % unique random filename
-          , size = 0        :: integer()
+          %% attach_id = ""  :: binary()
+          %% , filename = ""   :: string() % unique random filename
+            size = 0        :: integer()
+          , content_type    :: binary()
           , references = [] :: [binary()] % list of posts referring to file
           , hash            :: binary() % file checksum, also key to file body
+         }).
+
+-define(MCB_ATTACHMENT_BODY_VER, 1).
+-record(mcb_attachment_body, {
+          key :: binary(),
+          data :: binary()
          }).
 
 %% @doc Mnesia objects are stored in memory only and built on node start

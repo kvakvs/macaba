@@ -1,0 +1,7 @@
+{% include "header.html" %}
+
+<h1>Macaba: Error</h1>
+
+<p>{{ error }}</p>
+
+{% include "footer.html" %}
