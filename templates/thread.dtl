@@ -5,7 +5,8 @@
 |
 | Incoming parameters: 'board_info' #mcb_board{}
 | 'boards' - all configured boards, list of #mcb_board{}
-| 'first_post' - property list #mcb_post{} of the first post of thread (also in 'posts')
+| 'first_post' - property list #mcb_post{} of the first post of thread (also in
+|                'posts')
 | 'posts' - a list of property lists #mcb_post{}
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
@@ -15,7 +16,8 @@
     <h3>{% if first_post.subject %}{{ first_post.subject }}
       {% else %}Thread {{ first_post.post_id }}{% endif %}</h3>
 
-    <a href="/board/{{ board_info.board_id }}">Back to board '{{ board_info.board_id }}'</a>
+    <a href="/board/{{ board_info.board_id }}">Back to board
+    '{{ board_info.board_id }}'</a>
     <br />
     <br />
   </div>
@@ -24,7 +26,8 @@
 <div class="row">
   <div class="span12">
     <h3>Reply to thread</h3>
-    {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}{% endwith %}
+    {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}
+    {% endwith %}
   </div>
 </div>
 

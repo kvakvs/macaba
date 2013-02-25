@@ -1,0 +1,8 @@
+<div class="row">
+  <div class="span12">
+    <a href="/">Home</a> {% for b in boards %}
+    &bull;
+    <a href="/board/{{ b.board_id }}">/{{ b.board_id }}/</a>
+    {% endfor %}
+  </div>
+</div>

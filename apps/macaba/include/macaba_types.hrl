@@ -21,6 +21,9 @@
             board_id :: binary()
           , category :: string() % simple grouping, trusted HTML
           , title    :: string() % trusted HTML
+        %% , post_mod_only   :: boolean() % only mods can post and make threads
+        %% , thread_mod_only :: boolean() % only mods can make threads
+          , thread_requires_attach :: boolean() % upload pic for new thread
          }).
 
 -define(MCB_SITE_CONFIG_VER, 1).
@@ -86,5 +89,12 @@
 -type macaba_riak_object()   :: mcb_site_config | mcb_thread | mcb_post
                               | mcb_attachment | macaba_mnesia_object().
 -type macaba_db_object()     :: macaba_riak_object().
+
+%% @doc A user info structure, you can get this by calling macaba_web:get_user
+-record(mcb_user, {
+          type = 'anon' :: 'anon' | 'mod' | 'admin',
+          session_key :: binary(),
+          session_pid :: pid()
+         }).
 
 -endif. % MACABA_TYPES_HRL

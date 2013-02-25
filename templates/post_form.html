@@ -1,4 +1,4 @@
-<form method="post" class="form-inline"
+<form method="post" class="form-inline" enctype="multipart/form-data"
       action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
   <input type="hidden" name="thread_id" value="{{ thread_id }}">
   <label>Name</label>

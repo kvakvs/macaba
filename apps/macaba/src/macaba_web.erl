@@ -7,7 +7,10 @@
 -export([ compile/1
         , render/2
         , chain_run/2
+        , get_user/1
         ]).
+
+-include_lib("macaba/include/macaba_types.hrl").
 
 %%%------------------------------------------------------------------------
 -spec compile(string()) -> atom().
@@ -47,6 +50,11 @@ chain_run([F | Tail], State) ->
     {error, State2} ->
       {error, State2}
   end.
+
+%%%------------------------------------------------------------------------
+%% @doc Examines request for session cookie, and gets current user
+get_user(Req) ->
+  #mcb_user{}.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

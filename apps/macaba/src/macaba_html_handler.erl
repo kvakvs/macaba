@@ -134,13 +134,21 @@ macaba_handle_post_new(<<"POST">>, {Req0, State}) ->
 %%%---------------------------------------------------
 %% @private
 get_post_create_options(Req0) ->
-  {ok, PostVals, _} = cowboy_req:body_qs(Req0),
+  {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PostVals, undefined),
   Author   = macaba:propget(<<"author">>,    PostVals, undefined),
   Subject  = macaba:propget(<<"subject">>,   PostVals, undefined),
   Message  = macaba:propget(<<"message">>,   PostVals, undefined),
   Attach   = macaba:propget(<<"attach">>,    PostVals, undefined),
   Captcha  = macaba:propget(<<"captcha">>,   PostVals, undefined),
+
+  %% {ok, RBody, Req2} = cowboy_req:body(Req1),
+  %% lager:debug("body ~p", [RBody]),
+  %% {MP, _Req2} = handle_multipart(cowboy_req:multipart_data(Req1), []),
+  %% lager:debug("multipart ~p", [MP]),
+  {File, _Req2} = acc_multipart(Req1),
+  lager:debug("multipart data ~p", [File]),
+
   orddict:from_list(
     [ {thread_id, ThreadId}
     , {author, Author}
@@ -149,6 +157,17 @@ get_post_create_options(Req0) ->
     , {attach, Attach}
     , {captcha, Captcha} % TODO: captcha support
     ]).
+
+acc_multipart(Req) ->
+  acc_multipart(cowboy_req:multipart_data(Req), []).
+acc_multipart({headers, Headers, Req}, Acc) ->
+  acc_multipart(cowboy_req:multipart_data(Req), []);
+acc_multipart({body, Data, Req}, _) ->
+  acc_multipart(cowboy_req:multipart_data(Req), Data);
+acc_multipart({end_of_part, Req}, Data) ->
+  acc_multipart(cowboy_req:multipart_data(Req), Data);
+acc_multipart({eof, Req}, Data) ->
+  {Data, Req}.
 
 %%%---------------------------------------------------
 %% @doc Do GET board/b_id/thread/t_id
