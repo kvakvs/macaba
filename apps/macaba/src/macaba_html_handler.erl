@@ -14,6 +14,7 @@
         , macaba_handle_thread_new/2
         , macaba_handle_thread/2
         , macaba_handle_post_new/2
+        , macaba_handle_attach/2
         ]).
 -export([ chain_get_boards/1
         , chain_get_board_info/1
@@ -22,6 +23,7 @@
         , chain_get_thread_info/1
         , chain_check_post_attach/1
         , chain_thread_new/1
+        , chain_get_attach/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -227,6 +229,46 @@ chain_get_thread_posts({Req0, State0}) ->
   State1 = state_set_var(posts, Posts, State0),
   State = state_set_var(first_post, hd(Posts), State1),
   {ok, {Req, State}}.
+
+
+%%%---------------------------------------------------
+%% @doc Do GET attach/att_id
+macaba_handle_attach(<<"GET">>, {Req0, State0}) ->
+  {_, {Req1, State}} = macaba_web:chain_run(
+                         [ fun chain_get_attach/1
+                         ], {Req0, State0}),
+  %% TODO: Etag/if modified since support
+  case State#mcb_html_state.already_rendered of
+    true ->
+      {Req1, State};
+
+    false ->
+      Att       = state_get_var(attach, State),
+      AttachId  = state_get_var(attach_id, State),
+      Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type}
+                  ],
+      AttBody   = macaba_db_riak:read(mcb_attachment_body, AttachId),
+      {ok, Req} = cowboy_req:reply(
+                    200, Headers, AttBody#mcb_attachment_body.data, Req1),
+      {Req, State}
+  end.
+
+%% @private
+%% @doc get thread info if thread exists
+chain_get_attach({Req0, State0}) ->
+  {AttachId0, Req} = cowboy_req:binding(mcb_attach, Req0),
+  AttachId = macaba:hexstr_to_bin(binary_to_list(AttachId0)),
+  State1 = state_set_var(attach_id, AttachId, State0),
+
+  case macaba_db_riak:read(mcb_attachment, AttachId) of
+    {error, not_found} ->
+      {Req1, State} = render_page(404, "attach_404", Req, State1),
+      {error, {Req1, State}};
+    Att ->
+      State = state_set_var(attach, Att, State1),
+      %% assume if header exists, then body exists too
+      {ok, {Req, State}}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

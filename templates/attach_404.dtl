@@ -1,0 +1,7 @@
+{% include "header.html" %}
+
+<h1>Macaba: 404</h1>
+
+<p>Uploaded file not found or never existed</p>
+
+{% include "footer.html" %}

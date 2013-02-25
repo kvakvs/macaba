@@ -50,18 +50,24 @@ start_web() ->
                      ]},
   S = cowboy_static,
   H = macaba_html_handler,
+
   St1 = {"/css/[...]", S, [{directory, CSSPath}, Mime]},
   St2 = {"/js/[...]",  S, [{directory, JSPath},  Mime]},
   St3 = {"/img/[...]", S, [{directory, ImgPath}, Mime]},
-  TNew = {"/board/:mcb_board/thread/new", H, [thread_new]},
-  TShow = {"/board/:mcb_board/thread/:mcb_thread", H, [thread]},
-  TRepl = {"/board/:mcb_board/post/new", H, [post_new]},
-  BShow1 = {"/board/:mcb_board/:mcb_page", H, [board]},
-  BShow2 = {"/board/:mcb_board", H, [board]},
+
+  TNew     = {"/board/:mcb_board/thread/new", H, [thread_new]},
+  TShow    = {"/board/:mcb_board/thread/:mcb_thread", H, [thread]},
+  TRepl    = {"/board/:mcb_board/post/new", H, [post_new]},
+  BShow1   = {"/board/:mcb_board/:mcb_page", H, [board]},
+  BShow2   = {"/board/:mcb_board", H, [board]},
+%%  AttSmall = {"/attach/:mcb_attach/thumb", H, [attach_thumb]},
+  Attach   = {"/attach/:mcb_attach", H, [attach]},
+
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
                    , TNew, TShow, TRepl
                    , BShow1, BShow2
+                   , Attach %%, AttSmall
                    , {"/", H, [index]}
                    ]}
            ]),
