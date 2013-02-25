@@ -33,23 +33,27 @@ posts per board per second in a multinode setup.
 
 ## TODO
 
-### Important TODO
+### Tier 1 (important) TODO
 
 *   Full Wakaba markup support
-*   Captcha support
 *   Words/regex blacklisting
-*   Banning and flood detection, basic DDOS resistance
-*   Tripcodes support
+*   Captcha support
+*   User blacklisting, flood detection, basic DDOS resistance
+*   Authentication, permanent authentication, VIP passwords?
 *   Moderation UI (bans, reporting for rules violation, thread management -
     locking pinning, deleting, reviewing, etc)
 *   Administration UI (boards list, bringing board offline)
-*   Authentication, permanent authentication, VIP passwords?
+
+### Tier 2 (optional) TODO
+
+*   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications
 *   Websocket API for custom UIs and live update
 
-### Optional TODO
+### Tier 3 (even more optional) TODO
 
-*   Themes support, porting 1-2 popular themes from Wakaba
+*   Tripcodes support
+*   TOR/proxy detection
 *   Fighting Unicode quirks (reverse text direction)
 *   A torrent-tracker module
 *   Video embedding support (configurable)
