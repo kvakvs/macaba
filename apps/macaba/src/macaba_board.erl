@@ -179,17 +179,7 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
     post_ids  = [PostId]
    },
   macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
-
-  %% Write attach and set attach_id in post
-  %% TODO: Multiple attachments
-  Attach    = macaba:propget(attach, PostOpts),
-  AttachKey = macaba:propget(attach_key, PostOpts),
-  Post1 = case Attach of
-            <<>> -> Post0;
-            Data when byte_size(Data)>4 ->
-              AttachId = write_attachment(AttachKey, Attach),
-              Post0#mcb_post{ attach_ids = [AttachId] }
-          end,
+  Post1 = post_write_attach_set_ids(Post0, PostOpts),
 
   %% link post to thread
   Post = Post1#mcb_post{ thread_id = PostId },
@@ -203,10 +193,23 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
   {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   {Thread, Post}.
 
+post_write_attach_set_ids(P, Opts) ->
+  %% Write attach and set attach_id in post
+  %% TODO: Multiple attachments
+  Attach    = macaba:propget(attach,     Opts),
+  AttachKey = macaba:propget(attach_key, Opts),
+  case Attach of
+    <<>> -> P;
+    Data when byte_size(Data)>4 ->
+      AttachId = write_attachment(AttachKey, Attach),
+      P#mcb_post{ attach_ids = [AttachId] }
+  end.
+
 %%%-----------------------------------------------------------------------------
 %% @doc Creates new post, writes to database
 new_post(BoardId, Opts) when is_binary(BoardId) ->
-  Post = construct_post(BoardId, Opts),
+  Post0 = construct_post(BoardId, Opts),
+  Post  = post_write_attach_set_ids(Post0, Opts),
   macaba_db_riak:write(mcb_post, Post),
 
   ThreadId = macaba:propget(thread_id, Opts),

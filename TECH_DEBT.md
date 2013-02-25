@@ -1,5 +1,6 @@
 # TODO technical debt list
 
+*   When posting to thread, check that thread exists
 *   ETag/If-mod-since support for attach and possibly thread/board serving
 *   HTTP client tests for empty board, new thread, post reply, upload image,
     upload bad file, check all possible error conditions, etc.

@@ -164,19 +164,28 @@ chain_thread_new({Req0, State0}) ->
 
 %%%---------------------------------------------------
 %% @doc Create post in thread on board/b_id/thread/t_id/post/new
-macaba_handle_post_new(<<"POST">>, {Req0, State}) ->
-  {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
-  %% {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
-  PostOpt = get_post_create_options(Req, State),
-
-  Post = macaba_board:new_post(BoardId, PostOpt),
-  %%Post = #mcb_post{},
-
-  ThreadId = Post#mcb_post.thread_id,
-  PostId   = Post#mcb_post.post_id,
+macaba_handle_post_new(<<"POST">>, {Req0, State0}) ->
+  {_, {Req1, State1}} = macaba_web:chain_run(
+                        [ fun chain_check_post_attach/1
+                        , fun chain_post_new/1
+                        ], {Req0, State0}),
+  {BoardId, Req} = cowboy_req:binding(mcb_board, Req1),
+  Post           = state_get_var(created_post, State1),
+  ThreadId       = Post#mcb_post.thread_id,
+  PostId         = Post#mcb_post.post_id,
   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
            ++ macaba:as_string(ThreadId) ++ "#i"
-           ++ macaba:as_string(PostId), Req, State).
+           ++ macaba:as_string(PostId), Req, State1).
+
+%%%---------------------------------------------------
+%% @private
+%% @doc Creates new post reply in thread
+chain_post_new({Req0, State0}) ->
+  {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
+  PostOpt = get_post_create_options(Req, State0),
+  Post = macaba_board:new_post(BoardId, PostOpt),
+  State = state_set_var(created_post, Post, State0),
+  {ok, {Req, State}}.
 
 %%%---------------------------------------------------
 %% @private

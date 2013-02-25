@@ -8,14 +8,12 @@ use p.created_local for server time, or p.created_utc for GMT (Greenwich meridia
   <span class="time">{{ p.created_utc|date:"D d M Y" }} {{ p.created_utc|time:"H:i:s" }}</span>
   <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
       №{{ p.post_id }}</a></span>
-  {% for att in p.attach_info %}
   <span id="exlink_{{ p.post_id }}">
-    <br/>Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}
-  </span>
-  <div>
+    {% for att in p.attach_info %}
+    Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}
     <a href="/attach/{{ att.hash_hex|lower }}">
-      <img class="img" src="/attach/{{ att.hash_hex|lower }}" width="200"></a>
-    </div>
-  {% endfor %}
+      <img class="img" src="/attach/{{ att.hash_hex|lower }}" width="200" style="float:left"></a>
+    {% endfor %}
+  </span>
   <div class="msg" id="m{{ p.post_id }}">{{ p.message }}</div>
 </div>
