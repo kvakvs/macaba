@@ -19,7 +19,7 @@
 %% @doc Prepare database for use
 start() ->
   lager:info("macaba_db_mnesia: starting"),
-  {ok, Nodes} = application:get_env(macaba, cluster),
+  {ok, Nodes} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
   CS = mnesia:create_schema(Nodes),
   lager:debug("create schema: ~p", [CS]),
   macaba:ensure_started(mnesia),

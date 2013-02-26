@@ -9,7 +9,8 @@
 -behaviour(gen_leader).
 
 %% API
--export([ start_link/1
+-export([ start_link/0
+        , start_link/1
         , start_link/2
         ]).
 
@@ -50,6 +51,10 @@
 
 %%--------------------------------------------------------------------
 %% @doc Starts the server
+start_link() ->
+  {ok, Nodes} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
+  start_link(lists:map(fun erlang:binary_to_atom/1, Nodes)).
+
 -spec start_link([node()]) -> {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Nodes) ->
   start_link(Nodes, []).

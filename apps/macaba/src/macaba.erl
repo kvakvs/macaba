@@ -17,6 +17,9 @@
         , propget/3
         , record_to_proplist/1
         , hexstr_to_bin/1
+        , fatal/2
+        %% ANSI ESC codes for color and bold in console
+        , color/1, endfont/0, font/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -184,10 +187,10 @@ pagination(L, Page, PageSize0) ->
   {H, _} = lists:split(PageSize2, T),
   H.
 
-hex(N) when N < 10 ->
-  $0+N;
-hex(N) when N >= 10, N < 16 ->
-  $a+(N-10).
+%% hex(N) when N < 10 ->
+%%   $0+N;
+%% hex(N) when N >= 10, N < 16 ->
+%%   $a+(N-10).
 
 int(C) when $0 =< C, C =< $9 ->
   C - $0;
@@ -196,16 +199,16 @@ int(C) when $A =< C, C =< $F ->
 int(C) when $a =< C, C =< $f ->
   C - $a + 10.
 
-to_hex(N) when N < 256 ->
-  [hex(N div 16), hex(N rem 16)].
+%% to_hex(N) when N < 256 ->
+%%   [hex(N div 16), hex(N rem 16)].
 
-list_to_hexstr([]) -> 
-  [];
-list_to_hexstr([H|T]) ->
-  to_hex(H) ++ list_to_hexstr(T).
+%% list_to_hexstr([]) -> 
+%%   [];
+%% list_to_hexstr([H|T]) ->
+%%   to_hex(H) ++ list_to_hexstr(T).
 
-bin_to_hexstr(Bin) ->
-  list_to_hexstr(binary_to_list(Bin)).
+%% bin_to_hexstr(Bin) ->
+%%   list_to_hexstr(binary_to_list(Bin)).
 
 hexstr_to_bin(S) ->
   list_to_binary(hexstr_to_list(S)).
@@ -214,6 +217,31 @@ hexstr_to_list([X,Y|T]) ->
   [int(X)*16 + int(Y) | hexstr_to_list(T)];
 hexstr_to_list([]) ->
   [].
+
+
+%% @doc ANSI ESCape color codes: reset font color/weight
+endfont() -> [27 | "[0m"].
+%% @doc ANSI ESCape color codes: font weight
+font(bold) -> [27 | "[1;00m"];
+font(thin) -> [27 | "[1;01m"].
+%% @doc ANSI ESCape color codes: font color
+color(black) -> [27 | "[1;30m"];
+color(red) -> [27 | "[1;31m"];
+color(green) -> [27 | "[1;32m"];
+color(yellow) -> [27 | "[1;33m"];
+color(blue) -> [27 | "[1;34m"];
+color(magenta) -> [27 | "[1;35m"];
+color(cyan) -> [27 | "[1;36m"];
+color(white) -> [27 | "[1;37m"].
+
+%% @doc Some error has happened, further execution has no sense - suicide
+fatal(Msg, Err) ->
+  io:format(standard_error, "~s===================================~n"
+            "~s~s: ~p~s~n"
+            "===================================~s~n",
+            [color(white), color(red), Msg, Err, color(white), endfont()]),
+  init:stop(),
+  error(config_parse_error).
 
 
 %%% Local Variables:

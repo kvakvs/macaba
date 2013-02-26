@@ -6,7 +6,7 @@
               {mod,{macaba_app,[]}},
               {env,[]},
               {modules,[bin_to_hex,macaba,macaba_app,macaba_board,
-                        macaba_board_cli,macaba_db,macaba_db_mnesia,
-                        macaba_db_riak,macaba_html_handler,macaba_masternode,
-                        macaba_ses,macaba_ses_sup,macaba_startup,macaba_sup,
-                        macaba_web]}]}.
+                        macaba_board_cli,macaba_conf,macaba_db,
+                        macaba_db_mnesia,macaba_db_riak,macaba_html_handler,
+                        macaba_masternode,macaba_ses,macaba_ses_sup,
+                        macaba_startup,macaba_sup,macaba_web]}]}.

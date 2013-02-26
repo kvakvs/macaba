@@ -200,7 +200,7 @@ post_write_attach_set_ids(P, Opts) ->
   AttachKey = macaba:propget(attach_key, Opts),
   case Attach of
     <<>> -> P;
-    Data when byte_size(Data)>4 ->
+    Data when byte_size(Data) > 4 ->
       AttachId = write_attachment(AttachKey, Attach),
       P#mcb_post{ attach_ids = [AttachId] }
   end.

@@ -46,19 +46,31 @@ start_link() ->
 -spec init(Args :: list()) -> {ok, #startup_state{}} | ignore |
                               {stop, Reason :: any()}.
 init([]) ->
+  macaba_db_riak:start(),
+  macaba_db_mnesia:start(),
+
   %% TODO: reorder start calls to db and board and leader (spawned under sup)
   ThisNode = node(),
   case gen_leader:call(macaba_masternode, get_leader) of
     ThisNode ->
       lager:info("startup: This node is leader node, attempting database init"),
       try macaba_board:load_board_dynamics()
-      catch E -> lager:error("startup: load_board_dyn ~p", [E]) end;
+      catch E ->
+          lager:error("startup: load_board_dyn ~p", [E]),
+          macaba:fatal("Resync error, can't start", E)
+      end;
     _ ->
       lager:info("startup: This node is not leader node, skipping master init")
   end,
+
   %% this is called after database is reloaded, so we can allow resyncing
   %% Mnesia writes and deletes to RIAK
   gen_leader:leader_call(macaba_masternode, start_resync),
+
+  %% move this out of macaba_app
+  macaba_app:start_web(),
+
+  macaba_board:start(),
   {ok, #startup_state{
     }}.
 

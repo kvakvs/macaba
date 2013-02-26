@@ -11,7 +11,8 @@
 %% Application callbacks
 -export([ start/0
         , start/2
-        , stop/1 ]).
+        , stop/1
+        , start_web/0]).
 
 %% ===================================================================
 %% Application callbacks
@@ -23,47 +24,13 @@ start() ->
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
-  ConfData = case file:read_file("macaba.config") of
-               {ok, CD} -> binary_to_list(CD);
-               {error, Err1} -> fatal("Loading macaba.config", Err1)
-             end,
-  Conf = case etoml:parse(ConfData) of
-           {ok, C} -> C;
-           {error, Err2} -> fatal("Parsing macaba.config", Err2)
-         end,
   %% TODO: reorder start calls to db and board and leader (spawned under sup)
-  macaba_db_mnesia:start(),
-  macaba_db_riak:start(),
-  macaba_board:start(),
-  start_web(),
   macaba_sup:start_link().
 
 stop(_State) ->
   ok.
 
-%% @doc ANSI ESCape color codes: reset font color
-endf() -> [27 | "[0m"].
-%% @doc ANSI ESCape color codes: font weight
-fw(bold) -> [27 | "[1;00m"];
-fw(thin) -> [27 | "[1;01m"].
-%% @doc ANSI ESCape color codes: font color
-f(black) -> [27 | "[1;30m"];
-f(red) -> [27 | "[1;31m"];
-f(green) -> [27 | "[1;32m"];
-f(yellow) -> [27 | "[1;33m"];
-f(blue) -> [27 | "[1;34m"];
-f(magenta) -> [27 | "[1;35m"];
-f(cyan) -> [27 | "[1;36m"];
-f(white) -> [27 | "[1;37m"].
-
-fatal(Msg, Err) ->
-  io:format(standard_error, "~s===================================~n"
-            "~s~s: ~p~s~n"
-            "===================================~s~n",
-            [f(white), f(red), Msg, Err, f(white), endf()]),
-  init:stop(),
-  error(config_parse_error).
-
+%% @doc TODO: move this out of macaba_app
 start_web() ->
   ok = application:start(crypto),
   ok = application:start(ranch),
@@ -102,8 +69,8 @@ start_web() ->
                    , {"/", H, [index]}
                    ]}
            ]),
-  {ok, HttpPort} = application:get_env(macaba, http_port),
-  {ok, Listeners} = application:get_env(macaba, http_listeners),
+  {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
+  {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
   cowboy:start_http(macaba_http_listener, Listeners,
                     [{port, HttpPort}],
                     [{env, [{dispatch, Disp}]}]

@@ -112,8 +112,9 @@ chain_get_board_info({Req0, State0}) ->
 chain_get_threads({Req0, State0}) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {Page, Req} = cowboy_req:binding(mcb_page, Req1),
-  {ok, BPageSize} = application:get_env(macaba, board_page_size),
-  {ok, PreviewSize} = application:get_env(macaba, thread_preview_last_posts),
+  {ok, BPageSize} = macaba_conf:get([<<"board">>, <<"page_size">>]),
+  {ok, PreviewSize} = macaba_conf:get([<<"board">>, <<"thread">>,
+                                       <<"preview_last_posts">>]),
   Threads = macaba_board_cli:get_threads(BoardId, {Page, BPageSize},
                                          PreviewSize),
   State = state_set_var(threads, Threads, State0),
