@@ -23,6 +23,14 @@ start() ->
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
+  ConfData = case file:read_file("macaba.config") of
+               {ok, CD} -> binary_to_list(CD);
+               {error, Err1} -> fatal("Loading macaba.config", Err1)
+             end,
+  Conf = case etoml:parse(ConfData) of
+           {ok, C} -> C;
+           {error, Err2} -> fatal("Parsing macaba.config", Err2)
+         end,
   %% TODO: reorder start calls to db and board and leader (spawned under sup)
   macaba_db_mnesia:start(),
   macaba_db_riak:start(),
@@ -32,6 +40,29 @@ start(_StartType, _StartArgs) ->
 
 stop(_State) ->
   ok.
+
+%% @doc ANSI ESCape color codes: reset font color
+endf() -> [27 | "[0m"].
+%% @doc ANSI ESCape color codes: font weight
+fw(bold) -> [27 | "[1;00m"];
+fw(thin) -> [27 | "[1;01m"].
+%% @doc ANSI ESCape color codes: font color
+f(black) -> [27 | "[1;30m"];
+f(red) -> [27 | "[1;31m"];
+f(green) -> [27 | "[1;32m"];
+f(yellow) -> [27 | "[1;33m"];
+f(blue) -> [27 | "[1;34m"];
+f(magenta) -> [27 | "[1;35m"];
+f(cyan) -> [27 | "[1;36m"];
+f(white) -> [27 | "[1;37m"].
+
+fatal(Msg, Err) ->
+  io:format(standard_error, "~s===================================~n"
+            "~s~s: ~p~s~n"
+            "===================================~s~n",
+            [f(white), f(red), Msg, Err, f(white), endf()]),
+  init:stop(),
+  error(config_parse_error).
 
 start_web() ->
   ok = application:start(crypto),
