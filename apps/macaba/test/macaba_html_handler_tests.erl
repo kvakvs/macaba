@@ -16,21 +16,23 @@ html_handler_test_() ->
     [ %%{"Pagination", fun pagination/0}
     ]
    }}.
-    
+
 %%%------------------------------------------------------------------------
 %%% Fixtures
 %%%------------------------------------------------------------------------
 setup() ->
-    ok.
+  macaba_test_lib:mock_riak(),
+  ok.
 
 teardown(ok) ->
-    ok.
+  macaba_test_lib:unmock_riak(),
+  ok.
 
 foreach_setup() ->
-    ok.
+  ok.
 
 foreach_teardown(ok) ->
-    ok.
+  ok.
 
 %%%------------------------------------------------------------------------
 %%% Tests
@@ -59,7 +61,7 @@ foreach_teardown(ok) ->
 
     %% %% check that counters are zero
     %% G1Stats = linc_us3_groups:get_stats(?SWITCH_ID,
-    %%                                     #ofp_group_stats_request{ group_id = 1 }),
+    %% #ofp_group_stats_request{ group_id = 1 }),
     %% ?assertEqual(333, stats_get(G1Stats, 1, reference_count)),
     %% ?assertEqual(0, stats_get(G1Stats, 1, packet_count)),
     %% ?assertEqual(0, stats_get(G1Stats, 1, byte_count)),
@@ -70,7 +72,7 @@ foreach_teardown(ok) ->
 
     %% %% check that counters changed
     %% G2Stats = linc_us3_groups:get_stats(?SWITCH_ID,
-    %%                                     #ofp_group_stats_request{ group_id = 1 }),
+    %% #ofp_group_stats_request{ group_id = 1 }),
     %% ?assertEqual(1, stats_get(G2Stats, 1, packet_count)),
     %% ?assertEqual(Pkt2#linc_pkt.size, stats_get(G2Stats, 1, byte_count)).
 
