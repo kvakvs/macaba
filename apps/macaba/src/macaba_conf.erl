@@ -135,10 +135,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-traverse([], Tree) -> Tree;
+traverse([], Tree) -> {ok, Tree};
 traverse([K|K2], Tree) ->
-  Subtree = macaba:propget(K, Tree),
-  traverse(K2, Subtree).
+  case macaba:propget(K, Tree, undefined) of
+    undefined -> {error, not_found};
+    Subtree -> traverse(K2, Subtree)
+  end.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

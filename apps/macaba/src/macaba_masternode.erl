@@ -53,7 +53,7 @@
 %% @doc Starts the server
 start_link() ->
   {ok, Nodes} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
-  start_link(lists:map(fun erlang:binary_to_atom/1, Nodes)).
+  start_link(lists:map(fun(X) -> erlang:binary_to_atom(X, latin1) end, Nodes)).
 
 -spec start_link([node()]) -> {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Nodes) ->
