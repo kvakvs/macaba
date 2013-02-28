@@ -58,14 +58,14 @@ start_web() ->
   TRepl    = {"/board/:mcb_board/post/new", H, [post_new]},
   BShow1   = {"/board/:mcb_board/:mcb_page", H, [board]},
   BShow2   = {"/board/:mcb_board", H, [board]},
-%%  AttSmall = {"/attach/:mcb_attach/thumb", H, [attach_thumb]},
+  AttThumb = {"/attach/:mcb_attach/thumb", H, [attach_thumb]},
   Attach   = {"/attach/:mcb_attach", H, [attach]},
 
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
                    , TNew, TShow, TRepl
                    , BShow1, BShow2
-                   , Attach %%, AttSmall
+                   , AttThumb, Attach
                    , {"/", H, [index]}
                    ]}
            ]),

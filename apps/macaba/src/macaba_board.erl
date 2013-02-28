@@ -258,10 +258,13 @@ attachment_exists(Digest) ->
 write_attachment(_, <<>>) -> <<>>;
 write_attachment(Digest, Data) ->
   ContentType = detect_content_type(Data),
+  {ThumbKey, ThumbSize} = write_thumbnail(ContentType, Data),
   A = #mcb_attachment{
-    size         = byte_size(Data),
-    hash         = Digest,
-    content_type = ContentType
+    size           = byte_size(Data),
+    hash           = Digest,
+    content_type   = ContentType,
+    thumbnail_hash = ThumbKey,
+    thumbnail_size = ThumbSize
    },
   macaba_db_riak:write(mcb_attachment, A),
   B = #mcb_attachment_body{
@@ -270,6 +273,32 @@ write_attachment(Digest, Data) ->
    },
   macaba_db_riak:write(mcb_attachment_body, B),
   Digest.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+-spec write_thumbnail(ContentType :: atom()|binary(), Data :: binary()) ->
+                         {RiakKey :: binary(), Sz :: integer()}.
+write_thumbnail(empty, _)   -> {<<>>, 0};
+write_thumbnail(no_idea, _) -> {<<>>, 0};
+write_thumbnail(<<"image/gif">>,  Data) -> write_thumbnail_1(gif, Data);
+write_thumbnail(<<"image/png">>,  Data) -> write_thumbnail_1(png, Data);
+write_thumbnail(<<"image/jpeg">>, Data) -> write_thumbnail_1(jpg, Data).
+
+%% @private
+write_thumbnail_1(TypeAtom, Data) ->
+  {ok, Image} = eim:load(Data),
+  {ok, FitH} = macaba_conf:get([<<"board">>, <<"thread">>,
+                                <<"thumbnail_height">>]),
+  {ok, FitW} = macaba_conf:get([<<"board">>, <<"thread">>,
+                               <<"thumbnail_width">>]),
+  TData = eim:derive(Image, TypeAtom, {fit, FitW, FitH}),
+  TDigest = crypto:sha(TData),
+  TBody = #mcb_attachment_body{
+    key  = TDigest,
+    data = TData
+   },
+  macaba_db_riak:write(mcb_attachment_body, TBody),
+  {TDigest, byte_size(TData)}.
 
 %%%-----------------------------------------------------------------------------
 %% @private

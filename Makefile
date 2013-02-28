@@ -1,14 +1,15 @@
 all: deps compile
+MRUNCMD=erl -sname macaba@localhost -config macaba_erlang_node.config \
+	-pa ebin apps/*/ebin deps/*/ebin \
+	-s macaba_app -mnesia dir '"database/"'
 
 .PHONY: run
 run: deps compile database
-	erl -sname macaba@localhost -config macaba_server.config -pa ebin apps/*/ebin deps/*/ebin \
-	-s macaba_app -mnesia dir '"database/"'
+	$(MRUNCMD)
 
 .PHONY: runf
 runf: compilef database
-	erl -sname macaba@localhost -config macaba_server.config -pa ebin apps/*/ebin deps/*/ebin \
-	-s macaba_app -mnesia dir '"database"'
+	$(MRUNCMD)
 
 database:
 	mkdir database

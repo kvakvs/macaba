@@ -1,19 +1,42 @@
+{% comment %}-------------------------------------------------------------------
+This snippet represents a forum post, or OP-post (first post in thread)
+this is called from a loop, so 'forloop' variable is always available
+post object is passed as 'p' variable which has fields:
+- p.post_id (string)
+- p.author (string)
+- p.subject (string)
+- p.created_utc, p.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
+- p.attach_info (list of attach objects)
+  - att.hash (binary string) a binary hash key of attach (do not use!)
+  - att.hash_hex (string) a hex representation of att.hash (displayable)
+  - att.content_type (string) HTTP content-type for attach
+  - att.size (integer)
+- p.message (string)
+use p.created_local for server time, or p.created_utc for GMT time
+----------------------------------------------------------------{% endcomment %}
 <a name="i{{ p.post_id }}"></a>
-<div id="post_{{ p.post_id }}" class="{% if forloop.counter == 1 %}oppost {% endif %}post">
-  <span class="title">{{ p.subject }}</span>
-  <span class="author">{{ p.author }}</span>
-{% comment %}
-use p.created_local for server time, or p.created_utc for GMT (Greenwich meridian time)
-{% endcomment %}
-  <span class="time">{{ p.created_utc|date:"D d M Y" }} {{ p.created_utc|time:"H:i:s" }}</span>
-  <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
-      №{{ p.post_id }}</a></span>
-  <span id="exlink_{{ p.post_id }}">
-    {% for att in p.attach_info %}
-    Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}
-    <a href="/attach/{{ att.hash_hex|lower }}">
-      <img class="img" src="/attach/{{ att.hash_hex|lower }}" width="200" style="float:left"></a>
-    {% endfor %}
-  </span>
-  <div class="msg" id="m{{ p.post_id }}">{{ p.message }}</div>
-</div>
+<table border="0" cellpadding="8" cellspacing="0" id="post_{{ p.post_id }}"
+       class="{% if forloop.counter == 1 %}oppost {% endif %}post">
+  <tr>
+    <td colspan="2">
+      <span class="title">{{ p.subject }}</span>
+      <span class="author">{{ p.author }}</span>
+      <span class="time">{{ p.created_utc|date:"D d M Y" }}
+        {{ p.created_utc|time:"H:i:s" }}</span>
+      <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
+          №{{ p.post_id }}</a></span>
+    </td>
+  </tr>
+  <tr>
+    <td width="1">
+      <span id="exlink_{{ p.post_id }}">
+        {% for att in p.attach_info %}
+        <!--Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}-->
+        <a href="/attach/{{ att.hash_hex|lower }}">
+          <img class="img" src="/attach/{{ att.hash_hex|lower }}/thumb"></a>
+        {% endfor %}
+      </span>
+    </td>
+    <td class="msg" id="m{{ p.post_id }}">{{ p.message }}</td>
+  </tr>
+</table>

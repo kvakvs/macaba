@@ -22,8 +22,9 @@ textarea.postmsg {
 }
 .post .name {
 }
-.post .msg {
+.post td.msg {
     margin-left: 16px;
+    vertical-align: top;
 }
 
 hr {

@@ -15,6 +15,7 @@
         , macaba_handle_thread/2
         , macaba_handle_post_new/2
         , macaba_handle_attach/2
+        , macaba_handle_attach_thumb/2
         ]).
 -export([ chain_get_boards/1
         , chain_get_board_info/1
@@ -24,6 +25,7 @@
         , chain_check_post_attach/1
         , chain_thread_new/1
         , chain_get_attach/1
+        , chain_attach_send/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -46,7 +48,6 @@ init({_Transport, http}, Req, [Mode]) ->
 handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
   try
     {Method, Req1} = cowboy_req:method(Req0),
-    lager:debug("http ~p: ~p", [Method, Mode]),
 
     %% parse request body as multipart, this will not work for POST urlencoded
     {Req2, State1} = case Method of
@@ -75,6 +76,7 @@ terminate(_Reason, _Req, _State) ->
 %%                              {Req2 :: tuple(), State2 :: #mcb_html_state{}}.
 %% @doc GET /
 macaba_handle_index(<<"GET">>, {Req0, State0}) ->
+  lager:debug("http GET root"),
   Boards = macaba_board_cli:get_boards(),
   State1 = state_set_var(boards, Boards, State0),
   render_page("index", Req0, State1).
@@ -98,6 +100,7 @@ chain_get_boards({Req, State0}) ->
 %% @doc get current board info
 chain_get_board_info({Req0, State0}) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
+  lager:debug("http GET board ~s", [BoardId]),
   case macaba_board_cli:get_board(BoardId) of
     {error, not_found} ->
       {Req1, State1} = render_page(404, "board_404", Req, State0),
@@ -158,6 +161,7 @@ chain_check_post_attach({Req0, State0=#mcb_html_state{post_data=PD}}) ->
 %% @doc Creates new thread
 chain_thread_new({Req0, State0}) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
+  lager:debug("http POST new thread, board=~s", [BoardId]),
   PostOpt = get_post_create_options(Req, State0),
   ThreadOpt = orddict:from_list([]),
   macaba_board:new_thread(BoardId, ThreadOpt, PostOpt),
@@ -174,6 +178,7 @@ macaba_handle_post_new(<<"POST">>, {Req0, State0}) ->
   Post           = state_get_var(created_post, State1),
   ThreadId       = Post#mcb_post.thread_id,
   PostId         = Post#mcb_post.post_id,
+  lager:debug("http POST new post, board=~s thread=~s", [BoardId, ThreadId]),
   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
            ++ macaba:as_string(ThreadId) ++ "#i"
            ++ macaba:as_string(PostId), Req, State1).
@@ -222,6 +227,7 @@ macaba_handle_thread(<<"GET">>, {Req0, State0}) ->
 %% @doc get thread info if thread exists
 chain_get_thread_info({Req0, State0}) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
+  lager:debug("http GET thread ~s", [ThreadId]),
   case macaba_board_cli:get_thread(ThreadId) of
     {error, not_found} ->
       {Req1, State1} = render_page(404, "thread_404", Req, State0),
@@ -244,39 +250,72 @@ chain_get_thread_posts({Req0, State0}) ->
 %%%---------------------------------------------------
 %% @doc Do GET attach/att_id
 macaba_handle_attach(<<"GET">>, {Req0, State0}) ->
-  {_, {Req1, State}} = macaba_web:chain_run(
+  State1 = state_set_var(thumbnail, false, State0),
+  {_, {Req, State}} = macaba_web:chain_run(
                          [ fun chain_get_attach/1
-                         ], {Req0, State0}),
-  %% TODO: Etag/if modified since support
-  case State#mcb_html_state.already_rendered of
-    true ->
-      {Req1, State};
+                         , fun chain_attach_send/1
+                         ], {Req0, State1}),
+  {Req, State}.
 
-    false ->
-      Att       = state_get_var(attach, State),
-      AttachId  = state_get_var(attach_id, State),
-      Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type}
-                  ],
-      AttBody   = macaba_db_riak:read(mcb_attachment_body, AttachId),
-      {ok, Req} = cowboy_req:reply(
-                    200, Headers, AttBody#mcb_attachment_body.data, Req1),
-      {Req, State}
-  end.
+%%%---------------------------------------------------
+%% @doc Do GET attach/att_id/thumb
+macaba_handle_attach_thumb(<<"GET">>, {Req0, State0}) ->
+  State1 = state_set_var(thumbnail, true, State0),
+  {_, {Req, State}} = macaba_web:chain_run(
+                         [ fun chain_get_attach/1
+                         , fun chain_attach_send/1
+                         ], {Req0, State1}),
+  {Req, State}.
 
+%%%---------------------------------------------------
 %% @private
 %% @doc get thread info if thread exists
 chain_get_attach({Req0, State0}) ->
   {AttachId0, Req} = cowboy_req:binding(mcb_attach, Req0),
   AttachId = macaba:hexstr_to_bin(binary_to_list(AttachId0)),
-  State1 = state_set_var(attach_id, AttachId, State0),
+  %% for primary image data attachid=attach_body_id
+  State1 = state_set_var(body_id, AttachId, State0),
 
   case macaba_db_riak:read(mcb_attachment, AttachId) of
     {error, not_found} ->
       {Req1, State} = render_page(404, "attach_404", Req, State1),
       {error, {Req1, State}};
     Att ->
-      State = state_set_var(attach, Att, State1),
+      %% for thumbnail attachid.thumbnail_hash=attach_body_id
+      State2 = case state_get_var(thumbnail, State1) of
+                 false ->
+                   lager:debug("http GET attach ~s",
+                               [bin_to_hex:bin_to_hex(AttachId)]),
+                   State1;
+                 true ->
+                   lager:debug("http GET thumb ~s",
+                               [bin_to_hex:bin_to_hex(AttachId)]),
+                   state_set_var(
+                     body_id, Att#mcb_attachment.thumbnail_hash,
+                     State1)
+               end,
+      State = state_set_var(attach, Att, State2),
       %% assume if header exists, then body exists too
+      {ok, {Req, State}}
+  end.
+
+%%%---------------------------------------------------
+%% @private
+chain_attach_send({Req0, State0}) ->
+  %% TODO: Etag/if modified since support
+  case State0#mcb_html_state.already_rendered of
+    true ->
+      {ok, {Req0, State0}};
+
+    false ->
+      Att       = state_get_var(attach, State0),
+      AttachId  = state_get_var(body_id, State0),
+      Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type}
+                  ],
+      AttBody   = macaba_db_riak:read(mcb_attachment_body, AttachId),
+      {ok, Req} = cowboy_req:reply(
+                    200, Headers, AttBody#mcb_attachment_body.data, Req0),
+      State = State0#mcb_html_state{already_rendered=true},
       {ok, {Req, State}}
   end.
 

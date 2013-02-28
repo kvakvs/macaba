@@ -117,7 +117,8 @@ resolve_conflict([First|_]) -> First.
 
 write(Type, Value) ->
   Key = macaba_db:get_key_for_object(Value),
-  write_internal(Type, bucket_for(Type), Key, Value).
+  R = write_internal(Type, bucket_for(Type), Key, Value),
+  lager:debug("riak write ~p key=~p result=~p", [Type, Key, R]).
 
 %%--------------------------------------------------------------------
 %% @private

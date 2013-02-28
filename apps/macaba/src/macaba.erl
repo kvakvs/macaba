@@ -40,8 +40,9 @@ record_to_proplist(#mcb_post{}=Rec) ->
 
 record_to_proplist(#mcb_attachment{}=Rec) ->
   HashHex = bin_to_hex:bin_to_hex(Rec#mcb_attachment.hash),
+  THashHex = bin_to_hex:bin_to_hex(Rec#mcb_attachment.thumbnail_hash),
   lists:zip(record_info(fields, mcb_attachment), tl(tuple_to_list(Rec)))
-    ++ [{hash_hex, HashHex}];
+    ++ [{hash_hex, HashHex}, {thumbnail_hash_hex, THashHex}];
 
 record_to_proplist(#mcb_attachment_body{}=Rec) ->
   lists:zip(record_info(fields, mcb_attachment_body), tl(tuple_to_list(Rec)));

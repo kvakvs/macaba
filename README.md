@@ -33,7 +33,7 @@ posts per board per second in a multinode setup.
 *   Designed for running as a cluster, or as a single node
 *   Basic board functions: board index, thread index, thread view
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
-*   File upload (work in progress), multiple file upload?
+*   File upload
 
 ### Tier 1 (important) TODO
 
@@ -58,6 +58,7 @@ posts per board per second in a multinode setup.
 
 ### Tier 3 (far future) TODO
 
+*   Multiple file upload
 *   Tripcodes support
 *   TOR/proxy detection
 *   Fighting Unicode quirks (reverse text direction)
@@ -67,21 +68,26 @@ posts per board per second in a multinode setup.
 
 ## Prerequisites
 
-*  Linux operating system (may possibly work on MacOSX or Windows, didn't bother
-   to test on those systems, and probably never will)
+*  Linux operating system (Ubuntu works, Debian and other should be easy),
+   MacOSX _may_ work, but you're on your own building dependencies!
 *  Erlang/OTP R15 or R16, get from
    https://www.erlang-solutions.com/downloads/download-erlang-otp - requires no
    additional configuration.
 *  RIAK database, get from http://docs.basho.com/riak/latest/downloads/ -
    requires no configuration just install and ensure its started by doing
    `sudo /etc/init.d/riak restart`
+*  Imagemagick for making thumbnails and image analysis, (install
+   libmagickwand-dev on Ubuntu)
+*  A working C/C++ compiler to build dependencies (install build-essential on
+   Ubuntu)
 
 ## Compiling
 
 *   Checkout from github by using `git clone git://github.com/kvakvs/macaba.git`
-*   $ `make run` full recompile and start (or `make runf` to run without
+*   $ `make run` will do full recompile and start (or `make runf` to run without
     recompiling all deps)
+*   Open http://localhost:12000/ with your browser
 
-This will download 'rebar', using rebar it will check out dependencies to
-'deps/' subdirectory, compile dependencies, compile macaba, and run locally
-on port 8000.
+This will download 'rebar', check out dependencies to 'deps/' subdirectory,
+compile dependencies, compile macaba, and run locally on port 12000
+(configurable in macaba.config).

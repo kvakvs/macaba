@@ -74,12 +74,12 @@
 
 -define(MCB_ATTACHMENT_VER, 1).
 -record(mcb_attachment, {
-          %% attach_id = ""  :: binary()
-          %% , filename = ""   :: string() % unique random filename
-            size = 0        :: integer()
+            hash            :: binary() % file checksum, also key to file body
+          , size = 0        :: integer()
+          , thumbnail_hash  :: binary() % thumbnail checksum and key in db
+          , thumbnail_size  :: integer()
           , content_type    :: binary()
           , references = [] :: [binary()] % list of posts referring to file
-          , hash            :: binary() % file checksum, also key to file body
          }).
 
 -define(MCB_ATTACHMENT_BODY_VER, 1).
