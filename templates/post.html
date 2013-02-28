@@ -4,6 +4,7 @@ this is called from a loop, so 'forloop' variable is always available
 post object is passed as 'p' variable which has fields:
 - p.post_id (string)
 - p.author (string)
+- p.email (string)
 - p.subject (string)
 - p.created_utc, p.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
 - p.attach_info (list of attach objects)
@@ -20,11 +21,15 @@ use p.created_local for server time, or p.created_utc for GMT time
   <tr>
     <td colspan="2">
       <span class="title">{{ p.subject }}</span>
-      <span class="author">{{ p.author }}</span>
+      <span class="author">
+        {% if p.email %}<a href="mailto:{{ p.email }}">{{ p.author }}</a>
+        {% else %}{{ p.author }}{% endif %}
+      </span>
       <span class="time">{{ p.created_utc|date:"D d M Y" }}
         {{ p.created_utc|time:"H:i:s" }}</span>
       <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
           №{{ p.post_id }}</a></span>
+      {% if p.email == "sage" %}(sage){% endif %}
     </td>
   </tr>
   <tr>

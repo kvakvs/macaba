@@ -1,7 +1,13 @@
+form.newpost {
+    border: 1px solid silver;
+    border-radius: 10px;
+    padding: 8px;
+}
+
 .post {
     background: #eee;
     border: 1px solid #ccc;
-    border-radius: 5px 5px 5px 5px;
+    border-radius: 5px;
     margin-top: 8px;
     margin-bottom: 8px;
     padding: 8px;

@@ -1,12 +1,21 @@
-<form method="post" class="form-inline" enctype="multipart/form-data"
+<form method="post" class="form-inline newpost" enctype="multipart/form-data"
       action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
+  {% if thread_id == "new" %}
+  <h3>Create new thread</h3>
+  {% else %}
+  <h3>Reply to thread</h3>
+  {% endif %}
+
   <input type="hidden" name="thread_id" value="{{ thread_id }}">
   <label>Name</label>
-  <input type="text" name="author" size="40" /><br/>
+  <input type="text" name="author" size="30" />
+  <label>Email (or "sage")</label>
+  <input type="text" name="email" size="30" /><br/>
 
   <label>Subject</label>
   <input type="text" name="subject" size="40" />
-  <input type="submit" value="{% if thread_id == "new" %}New thread{% else %}Post reply{% endif %}" /><br/>
+  <input type="submit" value="{% if thread_id == "new" %}New thread{% else %}Post reply{% endif %}"
+         class="btn btn-primary" /><br/>
 
   <textarea name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
 

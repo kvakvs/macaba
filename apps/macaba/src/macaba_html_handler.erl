@@ -70,19 +70,17 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 %%%-----------------------------------------------------------------------------
-%% @private
-%% -spec macaba_handle_index(Method :: binary(), Req :: tuple(),
-%%                           State :: #mcb_html_state{}) ->
-%%                              {Req2 :: tuple(), State2 :: #mcb_html_state{}}.
 %% @doc GET /
+%%%-----------------------------------------------------------------------------
 macaba_handle_index(<<"GET">>, {Req0, State0}) ->
   lager:debug("http GET root"),
   Boards = macaba_board_cli:get_boards(),
   State1 = state_set_var(boards, Boards, State0),
   render_page("index", Req0, State1).
 
-%%%---------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% @doc Do GET board/id/
+%%%-----------------------------------------------------------------------------
 macaba_handle_board(<<"GET">>, {Req0, State0}) ->
   {_, {Req, State}} = macaba_web:chain_run(
                         [ fun chain_get_boards/1
@@ -124,7 +122,8 @@ chain_get_threads({Req0, State0}) ->
   {ok, {Req, State}}.
 
 %%%-----------------------------------------------------------------------------
-%% @doc Create thread POST on board/id/new
+%% @doc HTTP POST: Create thread on board/id/new
+%%%-----------------------------------------------------------------------------
 macaba_handle_thread_new(<<"POST">>, {Req0, State0}) ->
   {_, {Req1, State1}} = macaba_web:chain_run(
                         [ fun chain_check_post_attach/1
@@ -167,21 +166,28 @@ chain_thread_new({Req0, State0}) ->
   macaba_board:new_thread(BoardId, ThreadOpt, PostOpt),
   {ok, {Req, State0}}.
 
-%%%---------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% @doc Create post in thread on board/b_id/thread/t_id/post/new
+%%%-----------------------------------------------------------------------------
 macaba_handle_post_new(<<"POST">>, {Req0, State0}) ->
   {_, {Req1, State1}} = macaba_web:chain_run(
-                        [ fun chain_check_post_attach/1
+                        [ fun chain_check_thread_exists/1
+                        , fun chain_check_post_attach/1
                         , fun chain_post_new/1
+                        , fun chain_post_new_redirect/1
                         ], {Req0, State0}),
-  {BoardId, Req} = cowboy_req:binding(mcb_board, Req1),
-  Post           = state_get_var(created_post, State1),
+  {Req1, State1}.
+
+chain_post_new_redirect({Req0, State0}) ->
+  {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
+  Post           = state_get_var(created_post, State0),
   ThreadId       = Post#mcb_post.thread_id,
   PostId         = Post#mcb_post.post_id,
-  lager:debug("http POST new post, board=~s thread=~s", [BoardId, ThreadId]),
-  redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
-           ++ macaba:as_string(ThreadId) ++ "#i"
-           ++ macaba:as_string(PostId), Req, State1).
+  lager:debug("http POST reply, board=~s thread=~s", [BoardId, ThreadId]),
+  {ok, redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
+                ++ macaba:as_string(ThreadId) ++ "#i"
+                ++ macaba:as_string(PostId), Req, State0)
+  }.
 
 %%%---------------------------------------------------
 %% @private
@@ -195,25 +201,41 @@ chain_post_new({Req0, State0}) ->
 
 %%%---------------------------------------------------
 %% @private
+%% @doc Ensure that threadid posted exists
+chain_check_thread_exists({Req0, State0=#mcb_html_state{post_data=PD}}) ->
+  ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
+  case macaba_board:get_thread(ThreadId) of
+    {error, not_found} ->
+      {Req1, State1} = render_page(404, "thread_404", Req0, State0),
+      {error, {Req1, State1}};
+    _ ->
+      {ok, {Req0, State0}}
+  end.
+
+%%%---------------------------------------------------
+%% @private
 get_post_create_options(_Req0, State=#mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
   Author   = macaba:propget(<<"author">>,    PD, ""),
+  Email    = macaba:propget(<<"email">>,     PD, ""),
   Subject  = macaba:propget(<<"subject">>,   PD, ""),
   Message  = macaba:propget(<<"message">>,   PD, ""),
   Attach   = macaba:propget(<<"attach">>,    PD, ""),
   %%Captcha  = macaba:propget(<<"captcha">>,   PD, ""),
 
-  orddict:from_list([ {thread_id, ThreadId}
-                    , {author, Author}
-                    , {subject, Subject}
-                    , {message, Message}
-                    , {attach, Attach}
+  orddict:from_list([ {thread_id,  ThreadId}
+                    , {author,     Author}
+                    , {email,      Email}
+                    , {subject,    Subject}
+                    , {message,    Message}
+                    , {attach,     Attach}
                     , {attach_key, state_get_var(attach_key, State)}
                     ]).
 
-%%%---------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% @doc Do GET board/b_id/thread/t_id
+%%%-----------------------------------------------------------------------------
 macaba_handle_thread(<<"GET">>, {Req0, State0}) ->
   {_, {Req, State}} = macaba_web:chain_run(
                          [ fun chain_get_boards/1
@@ -247,8 +269,9 @@ chain_get_thread_posts({Req0, State0}) ->
   {ok, {Req, State}}.
 
 
-%%%---------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id
+%%%-----------------------------------------------------------------------------
 macaba_handle_attach(<<"GET">>, {Req0, State0}) ->
   State1 = state_set_var(thumbnail, false, State0),
   {_, {Req, State}} = macaba_web:chain_run(
@@ -257,8 +280,9 @@ macaba_handle_attach(<<"GET">>, {Req0, State0}) ->
                          ], {Req0, State1}),
   {Req, State}.
 
-%%%---------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id/thumb
+%%%-----------------------------------------------------------------------------
 macaba_handle_attach_thumb(<<"GET">>, {Req0, State0}) ->
   State1 = state_set_var(thumbnail, true, State0),
   {_, {Req, State}} = macaba_web:chain_run(

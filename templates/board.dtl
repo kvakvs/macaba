@@ -22,7 +22,6 @@
 
 <div class="row">
   <div class="span12">
-    <h3>Create new thread</h3>
     {% with thread_id = "new" %}{% include "post_form.html" %}{% endwith %}
   </div>
 </div>

@@ -66,6 +66,7 @@
           , post_id         :: binary()
           , subject = ""    :: string()  % trusted HTML
           , author  = ""    :: string()  % trusted HTML
+          , email   = ""    :: string()  % trusted HTML
           , message = ""    :: string()  % trusted HTML
           , created         :: integer() % unix time
           , attach_ids = [] :: [binary()]

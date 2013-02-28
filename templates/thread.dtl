@@ -25,7 +25,6 @@
 
 <div class="row">
   <div class="span12">
-    <h3>Reply to thread</h3>
     {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}
     {% endwith %}
   </div>

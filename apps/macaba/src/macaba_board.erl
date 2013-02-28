@@ -188,7 +188,7 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 
   %% add thread to board
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-          BD#mcb_board_dynamic{ threads = T ++ [PostId]}
+          BD#mcb_board_dynamic{ threads = [PostId | T]}
       end,
   {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   {Thread, Post}.
@@ -215,12 +215,26 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId = macaba:propget(thread_id, Opts),
 
   %% update thread post list
-  %% lager:debug("new_post bo=~p thr=~p pst=~p", [BoardId, ThreadId, Post]),
-  F = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
-          TD#mcb_thread_dynamic{ post_ids = L++[Post#mcb_post.post_id] }
-      end,
-  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, ThreadId, F),
+  ReplyF = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
+               TD#mcb_thread_dynamic{ post_ids=L++[Post#mcb_post.post_id] }
+           end,
+  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, ThreadId, ReplyF),
+
+  %% update board thread list (bump thread)
+  bump_if_no_sage(BoardId, ThreadId, Post),
   Post.
+
+%% @private
+%% @doc Checks email field of the new post, if it contains no <<"sage">> -
+%% bumps thread to become first on board
+bump_if_no_sage(_BoardId, _ThreadId, #mcb_post{email = <<"sage">>}) -> ok;
+bump_if_no_sage(BoardId, ThreadId, Post) ->
+  BumpF = fun(BD = #mcb_board_dynamic{ threads=T }) ->
+              BD#mcb_board_dynamic{
+                threads = [ThreadId | lists:delete(ThreadId, T)]
+               }
+          end,
+  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates structure for a new post, returns it. Does not write.
@@ -228,6 +242,7 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
 construct_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId  = macaba:propget(thread_id, Opts),
   Author    = macaba:propget(author,    Opts),
+  Email     = macaba:propget(email,     Opts),
   Subject   = macaba:propget(subject,   Opts),
   Message   = macaba:propget(message,   Opts),
 
@@ -237,6 +252,7 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
     post_id   = PostId,
     subject   = Subject,
     author    = Author,
+    email     = Email,
     message   = Message,
     created   = get_now_utc(),
     %% attach_ids = [macaba:as_binary(AttachId)],
