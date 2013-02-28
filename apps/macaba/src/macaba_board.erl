@@ -248,15 +248,16 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
 
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
-    thread_id = macaba:as_binary(ThreadId),
-    post_id   = PostId,
-    subject   = Subject,
-    author    = Author,
-    email     = Email,
-    message   = Message,
-    created   = get_now_utc(),
+    thread_id   = macaba:as_binary(ThreadId),
+    post_id     = PostId,
+    subject     = Subject,
+    author      = Author,
+    email       = Email,
+    message_raw = Message,
+    message     = macaba_markup:process(Message),
+    created     = get_now_utc(),
     %% attach_ids = [macaba:as_binary(AttachId)],
-    sage      = false
+    sage        = false
    }.
 
 %%%-----------------------------------------------------------------------------

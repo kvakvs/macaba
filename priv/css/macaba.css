@@ -16,8 +16,13 @@ form.newpost {
     background: white;
     border: 0px;
 }
+
 textarea.postmsg {
     width: 75%;
+}
+
+textarea.postmsg blockquote {
+   text-color: #4C4;
 }
 
 /* Sections of a post */

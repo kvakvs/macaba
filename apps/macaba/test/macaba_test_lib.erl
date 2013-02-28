@@ -14,10 +14,11 @@
 %% @doc Execute a Method request to the URL, Opts: body: body of the request
 %% http_options: http options for lhttpc, request_headers: headers for lhttpc
 request(Url, Method, Opts) ->
-  Body    = macaba:propget(request_body,    Opts, []),
-  Options = macaba:propget(http_options,    Opts, []),
-  Headers = macaba:propget(request_headers, Opts, []),
-  lhttpc_request(Url, Method, Headers, Body, ?HTTP_TIMEOUT, Options).
+    ok.
+%%   Body    = macaba:propget(request_body,    Opts, []),
+%%   Options = macaba:propget(http_options,    Opts, []),
+%%   Headers = macaba:propget(request_headers, Opts, []),
+%%   lhttpc_request(Url, Method, Headers, Body, ?HTTP_TIMEOUT, Options).
 
 mock_riak() ->
   meck:new(riak_pool_auto, [passthrough]),

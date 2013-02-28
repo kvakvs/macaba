@@ -29,7 +29,8 @@ use p.created_local for server time, or p.created_utc for GMT time
         {{ p.created_utc|time:"H:i:s" }}</span>
       <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
           №{{ p.post_id }}</a></span>
-      {% if p.email == "sage" %}(sage){% endif %}
+      {% if p.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}
+      {% if forloop.counter == 1 %}[<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]{% endif %}
     </td>
   </tr>
   <tr>

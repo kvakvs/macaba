@@ -62,15 +62,16 @@
 
 -define(MCB_POST_VER, 1).
 -record(mcb_post, {
-            thread_id       :: binary()
-          , post_id         :: binary()
-          , subject = ""    :: string()  % trusted HTML
-          , author  = ""    :: string()  % trusted HTML
-          , email   = ""    :: string()  % trusted HTML
-          , message = ""    :: string()  % trusted HTML
-          , created         :: integer() % unix time
-          , attach_ids = [] :: [binary()]
-          , sage = false    :: boolean()
+            thread_id        :: binary()
+          , post_id          :: binary()
+          , subject = ""     :: string()  % trusted HTML
+          , author  = ""     :: string()  % trusted HTML
+          , email   = ""     :: string()  % trusted HTML
+          , message = ""     :: string()  % trusted HTML
+          , message_raw = "" :: string()  % trusted HTML
+          , created          :: integer() % unix time
+          , attach_ids = []  :: [binary()]
+          , sage = false     :: boolean()
          }).
 
 -define(MCB_ATTACHMENT_VER, 1).

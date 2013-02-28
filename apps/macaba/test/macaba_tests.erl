@@ -13,11 +13,16 @@
 html_handler_test_() ->
   {setup, fun setup/0, fun teardown/1,
    {foreach, fun foreach_setup/0, fun foreach_teardown/1,
-    [ {"Pagination", fun pagination/0}
-    , {"Conversions", fun conversions/0}
+    [ {"Pagination",        fun pagination/0}
+    , {"Conversions",       fun conversions/0}
+    , {"Markup Emphasis-1", fun markup_emphasis1/0}
+    , {"Markup Emphasis-2", fun markup_emphasis2/0}
+    , {"Markup Strong",     fun markup_strong/0}
+    , {"Markup Blockquote", fun markup_blockquote/0}
+    , {"Markup Code",       fun markup_code/0}
     ]
    }}.
-    
+
 %%%------------------------------------------------------------------------
 %%% Fixtures
 %%%------------------------------------------------------------------------
@@ -69,37 +74,67 @@ conversions() ->
   ?assertEqual("12345", macaba:as_string(<<"12345">>)),
   ?assertEqual("12345", macaba:as_string('12345')).
 
-    %% Bkt1 = make_test_bucket(2),
-    %% M1 = call_group_mod(add, 1, all, [Bkt1]),
-    %% ?assertEqual(ok, M1),
-    %% ?assertEqual(true, group_exists(1)),
+markup_emphasis1() ->
+  P = fun macaba_markup:process/1,
+  %% ?assertEqual(["\t<em>hello</em>"], P("\t*hello*")),
+  ?assertEqual(["<em>hello</em>\t"], P("*hello*\t")),
+  ?assertEqual([" <em>hello</em>"], P(" *hello*")),
+  ?assertEqual(["<em>hello</em> "], P("*hello* ")),
 
-    %% %% Duplicate group should fail
-    %% M1Err = call_group_mod(add, 1, all, []),
-    %% ?assertMatch({error, #ofp_error_msg{}}, M1Err),
+  ?assertEqual([" <em>hello</em> "], P(" *hello* ")),
+  %% ?assertEqual(["\t<em>hello</em> "], P("\t*hello* ")),
+  ?assertEqual([" <em>hello</em>\t"], P(" *hello*\t")),
 
-    %% linc_us3_groups:update_reference_count(?SWITCH_ID, 1, 333),
+  ?assertEqual(["fgs <em>hello</em> "], P("fgs *hello* ")),
+  %% ?assertEqual(["fgs", "\t<em>hello</em> "], P("fgs\n\t*hello* ")),
+  ?assertEqual(["fgs", "<em>hello</em>\t"], P("fgs\n*hello*\t")).
 
-    %% %% Inserting duplicate group should fail
-    %% MDup = call_group_mod(add, 1, all, []),
-    %% ?assertMatch({error, #ofp_error_msg{}}, MDup),
+markup_emphasis2() ->
+  P = fun macaba_markup:process/1,
+  %% ?assertEqual(["\t<em>hello</em>"], P("\t*hello*")),
+  ?assertEqual(["<em>hello</em>\t"], P("*hello*\t")),
+  ?assertEqual([" <em>hello</em>"], P(" *hello*")),
+  ?assertEqual(["<em>hello</em> "], P("*hello* ")),
 
-    %% %% check that counters are zero
-    %% G1Stats = linc_us3_groups:get_stats(?SWITCH_ID,
-    %%                                     #ofp_group_stats_request{ group_id = 1 }),
-    %% ?assertEqual(333, stats_get(G1Stats, 1, reference_count)),
-    %% ?assertEqual(0, stats_get(G1Stats, 1, packet_count)),
-    %% ?assertEqual(0, stats_get(G1Stats, 1, byte_count)),
+  ?assertEqual([" <em>hello</em> "], P(" *hello* ")),
+  %% ?assertEqual(["\t<em>hello</em> "], P("\t*hello* ")),
+  ?assertEqual([" <em>hello</em>\t"], P(" *hello*\t")),
 
-    %% %% send a random package
-    %% Pkt2 = test_packet_vlan(),
-    %% linc_us3_groups:apply(1, Pkt2),
+  ?assertEqual(["fgs <em>hello</em> "], P("fgs *hello* ")),
+  %% ?assertEqual(["fgs", "\t<em>hello</em> "], P("fgs\n\t*hello* ")),
+  ?assertEqual(["fgs", "<em>hello</em>\t"], P("fgs\n*hello*\t")).
 
-    %% %% check that counters changed
-    %% G2Stats = linc_us3_groups:get_stats(?SWITCH_ID,
-    %%                                     #ofp_group_stats_request{ group_id = 1 }),
-    %% ?assertEqual(1, stats_get(G2Stats, 1, packet_count)),
-    %% ?assertEqual(Pkt2#linc_pkt.size, stats_get(G2Stats, 1, byte_count)).
+markup_strong() ->
+  P = fun macaba_markup:process/1,
+  %% ?assertEqual(["\t<strong>hello</strong>"], P("\t**hello**")),
+  ?assertEqual(["<strong>hello</strong>\t"], P("**hello**\t")),
+  ?assertEqual([" <strong>hello</strong>"], P(" **hello**")),
+  ?assertEqual(["<strong>hello</strong> "], P("**hello** ")),
+
+  ?assertEqual([" <strong>hello</strong> "], P(" **hello** ")),
+  %% ?assertEqual(["\t<strong>hello</strong> "], P("\t**hello** ")),
+  ?assertEqual([" <strong>hello</strong>\t"], P(" **hello**\t")),
+
+  ?assertEqual(["fgs <strong>hello</strong> "], P("fgs **hello** ")),
+  %% ?assertEqual(["fgs", "\t<strong>hello</strong> "], P("fgs\n\t**hello** ")),
+  ?assertEqual(["fgs", "<strong>hello</strong>\tfds"],
+               P("fgs\n**hello**\tfds")).
+
+markup_blockquote() ->
+  P = fun macaba_markup:process/1,
+  ?assertEqual(["<blockquote>&gt;hello</blockquote>"], P(">hello")),
+  ?assertEqual(["<blockquote>&gt; hello</blockquote>"], P("> hello")),
+  ?assertEqual(["<blockquote>&gt;hello</blockquote>", "fgs"], P(">hello\nfgs")),
+  ?assertEqual(["<blockquote>&gt;foo<br />\n&gt;baz</blockquote>", "fgs"],
+               P(">foo\n>baz\nfgs")).
+
+markup_code() ->
+  P = fun macaba_markup:process/1,
+  ?assertEqual(["<pre>hello</pre>"], P("    hello")),
+  ?assertEqual(["<pre>hello</pre>"], P("\thello")),
+  ?assertEqual(["<pre>foo</pre>", "fgs"], P("    foo\nfgs")),
+  ?assertEqual(["<pre>foo<br />\nbar</pre>", "fgs"],
+               P("    foo\n    bar\nfgs")).
 
 
 %%% Local Variables:
