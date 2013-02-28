@@ -20,6 +20,7 @@ html_handler_test_() ->
     , {"Markup Strong",     fun markup_strong/0}
     , {"Markup Blockquote", fun markup_blockquote/0}
     , {"Markup Code",       fun markup_code/0}
+    , {"Markup Code Inline",fun markup_code_inl/0}
     ]
    }}.
 
@@ -100,20 +101,26 @@ markup_emphasis2() ->
   %% ?assertEqual(["\t<em>hello</em> "], P("\t*hello* ")),
   ?assertEqual([" <em>hello</em>\t"], P(" *hello*\t")),
 
+  ?assertEqual(["*hello\t"], P("*hello\t")),
+
   ?assertEqual(["fgs <em>hello</em> "], P("fgs *hello* ")),
   %% ?assertEqual(["fgs", "\t<em>hello</em> "], P("fgs\n\t*hello* ")),
   ?assertEqual(["fgs", "<em>hello</em>\t"], P("fgs\n*hello*\t")).
 
 markup_strong() ->
   P = fun macaba_markup:process/1,
-  %% ?assertEqual(["\t<strong>hello</strong>"], P("\t**hello**")),
+  ?assertEqual(["   <strong>hello</strong>"], P("   **hello**")),
   ?assertEqual(["<strong>hello</strong>\t"], P("**hello**\t")),
   ?assertEqual([" <strong>hello</strong>"], P(" **hello**")),
   ?assertEqual(["<strong>hello</strong> "], P("**hello** ")),
 
   ?assertEqual([" <strong>hello</strong> "], P(" **hello** ")),
-  %% ?assertEqual(["\t<strong>hello</strong> "], P("\t**hello** ")),
+  ?assertEqual(["   <strong>hello</strong> "], P("   **hello** ")),
   ?assertEqual([" <strong>hello</strong>\t"], P(" **hello**\t")),
+
+  ?assertEqual(["**hello\t"], P("**hello\t")),
+  ?assertEqual(["hello\t**"], P("hello\t**")),
+  ?assertEqual(["hello**\t"], P("hello**\t")),
 
   ?assertEqual(["fgs <strong>hello</strong> "], P("fgs **hello** ")),
   %% ?assertEqual(["fgs", "\t<strong>hello</strong> "], P("fgs\n\t**hello** ")),
@@ -135,6 +142,14 @@ markup_code() ->
   ?assertEqual(["<pre>foo</pre>", "fgs"], P("    foo\nfgs")),
   ?assertEqual(["<pre>foo<br />\nbar</pre>", "fgs"],
                P("    foo\n    bar\nfgs")).
+
+markup_code_inl() ->
+  P = fun macaba_markup:process/1,
+  ?assertEqual(["<span class=\"code\">foo</span>\t"], P("`foo`\t")),
+  ?assertEqual([" <span class=\"code\">foo</span>"], P(" `foo`")),
+  ?assertEqual(["  <span class=\"code\">foo</span> "], P("  `foo` ")),
+
+  ?assertEqual(["`foo`\t"], P("``foo``\t")).
 
 
 %%% Local Variables:

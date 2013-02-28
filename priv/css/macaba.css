@@ -21,8 +21,22 @@ textarea.postmsg {
     width: 75%;
 }
 
-textarea.postmsg blockquote {
+/* post display block */
+td.msg blockquote {
    text-color: #4C4;
+}
+
+td.msg span.code {
+    border: 1px solid silver;
+    background: #eed;
+    padding: 2px;
+    font-family: monospace;
+}
+td.msg pre {
+    border: 1px solid silver;
+    background: #eed;
+    padding: 2px;
+    font-family: monospace;
 }
 
 /* Sections of a post */
