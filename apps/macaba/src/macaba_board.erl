@@ -290,11 +290,22 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
     author      = Author,
     email       = Email,
     message_raw = Message,
-    message     = macaba_markup:process(Message),
+    message     = call_markup_plugin(Message),
     created     = get_now_utc(),
     %% attach_ids = [macaba:as_binary(AttachId)],
     sage        = false
    }.
+
+%% @private
+%% @doc Gets config parameter board.markup_plugin, converts it to M,F,A and
+%% calls to transform user input
+call_markup_plugin(Txt) ->
+  {ok, [MarkupMod0, MarkupFun0]} = macaba_conf:get(
+                                     [<<"board">>, <<"markup_plugin">>],
+                                     [<<"macaba_markup">>, <<"process">>]),
+  MarkupMod = erlang:binary_to_atom(MarkupMod0, latin1),
+  MarkupFun = erlang:binary_to_atom(MarkupFun0, latin1),
+  erlang:apply(MarkupMod, MarkupFun, [Txt]).
 
 %%%-----------------------------------------------------------------------------
 %% @private

@@ -12,20 +12,22 @@ be familiar for wakaba users:
 
 ## Project status
 
-### Alpha, can try it
+### Alpha, you can try it
 
-Using RIAK - a key/value distributed and fault tolerant store, allows to create
-multiple-node cluster. Data in RIAK is self-balanced when you add a node, and
-if some node randomly crashes or goes down, data is rebalanced to survive the
-crash without degrading performance.
+Using RIAK - a distributed and fault tolerant key/value store, allows to create
+a single-node or a multiple-node cluster. Data in RIAK is self-balanced when
+you add a node, and if some node randomly crashes or goes down, data is
+rebalanced automatically to survive the crash without degrading performance.
 
 For synchronizing thread/post counters across multiple nodes Mnesia memory
 tables are used. Hopefully this will be fast enough to allow for up to hundreds
-posts per board per second in a multinode setup.
+posts per board per second in a multinode setup. NOTE: By some people Mnesia
+can be seen as a SPOF (a single point of failure). It is totally possible to
+rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ## Features
 
-### Done right now
+### Done
 
 *   Versioned data model (reading data always works no matter how old the data
     version was)
@@ -34,9 +36,9 @@ posts per board per second in a multinode setup.
 *   Basic board functions: board index, thread index, thread view
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
 *   File upload (1 per post)
-*   Full Wakaba markup support
+*   Full Wakaba markup support (as a pluggable module)
 
-### Tier 1 (important) TODO
+### Tier 1 TODO: important
 
 *   Admin UI (configuring boards list, global board options, maintenance mode,
     read-only mode)
@@ -48,24 +50,24 @@ posts per board per second in a multinode setup.
 *   Moderation UI (bans, thread management - locking pinning, deleting,
     reviewing reported posts, etc)
 
-### Tier 2 (do it later) TODO
+### Tier 2 TODO: do it later
 
 *   Deleting posts by user
+*   Video embedding support (configurable)
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications
 *   Websocket API for custom UIs and live update
 *   Modular support for: post parsing, themes, additional site sections, post
     display (color or text codes for same person detection)
 
-### Tier 3 (far future) TODO
+### Tier 3 TODO: want, but in future
 
 *   Multiple file upload
 *   Tripcodes support
 *   TOR/proxy detection
 *   Fighting Unicode quirks (reverse text direction)
 *   A torrent-tracker module (tourettes or peasy or something else?)
-*   Video embedding support (configurable)
-*   Permanent authentication, VIP passwords?
+*   Permanent authentication, VIP passwords
 
 ## Prerequisites
 

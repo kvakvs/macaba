@@ -1,6 +1,12 @@
 # Macaba clustering
 
-## Database clustering
+## Notes
+
+Macaba runs as multiple stateless socket handlers, which share some data, which
+is stored in Mnesia memory table, and in RIAK. Mnesia guarantees some sort of
+synchronization and reliability, and is quite fast.
+
+## Database clustering: do this first
 
 Please note, that if you don't have CPU limitation or requirement to have
 redundant web application nodes, you can keep running Macaba on single node, and
@@ -13,7 +19,7 @@ After you configured cluster, all that's left to do is open macaba_erlang_node
 config file, and add some more IP addresses for multiple RIAK nodes and restart
 Macaba Erlang node.
 
-## Erlang node clustering
+## Erlang node clustering: do this last
 
 ### This part of doc is TODO
 
