@@ -42,7 +42,7 @@ rel: rebar deps
 #testrel: $(DEVNODES) $(TESTNODES)
 
 COMBO_PLT = $(HOME)/.macaba_combo_dialyzer_plt
-PLT_LIBS  = $(wildcard rel/moss/lib/*/ebin)
+PLT_LIBS  = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
 
 DIALYZER_APPS = macaba
 DIALYZER_APPS_PATHS = $(addsuffix /ebin, $(addprefix apps/, $(DIALYZER_APPS)))

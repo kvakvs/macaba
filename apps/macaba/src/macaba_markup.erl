@@ -1,8 +1,8 @@
-%%%------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %%% @doc Processes a raw unicode text entered by user, to produce HTML
 %%% according to Wakaba formatting rules.
 %%% Created: 2013-02-28 Dmytro Lytovchenko <kvakvs@yandex.ru>
-%%%------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 -module(macaba_markup).
 
 -export([ process/1
@@ -24,7 +24,7 @@ process(T0) when is_list(T0) ->
           , {"(\\s)_(.+?)_(\\s)", "\\1<em>\\2</em>\\3"}
           %% inline code
           , {"([^`])`([^`].+?[^`])`([^`])",
-             "\\1<span class=\"code\">\\2</span>\\3"}
+             "\\1<code>\\2</code>\\3"}
           , {"``", "`"}
           %% line breaks for ordered/unordered list items
           %% , {"- .*?\\R\s+.*?\\R", ""}

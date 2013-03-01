@@ -18,12 +18,19 @@
 
 %% @doc Static rarely changed info about a board
 -record(mcb_board, {
+          %% short unique id (like "b", or "1", or "board0") used as db key
+          %% and as part of URL, can NOT be changed without deleting board!
             board_id :: binary()
-          , category :: string() % simple grouping, trusted HTML
+          %% used for sorting/simple grouping in templates, else not used
+          , category :: string() % trusted HTML
+          %% displayed long board title like "Random" or "Requests" etc
           , title    :: string() % trusted HTML
+          %% displayed short board name like "/b/", can be changed later
+          , short_name :: binary() % trusted HTML
         %% , post_mod_only   :: boolean() % only mods can post and make threads
         %% , thread_mod_only :: boolean() % only mods can make threads
-          , thread_requires_attach :: boolean() % upload pic for new thread
+        %% , thread_requires_attach :: boolean() % upload pic for new thread
+          , anonymous_name :: string() % trusted HTML
          }).
 
 -define(MCB_SITE_CONFIG_VER, 1).
@@ -44,7 +51,8 @@
 -define(MCB_THREAD_VER, 1).
 -record(mcb_thread, {
             %% first post_id equals to thread_id but we never display thread_id
-            thread_id         :: binary()
+            thread_id         :: binary() 
+          , board_id          :: binary()
           , hidden = false    :: boolean() % invisible
           , pinned = false    :: boolean() % doesn't sink
           , read_only = false :: boolean() % admins only can post
@@ -56,13 +64,16 @@
 -define(MCB_THREAD_DYNAMIC_VER, 1).
 %% @doc Concurrently changed part of thread stored in memory
 -record(mcb_thread_dynamic, {
-            thread_id     :: binary()
+            internal_mnesia_key :: binary() 
+          , thread_id     :: binary()
+          , board_id      :: binary()
           , post_ids = [] :: [binary()]
          }).
 
 -define(MCB_POST_VER, 1).
 -record(mcb_post, {
             thread_id        :: binary()
+          , board_id         :: binary()
           , post_id          :: binary()
           , subject = ""     :: string()  % trusted HTML
           , author  = ""     :: string()  % trusted HTML

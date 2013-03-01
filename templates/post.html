@@ -23,7 +23,8 @@ use p.created_local for server time, or p.created_utc for GMT time
       <span class="title">{{ p.subject }}</span>
       <span class="author">
         {% if p.email %}<a href="mailto:{{ p.email }}">{{ p.author }}</a>
-        {% else %}{{ p.author }}{% endif %}
+        {% elif p.author %}{{ p.author }}
+        {% else %}{{ board_info.anonymous_name }}{% endif %}
       </span>
       <span class="time">{{ p.created_utc|date:"D d M Y" }}
         {{ p.created_utc|time:"H:i:s" }}</span>

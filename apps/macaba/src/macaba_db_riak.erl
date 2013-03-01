@@ -56,11 +56,15 @@ read_internal(Type, B, K) ->
   %% versioning on read for all other objects
   case riak_pool_auto:get(B, K) of
     {error, notfound} ->
+      %% lager:debug("riak read B=~p K=~p not found", [B, K]),
+      %% lager:debug("~p", [erlang:get_stacktrace()]),
       {error, not_found};
     {ok, O} ->
-      X = riakc_obj:get_value(O),
-      {Version, Value} = binary_to_term(X, [safe]),
-      macaba_db:upgrade(Type, Version, Value)
+      X1 = riakc_obj:get_value(O),
+      {Version, Value} = binary_to_term(X1, [safe]),
+      X2 = macaba_db:upgrade(Type, Version, Value),
+      %% lager:debug("riak read B=~p K=~p Value=~p", [B, K, X2]),
+      X2
   end.
 %%--------------------------------------------------------------------
 %% @doc Reads a single {bucket,key} from RIAK database as Riak Object.
@@ -96,20 +100,6 @@ read_riakobj_internal(Type, B, K) ->
 %%--------------------------------------------------------------------
 %% @doc Take list of objects and try to merge conflicting changes
 resolve_conflict([First|_]) -> First.
-%% resolve_conflict([First = #mcb_board_dynamic{} | _] = L ) ->
-%%  %% Assumption: mcb_board_dynamics can only conflict on 'threads' field while
-%%   %% users do fast concurrent posting to board.
-%%   MergedThreads = ordsets:from_list(
-%%                     lists:flatten( [X#mcb_board_dynamic.threads || X <- L] )
-%%                    ),
-%%   %% Assumption: If there are conflicting post_ids, increase post_id to cover
-%%   MergedPostId = lists:max(
-%%                    [X#mcb_board_dynamic.last_post_id || X <- L]
-%%                   ) + length(L) - 1,
-%%   First#mcb_board_dynamic{
-%%     threads = MergedThreads,
-%%     last_post_id = MergedPostId
-%%    }.
 
 %%--------------------------------------------------------------------
 -spec write(Type :: macaba_riak_object(), Value :: any()) ->

@@ -26,7 +26,7 @@ td.msg blockquote {
    text-color: #4C4;
 }
 
-td.msg span.code {
+td.msg code {
     border: 1px solid silver;
     background: #eed;
     padding: 2px;

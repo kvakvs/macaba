@@ -8,10 +8,10 @@
 -export([ construct_post/2
         , get_board/1
         , get_boards/0
-        , get_thread/1
+        , get_thread/2
         , get_threads/1
-        , get_thread_contents/2
-        , get_thread_dynamic/1
+        , get_thread_contents/3
+        , get_thread_dynamic/2
         , new_post/2
         , new_thread/3
         , start/0
@@ -47,28 +47,39 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
          {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
          Value -> Value
        end,
-  lager:debug("upd_dyn_b bd=~p", [BD]),
+  lager:debug("{{dbinit}} upd_dyn_b bd=~p", [BD]),
   %%T = fun() -> mnesia:write(mcb_board_dynamic, BD, write) end,
   %%{atomic, _} = mnesia:transaction(T),
   macaba_db_mnesia:write(mcb_board_dynamic, BD),
-  update_dynamics_for_threads(BD#mcb_board_dynamic.threads),
+  update_dynamics_for_threads(BoardId, BD#mcb_board_dynamic.threads),
   update_dynamics_for_board(Boards).
 
-get_thread_dynamic(ThreadId) ->
-  case macaba_db_riak:read(mcb_thread_dynamic, ThreadId) of
-    {error, not_found} -> #mcb_thread_dynamic{thread_id = ThreadId};
+get_thread_dynamic(BoardId, ThreadId)
+  when is_binary(BoardId), is_binary(ThreadId) ->
+
+  case macaba_db_riak:read(
+         mcb_thread_dynamic,
+         macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId})) of
+    {error, not_found} ->
+      #mcb_thread_dynamic{
+        internal_mnesia_key = macaba_db:key_for(
+                                mcb_thread_dynamic, {BoardId, ThreadId}),
+        board_id = BoardId,
+        thread_id = ThreadId
+      };
     Value -> Value
   end.
 
 %% @private
-update_dynamics_for_threads([]) -> ok;
-update_dynamics_for_threads([ThreadId | Threads]) when is_binary(ThreadId) ->
-  TD = get_thread_dynamic(ThreadId),
-  lager:debug("upd_dyn_t td=~p", [TD]),
+update_dynamics_for_threads(_BoardId, []) -> ok;
+update_dynamics_for_threads(BoardId, [ThreadId | Threads])
+  when is_binary(ThreadId) ->
+  TD = get_thread_dynamic(BoardId, ThreadId),
+  lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
   %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
   %% {atomic, _} = mnesia:transaction(T),
   macaba_db_mnesia:write(mcb_thread_dynamic, TD),
-  update_dynamics_for_threads(Threads).
+  update_dynamics_for_threads(BoardId, Threads).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of configured boards
@@ -91,10 +102,14 @@ get_board(BoardId) ->
 %%%-----------------------------------------------------------------------------
 %% @private
 fake_default_boards() ->
+  {ok, DefaultAnon} = macaba_conf:get([<<"board">>,
+                                       <<"default_anonymous_name">>]),
   [#mcb_board{
-      board_id= <<"default">>,
-      category="default",
-      title="Default board"
+      board_id       = <<"unconfigured">>,
+      short_name     = <<"default_board">>,
+      category       = <<"no_category">>,
+      title          = "Board not configured",
+      anonymous_name =  DefaultAnon
      }].
 
 %%%-----------------------------------------------------------------------------
@@ -107,16 +122,23 @@ get_threads(BoardId) when is_binary(BoardId) ->
           {error, not_found} -> [];
           #mcb_board_dynamic{threads=T} -> T
         end,
-  Threads0 = [case macaba_db_riak:read(mcb_thread, T) of
-                #mcb_thread{}=Value -> Value;
-                {error, _} -> []
+  Threads0 = [begin
+                TKey = macaba_db:key_for(mcb_thread, {BoardId, T}),
+                case macaba_db_riak:read(mcb_thread, TKey) of
+                  #mcb_thread{}=Value -> Value;
+                  {error, _} -> []
+                end
               end || T <- Ids],
   Threads = lists:flatten(Threads0),
   Threads.
 
 %%%-----------------------------------------------------------------------------
-get_thread(ThreadId) ->
-  case macaba_db_riak:read(mcb_thread, ThreadId) of
+%% @doc Thread is identified by board name and number
+get_thread(BoardId, ThreadId)
+  when is_binary(BoardId), is_binary(ThreadId) ->
+
+  K = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
+  case macaba_db_riak:read(mcb_thread, K) of
     #mcb_thread{}=Value -> Value;
     {error, _} -> {error, not_found}
   end.
@@ -125,11 +147,16 @@ get_thread(ThreadId) ->
 %% @doc By thread id reads thread dynamic, to get ids of posts, loads first and
 %% configured amount of last posts into a proplist. Give 'all' for LastCount to
 %% load whole thread
--spec get_thread_contents(ThreadId :: binary(),
+-spec get_thread_contents(BoardId :: binary(),
+                          ThreadId :: binary(),
                           LastCount0 :: integer() | 'all') -> [#mcb_post{}].
 
-get_thread_contents(ThreadId, LastCount0) when is_binary(ThreadId) ->
-  TD = case macaba_db_mnesia:read(mcb_thread_dynamic, ThreadId) of
+get_thread_contents(BoardId, ThreadId, LastCount0)
+  when is_binary(BoardId), is_binary(ThreadId) ->
+
+  TD = case macaba_db_mnesia:read(
+              mcb_thread_dynamic,
+              macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId})) of
          {error, not_found} -> #mcb_thread_dynamic{};
          D -> D
        end,
@@ -143,19 +170,20 @@ get_thread_contents(ThreadId, LastCount0) when is_binary(ThreadId) ->
   LastCount = min(LastCount1, length(PostIds)),
 
   %% get first and cut last
-  First = case PostIds of [] -> []; [F|_] -> get_post(F) end,
+  First = case PostIds of [] -> []; [F|_] -> get_post(BoardId, F) end,
   %% FIXME: this may run slow on large threads >1000 posts?
   PostIds2 = tl(PostIds),
   T = min(length(PostIds2), max(0, length(PostIds2) - LastCount)),
   LastIds = lists:nthtail(T, PostIds2),
-  Last = lists:map(fun get_post/1, LastIds),
+  Last = lists:map(fun(Id) -> get_post(BoardId, Id) end, LastIds),
   lists:flatten([First | Last]).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Loads post info
--spec get_post(PostId :: binary()) -> [#mcb_post{}] | {error, not_found}.
-get_post(PostId) when is_binary(PostId) ->
-  macaba_db_riak:read(mcb_post, PostId).
+-spec get_post(BoardId :: binary(), PostId :: binary()) ->
+                  [#mcb_post{}] | {error, not_found}.
+get_post(BoardId, PostId) when is_binary(BoardId), is_binary(PostId) ->
+  macaba_db_riak:read(mcb_post, macaba_db:key_for(mcb_post, {BoardId, PostId})).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates a new thread with a single post, thread_id is set to the first
@@ -167,17 +195,23 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
   Hidden   = macaba:propget(hidden,    ThreadOpts, false),
   Pinned   = macaba:propget(pinned,    ThreadOpts, false),
   ReadOnly = macaba:propget(read_only, ThreadOpts, false),
+  ThreadId = PostId,
 
   Thread = #mcb_thread{
-      thread_id = PostId
+      thread_id = ThreadId
+    , board_id  = BoardId
     , hidden    = Hidden
     , pinned    = Pinned
     , read_only = ReadOnly
    },
   ThreadDyn = #mcb_thread_dynamic{
-    thread_id = PostId,
-    post_ids  = [PostId]
+      internal_mnesia_key = macaba_db:key_for(
+                              mcb_thread_dynamic, {BoardId, ThreadId})
+    , thread_id = ThreadId
+    , board_id  = BoardId
+    , post_ids  = [PostId]
    },
+  %% TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, PostId}),
   macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
   Post1 = post_write_attach_set_ids(Post0, PostOpts),
 
@@ -188,7 +222,7 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 
   %% add thread to board
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-          BD#mcb_board_dynamic{ threads = [PostId | T]}
+          BD#mcb_board_dynamic{ threads = [PostId | T] }
       end,
   {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   {Thread, Post}.
@@ -218,7 +252,8 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
   ReplyF = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
                TD#mcb_thread_dynamic{ post_ids=L++[Post#mcb_post.post_id] }
            end,
-  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, ThreadId, ReplyF),
+  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
 
   %% update board thread list (bump thread)
   bump_if_no_sage(BoardId, ThreadId, Post),
@@ -228,7 +263,7 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
 %% @doc Checks email field of the new post, if it contains no <<"sage">> -
 %% bumps thread to become first on board
 bump_if_no_sage(_BoardId, _ThreadId, #mcb_post{email = <<"sage">>}) -> ok;
-bump_if_no_sage(BoardId, ThreadId, Post) ->
+bump_if_no_sage(BoardId, ThreadId, _Post) ->
   BumpF = fun(BD = #mcb_board_dynamic{ threads=T }) ->
               BD#mcb_board_dynamic{
                 threads = [ThreadId | lists:delete(ThreadId, T)]
@@ -250,6 +285,7 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
   #mcb_post{
     thread_id   = macaba:as_binary(ThreadId),
     post_id     = PostId,
+    board_id    = BoardId,
     subject     = Subject,
     author      = Author,
     email       = Email,
@@ -351,6 +387,7 @@ get_now_utc() ->
 %%%-----------------------------------------------------------------------------
 %% @doc Generates new post_id for creating thread on the board
 next_board_post_id(BoardId) when is_binary(BoardId) ->
+  lager:debug("next_board_post_id board=~p", [BoardId]),
   F = fun(BD = #mcb_board_dynamic{ last_post_id=L }) ->
           BD#mcb_board_dynamic{ last_post_id = L+1 }
       end,

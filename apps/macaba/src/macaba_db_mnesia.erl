@@ -19,7 +19,8 @@
 %% @doc Prepare database for use
 start() ->
   lager:info("macaba_db_mnesia: starting"),
-  {ok, Nodes} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
+  {ok, Nodes0} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
+  Nodes = lists:map(fun(X) -> erlang:binary_to_atom(X, latin1) end, Nodes0),
   CS = mnesia:create_schema(Nodes),
   lager:debug("create schema: ~p", [CS]),
   macaba:ensure_started(mnesia),
@@ -41,25 +42,18 @@ start() ->
   lager:debug("creating thread dynamics table: ~p", [TD]).
 
 %%--------------------------------------------------------------------
-%% @!private
-%% @!doc Create Mnesia table in memory
-%% create_mem_table(Record, RecInfo, IndexPositions) ->
-%%   {atomic, ok} = mnesia:create_table(Record,
-%%                                      [ {ram_copies, [node()]}
-%%                                      %% , {index, IndexPositions}
-%%                                      , {attributes, RecInfo}
-%%                                      ]).
-  %%mnesia:add_table_index(mcb_board, field1),
-  %%{atomic, ok} = mnesia:add_table_copy(Record, node(), ram_copies).
-
-%%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
            Key  :: any()) -> orddict:orddict() | tuple() | {error, not_found}.
 read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
   case mnesia:transaction(RFun) of
-    {atomic, [Row]} -> Row;
-    _ -> {error, not_found}
+    {atomic, [Row]} ->
+      %% lager:debug("mnesia read K=~p Value=~p", [Key, Row]),
+      Row;
+    _ ->
+      %% lager:debug("mnesia read K=~p not found", [Key]),
+      %% lager:debug("~p", [erlang:get_stacktrace()]),
+      {error, not_found}
   end.
 
 %%--------------------------------------------------------------------

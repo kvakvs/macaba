@@ -203,13 +203,14 @@ chain_post_new({Req0, State0}) ->
 %% @private
 %% @doc Ensure that threadid posted exists
 chain_check_thread_exists({Req0, State0=#mcb_html_state{post_data=PD}}) ->
+  {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
-  case macaba_board:get_thread(ThreadId) of
+  case macaba_board:get_thread(BoardId, ThreadId) of
     {error, not_found} ->
-      {Req1, State1} = render_page(404, "thread_404", Req0, State0),
-      {error, {Req1, State1}};
+      {Req2, State1} = render_page(404, "thread_404", Req1, State0),
+      {error, {Req2, State1}};
     _ ->
-      {ok, {Req0, State0}}
+      {ok, {Req1, State0}}
   end.
 
 %%%---------------------------------------------------
@@ -249,8 +250,9 @@ macaba_handle_thread(<<"GET">>, {Req0, State0}) ->
 %% @doc get thread info if thread exists
 chain_get_thread_info({Req0, State0}) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
+  {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
   lager:debug("http GET thread ~s", [ThreadId]),
-  case macaba_board_cli:get_thread(ThreadId) of
+  case macaba_board_cli:get_thread(BoardId, ThreadId) of
     {error, not_found} ->
       {Req1, State1} = render_page(404, "thread_404", Req, State0),
       {error, {Req1, State1}};
@@ -263,7 +265,8 @@ chain_get_thread_info({Req0, State0}) ->
 %% @doc get all posts in thread
 chain_get_thread_posts({Req0, State0}) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
-  Posts = macaba_board_cli:get_thread_preview(ThreadId, all),
+  {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
+  Posts = macaba_board_cli:get_thread_preview(BoardId, ThreadId, all),
   State1 = state_set_var(posts, Posts, State0),
   State = state_set_var(first_post, hd(Posts), State1),
   {ok, {Req, State}}.

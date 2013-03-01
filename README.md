@@ -33,13 +33,14 @@ posts per board per second in a multinode setup.
 *   Designed for running as a cluster, or as a single node
 *   Basic board functions: board index, thread index, thread view
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
-*   File upload
+*   File upload (1 per post)
+*   Full Wakaba markup support
 
 ### Tier 1 (important) TODO
 
-*   Full Wakaba markup support
-*   Words/regex blacklisting, image hash/similarity? blacklisting
+*   Deleting posts by user
 *   Captcha support, flood detection, basic DDOS resistance
+*   Words/regex blacklisting, image hash/similarity? blacklisting
 *   User blacklisting & banning
 *   Authentication, sessions
 *   Users participation - reporting posts and threads

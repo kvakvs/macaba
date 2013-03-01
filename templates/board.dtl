@@ -16,7 +16,7 @@
 
 <div class="row">
   <div class="span12">
-    <h1>Macaba: {{ board_info.board_id }} - {{ board_info.title }}</h1>
+    <h1>Macaba: {{ board_info.short_name }} - {{ board_info.title }}</h1>
   </div>
 </div>
 
