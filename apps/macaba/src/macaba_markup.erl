@@ -29,9 +29,10 @@ process(T0) when is_list(T0) ->
           %% line breaks for ordered/unordered list items
           %% , {"- .*?\\R\s+.*?\\R", ""}
           ],
-  T2 = lists:foldl(fun({Re, Replace}, Acc) ->
-                       re:replace(Acc, Re, Replace,
-                                  [global, multiline, {return, list}])
+  T2 = lists:foldl(fun({Re0, Replace}, Acc) ->
+                       %% {ok, Re} = re:compile(Re0, [unicode]),
+                       re:replace(Acc, Re0, Replace,
+                                  [global, unicode, multiline, {return, list}])
                    end, T1, Rules),
   %% io:format(standard_error, "T2=~p~n", [T2]),
 
@@ -60,6 +61,7 @@ process(T0) when is_list(T0) ->
 
   %% remove leading and trailing empty lines
   %%string:strip(string:join(U, "<br />\n"), both, $\n).
+  lager:debug("markup: ~p", [U]),
   U.
 
 %% @private

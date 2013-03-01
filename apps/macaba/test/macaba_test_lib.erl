@@ -14,11 +14,10 @@
 %% @doc Execute a Method request to the URL, Opts: body: body of the request
 %% http_options: http options for lhttpc, request_headers: headers for lhttpc
 request(Url, Method, Opts) ->
-    ok.
-%%   Body    = macaba:propget(request_body,    Opts, []),
-%%   Options = macaba:propget(http_options,    Opts, []),
-%%   Headers = macaba:propget(request_headers, Opts, []),
-%%   lhttpc_request(Url, Method, Headers, Body, ?HTTP_TIMEOUT, Options).
+  Body    = macaba:propget(request_body,    Opts, []),
+  Options = macaba:propget(http_options,    Opts, []),
+  Headers = macaba:propget(request_headers, Opts, []),
+  lhttpc:request(Url, Method, Headers, Body, ?HTTP_TIMEOUT, Options).
 
 mock_riak() ->
   meck:new(riak_pool_auto, [passthrough]),
@@ -27,7 +26,11 @@ mock_riak() ->
   GetFn = fun(B, K) -> erlang:get({riakmock, B, K}) end,
   meck:expect(riak_pool_auto, get, GetFn),
   DeleteFn = fun(B, K) -> erlang:erase({riakmock, B, K}) end,
-  meck:expect(riak_pool_auto, delete, GetFn).
+  meck:expect(riak_pool_auto, delete, DeleteFn).
 
 unmock_riak() ->
   meck:unload().
+
+%%% Local Variables:
+%%% erlang-indent-level: 2
+%%% End:

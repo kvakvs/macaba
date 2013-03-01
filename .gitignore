@@ -11,3 +11,5 @@ log/
 macaba_masternode_macaba*
 database/
 erl_crash.dump
+ebin/*
+ebin

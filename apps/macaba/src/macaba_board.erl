@@ -281,6 +281,9 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
   Subject   = macaba:propget(subject,   Opts),
   Message   = macaba:propget(message,   Opts),
 
+  %% if this crashes, don't create anything and fail here
+  MessageProcessed = call_markup_plugin(Message),
+
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
     thread_id   = macaba:as_binary(ThreadId),
@@ -290,7 +293,7 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
     author      = Author,
     email       = Email,
     message_raw = Message,
-    message     = call_markup_plugin(Message),
+    message     = MessageProcessed,
     created     = get_now_utc(),
     %% attach_ids = [macaba:as_binary(AttachId)],
     sage        = false
@@ -305,7 +308,8 @@ call_markup_plugin(Txt) ->
                                      [<<"macaba_markup">>, <<"process">>]),
   MarkupMod = erlang:binary_to_atom(MarkupMod0, latin1),
   MarkupFun = erlang:binary_to_atom(MarkupFun0, latin1),
-  erlang:apply(MarkupMod, MarkupFun, [Txt]).
+  U = erlang:apply(MarkupMod, MarkupFun, [Txt]),
+  unicode:characters_to_binary(lists:flatten(U), utf8).
 
 %%%-----------------------------------------------------------------------------
 %% @private
