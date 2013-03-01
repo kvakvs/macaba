@@ -12,7 +12,7 @@ be familiar for wakaba users:
 
 ## Project status
 
-### Pre-Alpha, almost there
+### Alpha, can try it
 
 Using RIAK - a key/value distributed and fault tolerant store, allows to create
 multiple-node cluster. Data in RIAK is self-balanced when you add a node, and
@@ -38,19 +38,19 @@ posts per board per second in a multinode setup.
 
 ### Tier 1 (important) TODO
 
-*   Deleting posts by user
+*   Admin UI (configuring boards list, global board options, maintenance mode,
+    read-only mode)
 *   Captcha support, flood detection, basic DDOS resistance
 *   Words/regex blacklisting, image hash/similarity? blacklisting
 *   User blacklisting & banning
-*   Authentication, sessions
+*   Authentication for mods and admins, maybe sessions?
 *   Users participation - reporting posts and threads
 *   Moderation UI (bans, thread management - locking pinning, deleting,
-    reviewing, etc)
+    reviewing reported posts, etc)
 
 ### Tier 2 (do it later) TODO
 
-*   Admin UI (configuring boards list, global board options, maintenance mode,
-    read-only mode)
+*   Deleting posts by user
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications
 *   Websocket API for custom UIs and live update
