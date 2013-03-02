@@ -11,9 +11,24 @@
         , get_threads/3
         , get_thread_previews/3
         , get_thread_preview/3
+        , anonymous_delete_post/3
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+
+%%%-----------------------------------------------------------------------------
+%% @doc Attempts to delete post if passwords match
+-spec anonymous_delete_post(BoardId :: binary(),
+                            PostId :: binary(),
+                            Password :: binary()) -> ok | {error, any()}.
+anonymous_delete_post(BoardId, PostId, Password) ->
+  lager:info("board_cli: anonymous_delete_post B=~s P=~s Pass=~s",
+             [BoardId, PostId, Password]),
+  P = macaba_board:get_post(BoardId, PostId),
+  case P#mcb_post.delete_pass of
+    Password -> macaba_board:delete_post(BoardId, PostId);
+    _ -> {error, password}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of boards as proplists
@@ -68,7 +83,11 @@ additional_fields_for_thread(T, PreviewSize) ->
   TD = macaba_board:get_thread_dynamic(BoardId, ThreadId),
   PostIds = TD#mcb_thread_dynamic.post_ids,
   SkippedP = {skipped_posts, max(0, length(PostIds) - PreviewSize - 1)},
-  SkippedI = {skipped_images, count_images(tl(PreviewList), PreviewSize)},
+  PreviewListTl = case PreviewList of
+                    [] -> [];
+                    _ -> tl(PreviewList)
+                  end,
+  SkippedI = {skipped_images, count_images(PreviewListTl, PreviewSize)},
   [Preview, SkippedP, SkippedI | T].
 
 %%%-----------------------------------------------------------------------------

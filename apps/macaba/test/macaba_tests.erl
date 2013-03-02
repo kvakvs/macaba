@@ -21,6 +21,7 @@ html_handler_test_() ->
     , {"Markup Blockquote", fun markup_blockquote/0}
     , {"Markup Code",       fun markup_code/0}
     , {"Markup Code Inline",fun markup_code_inl/0}
+    , {"Markup Href",       fun markup_href/0}
     ]
    }}.
 
@@ -76,7 +77,7 @@ conversions() ->
   ?assertEqual("12345", macaba:as_string('12345')).
 
 markup_emphasis1() ->
-  P = fun macaba_markup:process/1,
+  P = fun macaba_markup:wakabamark/1,
   %% ?assertEqual(["\t<em>hello</em>"], P("\t*hello*")),
   ?assertEqual(["<em>hello</em>\t"], P("*hello*\t")),
   ?assertEqual([" <em>hello</em>"], P(" *hello*")),
@@ -91,7 +92,7 @@ markup_emphasis1() ->
   ?assertEqual(["fgs", "<em>hello</em>\t"], P("fgs\n*hello*\t")).
 
 markup_emphasis2() ->
-  P = fun macaba_markup:process/1,
+  P = fun macaba_markup:wakabamark/1,
   %% ?assertEqual(["\t<em>hello</em>"], P("\t*hello*")),
   ?assertEqual(["<em>hello</em>\t"], P("*hello*\t")),
   ?assertEqual([" <em>hello</em>"], P(" *hello*")),
@@ -108,7 +109,7 @@ markup_emphasis2() ->
   ?assertEqual(["fgs", "<em>hello</em>\t"], P("fgs\n*hello*\t")).
 
 markup_strong() ->
-  P = fun macaba_markup:process/1,
+  P = fun macaba_markup:wakabamark/1,
   ?assertEqual(["   <strong>hello</strong>"], P("   **hello**")),
   ?assertEqual(["<strong>hello</strong>\t"], P("**hello**\t")),
   ?assertEqual([" <strong>hello</strong>"], P(" **hello**")),
@@ -128,7 +129,7 @@ markup_strong() ->
                P("fgs\n**hello**\tfds")).
 
 markup_blockquote() ->
-  P = fun macaba_markup:process/1,
+  P = fun macaba_markup:wakabamark/1,
   ?assertEqual(["<blockquote>&gt;hello</blockquote>"], P(">hello")),
   ?assertEqual(["<blockquote>&gt; hello</blockquote>"], P("> hello")),
   ?assertEqual(["<blockquote>&gt;hello</blockquote>", "fgs"], P(">hello\nfgs")),
@@ -136,20 +137,24 @@ markup_blockquote() ->
                P(">foo\n>baz\nfgs")).
 
 markup_code() ->
-  P = fun macaba_markup:process/1,
+  P = fun macaba_markup:wakabamark/1,
   ?assertEqual(["<pre>hello</pre>"], P("    hello")),
   ?assertEqual(["<pre>hello</pre>"], P("\thello")),
   ?assertEqual(["<pre>foo</pre>", "fgs"], P("    foo\nfgs")),
-  ?assertEqual(["<pre>foo<br />\nbar</pre>", "fgs"],
-               P("    foo\n    bar\nfgs")).
+  ?assertEqual(["<pre>foo\nbar</pre>", "fgs"], P("    foo\n    bar\nfgs")).
 
 markup_code_inl() ->
-  P = fun macaba_markup:process/1,
-  ?assertEqual(["<span class=\"code\">foo</span>\t"], P("`foo`\t")),
-  ?assertEqual([" <span class=\"code\">foo</span>"], P(" `foo`")),
-  ?assertEqual(["  <span class=\"code\">foo</span> "], P("  `foo` ")),
-
+  P = fun macaba_markup:wakabamark/1,
+  ?assertEqual(["<code>foo</code>\t"], P("`foo`\t")),
+  ?assertEqual([" <code>foo</code>"], P(" `foo`")),
+  ?assertEqual(["  <code>foo</code> "], P("  `foo` ")),
   ?assertEqual(["`foo`\t"], P("``foo``\t")).
+
+markup_href() ->
+  P = fun macaba_markup:wakabamark/1,
+  QUrl = "https://abc000.macaba.git-hub.c0m/?q=a&amp;b=%20d&amp;",
+  ?assertEqual(["<a href=\""++QUrl++"\">"++QUrl++"</a>"],
+               P("https://abc000.macaba.git-hub.c0m/?q=a&b=%20d&")).
 
 
 %%% Local Variables:

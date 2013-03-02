@@ -20,6 +20,9 @@ use p.created_local for server time, or p.created_utc for GMT time
        class="{% if forloop.counter == 1 %}oppost {% endif %}post">
   <tr>
     <td colspan="2">
+      {% if inside_thread %}
+      <input type="checkbox" name="array_mark" value="{{ p.post_id }}" />
+      {% endif %}
       <span class="title">{{ p.subject }}</span>
       <span class="author">
         {% if p.email %}<a href="mailto:{{ p.email }}">{% endif %}
@@ -32,7 +35,10 @@ use p.created_local for server time, or p.created_utc for GMT time
       <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
           №{{ p.post_id }}</a></span>
       {% if p.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}
+
+      {% if not inside_thread %}
       {% if forloop.counter == 1 %}[<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]{% endif %}
+      {% endif %}
     </td>
   </tr>
   <tr>

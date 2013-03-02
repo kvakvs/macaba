@@ -54,6 +54,7 @@ start_web() ->
   St3 = {"/img/[...]", S, [{directory, ImgPath}, Mime]},
 
   TNew     = {"/board/:mcb_board/thread/new", H, [thread_new]},
+  TManage = {"/board/:mcb_board/thread/:mcb_thread/manage", H, [thread_manage]},
   TShow    = {"/board/:mcb_board/thread/:mcb_thread", H, [thread]},
   TRepl    = {"/board/:mcb_board/post/new", H, [post_new]},
   BShow1   = {"/board/:mcb_board/:mcb_page", H, [board]},
@@ -63,7 +64,7 @@ start_web() ->
 
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
-                   , TNew, TShow, TRepl
+                   , TNew, TManage, TShow, TRepl
                    , BShow1, BShow2
                    , AttThumb, Attach
                    , {"/", H, [index]}

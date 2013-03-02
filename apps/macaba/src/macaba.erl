@@ -20,6 +20,7 @@
         , fatal/2
         %% ANSI ESC codes for color and bold in console
         , color/1, endfont/0, font/1
+        , unix_now/0
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -244,6 +245,9 @@ fatal(Msg, Err) ->
   init:stop(),
   error(config_parse_error).
 
+unix_now() ->
+  {Mega, S, _} = os:timestamp(),
+  Mega * 1000000 + S.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

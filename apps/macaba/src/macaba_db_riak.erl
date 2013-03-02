@@ -122,9 +122,11 @@ write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   riak_pool_auto:put(Obj).
 
 %%--------------------------------------------------------------------
-delete(Type, Value) ->
+delete(Type, Value) when is_tuple(Value) ->
   riak_pool_auto:delete(bucket_for(Type),
-                        macaba_db:get_key_for_object(Value)).
+                        macaba_db:get_key_for_object(Value));
+delete(Type, K) when is_binary(K) ->
+  riak_pool_auto:delete(bucket_for(Type), K).
 
 %%riak_pool_auto::put_raw(Pid, riakc_obj:new_obj(Bucket, Key, Vclock, Contents))
 

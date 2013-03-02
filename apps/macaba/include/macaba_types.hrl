@@ -22,15 +22,20 @@
           %% and as part of URL, can NOT be changed without deleting board!
             board_id :: binary()
           %% used for sorting/simple grouping in templates, else not used
-          , category :: string() % trusted HTML
+          , category :: binary() % trusted HTML
           %% displayed long board title like "Random" or "Requests" etc
-          , title    :: string() % trusted HTML
+          , title    :: binary() % trusted HTML
           %% displayed short board name like "/b/", can be changed later
           , short_name :: binary() % trusted HTML
+          , anonymous_name :: binary() % trusted HTML
+          %% will delete last threads over this limit
+          , max_threads = 20 :: integer()
+          %% soft limit: post count before thread stops bumping
+          , max_thread_posts = 500 :: integer()
+
         %% , post_mod_only   :: boolean() % only mods can post and make threads
         %% , thread_mod_only :: boolean() % only mods can make threads
         %% , thread_requires_attach :: boolean() % upload pic for new thread
-          , anonymous_name :: string() % trusted HTML
          }).
 
 -define(MCB_SITE_CONFIG_VER, 1).
@@ -51,7 +56,7 @@
 -define(MCB_THREAD_VER, 1).
 -record(mcb_thread, {
             %% first post_id equals to thread_id but we never display thread_id
-            thread_id         :: binary() 
+            thread_id         :: binary()
           , board_id          :: binary()
           , hidden = false    :: boolean() % invisible
           , pinned = false    :: boolean() % doesn't sink
@@ -64,7 +69,7 @@
 -define(MCB_THREAD_DYNAMIC_VER, 1).
 %% @doc Concurrently changed part of thread stored in memory
 -record(mcb_thread_dynamic, {
-            internal_mnesia_key :: binary() 
+            internal_mnesia_key :: binary()
           , thread_id     :: binary()
           , board_id      :: binary()
           , post_ids = [] :: [binary()]
@@ -72,17 +77,17 @@
 
 -define(MCB_POST_VER, 1).
 -record(mcb_post, {
-            thread_id        :: binary()
-          , board_id         :: binary()
-          , post_id          :: binary()
-          , subject = ""     :: string()  % trusted HTML
-          , author  = ""     :: string()  % trusted HTML
-          , email   = ""     :: string()  % trusted HTML
-          , message = ""     :: string()  % trusted HTML
-          , message_raw = "" :: string()  % trusted HTML
-          , created          :: integer() % unix time
-          , attach_ids = []  :: [binary()]
-          , sage = false     :: boolean()
+            thread_id          :: binary()
+          , board_id           :: binary()
+          , post_id            :: binary()
+          , subject = <<>>     :: binary()  % trusted HTML
+          , author  = <<>>     :: binary()  % trusted HTML
+          , email   = <<>>     :: binary()  % trusted HTML
+          , message = <<>>     :: binary()  % trusted HTML
+          , message_raw = <<>> :: binary()  % trusted HTML
+          , created            :: integer() % unix time
+          , attach_ids = []    :: [binary()]
+          , delete_pass = <<>> :: binary()
          }).
 
 -define(MCB_ATTACHMENT_VER, 1).

@@ -12,22 +12,25 @@
         , get_threads/1
         , get_thread_contents/3
         , get_thread_dynamic/2
+        , get_post/2
         , new_post/2
         , new_thread/3
         , start/0
         , load_board_dynamics/0
         , detect_content_type/1
         , attachment_exists/1
+        , delete_thread/2
+        , delete_post/2
+        , delete_post_dirty/2
+        , delete_attachment/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
-start() ->
-  ok.
+start() -> ok.
 
 %%%-----------------------------------------------------------------------------
-%% @private
 %% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread
 %% lists for boards. Do this only on one node of the macaba cluster.
 %% This is called from macaba_masternode:handle_leader_call after startup been
@@ -54,6 +57,100 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
   update_dynamics_for_threads(BoardId, BD#mcb_board_dynamic.threads),
   update_dynamics_for_board(Boards).
 
+%% @private
+update_dynamics_for_threads(_BoardId, []) -> ok;
+update_dynamics_for_threads(BoardId, [ThreadId | Threads])
+  when is_binary(ThreadId) ->
+  TD = get_thread_dynamic(BoardId, ThreadId),
+  lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
+  %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
+  %% {atomic, _} = mnesia:transaction(T),
+  macaba_db_mnesia:write(mcb_thread_dynamic, TD),
+  update_dynamics_for_threads(BoardId, Threads).
+
+%%%-----------------------------------------------------------------------------
+delete_thread(BoardId, ThreadId) ->
+  lager:info("board: delete_thread B=~s T=~s", [BoardId, ThreadId]),
+  BUpd = fun(BD = #mcb_board_dynamic{ threads=T }) ->
+            T2 = lists:delete(ThreadId, T),
+            BD#mcb_board_dynamic{ threads=T2 }
+        end,
+  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BUpd),
+
+  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  TD = macaba_db_mnesia:read(mcb_thread_dynamic, TDKey),
+  lists:foreach(fun(P) -> delete_post_dirty(BoardId, P) end,
+                TD#mcb_thread_dynamic.post_ids),
+
+  TKey = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
+  macaba_db_riak:delete(mcb_thread, TKey),
+
+  %% mnesia delete will also delete in riak but 1 sec later, delete now
+  macaba_db_riak:delete(mcb_thread_dynamic, TDKey),
+  macaba_db_mnesia:delete(mcb_thread_dynamic, TDKey).
+
+%%%-----------------------------------------------------------------------------
+-spec delete_post(BoardId :: binary(),
+                  PostId :: binary()) -> ok | {error, any()}.
+delete_post(BoardId, PostId) ->
+  P = get_post(BoardId, PostId),
+  Upd = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
+            L2 = lists:delete(PostId, L),
+            %% if thread empty, send message to worker to delete thread
+            case L2 of
+              [] -> macaba_board_worker:delete_thread(
+                      BoardId, P#mcb_post.thread_id);
+              _ -> ok
+            end,
+            TD#mcb_thread_dynamic{ post_ids=L2 }
+        end,
+  TDKey = macaba_db:key_for(mcb_thread_dynamic,
+                            {BoardId, P#mcb_post.thread_id}),
+  case macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, Upd) of
+    {atomic, _} ->
+      delete_post_dirty(BoardId, PostId);
+    E ->
+      lager:error("board: delete_post dynamic update error ~p", [E]),
+      {error, E}
+  end.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Deletes post and attached files without updating thread_dynamic
+-spec delete_post_dirty(BoardId :: binary(),
+                        PostId :: binary()) -> ok | {error, not_found}.
+delete_post_dirty(BoardId, PostId) ->
+  PKey = macaba_db:key_for(mcb_post, {BoardId, PostId}),
+  case get_post(BoardId, PostId) of
+    {error, not_found} ->
+      lager:error("board: delete_post B=~s P=~s not found", [BoardId, PostId]),
+      {error, not_found};
+    P = #mcb_post{} ->
+      lists:foreach(fun(AttId) -> delete_attachment(AttId) end,
+                    P#mcb_post.attach_ids),
+      macaba_db_riak:delete(mcb_post, PKey),
+      lager:info("board: delete_post B=~s P=~s", [BoardId, PostId]),
+      ok
+  end.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Deletes attachment by Id, does not update post which contained it!
+-spec delete_attachment(A :: binary()) -> ok | {error, not_found}.
+delete_attachment(AttId) ->
+  AttIdHex = bin_to_hex:bin_to_hex(AttId),
+  case macaba_db_riak:read(mcb_attachment, AttId) of
+    {error, not_found} ->
+      lager:error("board: delete_attachment ~s not found", [AttIdHex]),
+      {error, not_found};
+    A = #mcb_attachment{} ->
+      macaba_db_riak:delete(mcb_attachment_body,
+                            A#mcb_attachment.thumbnail_hash),
+      macaba_db_riak:delete(mcb_attachment_body, AttId),
+      macaba_db_riak:delete(mcb_attachment, AttId),
+      lager:info("board: delete_attachment ~s", [AttIdHex]),
+      ok
+  end.
+
+%%%-----------------------------------------------------------------------------
 get_thread_dynamic(BoardId, ThreadId)
   when is_binary(BoardId), is_binary(ThreadId) ->
 
@@ -69,17 +166,6 @@ get_thread_dynamic(BoardId, ThreadId)
       };
     Value -> Value
   end.
-
-%% @private
-update_dynamics_for_threads(_BoardId, []) -> ok;
-update_dynamics_for_threads(BoardId, [ThreadId | Threads])
-  when is_binary(ThreadId) ->
-  TD = get_thread_dynamic(BoardId, ThreadId),
-  lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
-  %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
-  %% {atomic, _} = mnesia:transaction(T),
-  macaba_db_mnesia:write(mcb_thread_dynamic, TD),
-  update_dynamics_for_threads(BoardId, Threads).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of configured boards
@@ -105,11 +191,12 @@ fake_default_boards() ->
   {ok, DefaultAnon} = macaba_conf:get([<<"board">>,
                                        <<"default_anonymous_name">>]),
   [#mcb_board{
-      board_id       = <<"unconfigured">>,
-      short_name     = <<"default_board">>,
-      category       = <<"no_category">>,
-      title          = "Board not configured",
-      anonymous_name =  DefaultAnon
+        board_id       = <<"unconfigured">>
+      , short_name     = <<"default_board">>
+      , category       = <<"no_category">>
+      , title          = "Board not configured"
+      , anonymous_name = DefaultAnon
+      , max_threads    = 20 * 10
      }].
 
 %%%-----------------------------------------------------------------------------
@@ -172,9 +259,13 @@ get_thread_contents(BoardId, ThreadId, LastCount0)
   %% get first and cut last
   First = case PostIds of [] -> []; [F|_] -> get_post(BoardId, F) end,
   %% FIXME: this may run slow on large threads >1000 posts?
-  PostIds2 = tl(PostIds),
-  T = min(length(PostIds2), max(0, length(PostIds2) - LastCount)),
-  LastIds = lists:nthtail(T, PostIds2),
+  LastIds = case PostIds of
+               [] -> [];
+               _ ->
+                 PostIds2 = tl(PostIds),
+                T = min(length(PostIds2), max(0, length(PostIds2) - LastCount)),
+                lists:nthtail(T, PostIds2)
+            end,
   Last = lists:map(fun(Id) -> get_post(BoardId, Id) end, LastIds),
   lists:flatten([First | Last]).
 
@@ -222,11 +313,36 @@ new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 
   %% add thread to board
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-          BD#mcb_board_dynamic{ threads = [PostId | T] }
+          T2 = [ThreadId | T],
+          BD#mcb_board_dynamic{ threads = T2}
       end,
   {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
+  check_board_threads_limit(BoardId),
   {Thread, Post}.
 
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Reads board info and cuts extra threads in the end according to board
+%% settings.
+check_board_threads_limit(BoardId) ->
+  Board = get_board(BoardId),
+  F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
+          Cut = min(Board#mcb_board.max_threads, length(T)),
+          {T2, Delete} = lists:split(Cut, T),
+          %% send messages to delete sunken threads
+          [macaba_board_worker:delete_thread(BoardId, ThreadId)
+           || ThreadId <- Delete],
+          BD#mcb_board_dynamic{ threads = T2 }
+      end,
+  case macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F) of
+    {atomic, _} ->
+      ok;
+    Err ->
+      lager:error("board: thread limits check error ~p", [Err])
+  end.
+
+%%%-----------------------------------------------------------------------------
+%% @private
 post_write_attach_set_ids(P, Opts) ->
   %% Write attach and set attach_id in post
   %% TODO: Multiple attachments
@@ -262,41 +378,51 @@ new_post(BoardId, Opts) when is_binary(BoardId) ->
 %% @private
 %% @doc Checks email field of the new post, if it contains no <<"sage">> -
 %% bumps thread to become first on board
-bump_if_no_sage(_BoardId, _ThreadId, #mcb_post{email = <<"sage">>}) -> ok;
+-spec bump_if_no_sage(BoardId :: binary(), ThreadId :: binary(),
+                      Post :: #mcb_post{}) -> boolean().
+bump_if_no_sage(_BoardId, _ThreadId, #mcb_post{email = <<"sage">>}) -> false;
 bump_if_no_sage(BoardId, ThreadId, _Post) ->
-  BumpF = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-              BD#mcb_board_dynamic{
-                threads = [ThreadId | lists:delete(ThreadId, T)]
-               }
-          end,
-  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF).
+  Board = get_board(BoardId),
+  TD = get_thread_dynamic(BoardId, ThreadId),
+  SoftPostLimit = Board#mcb_board.max_thread_posts,
+  case length(TD#mcb_thread_dynamic.post_ids) > SoftPostLimit of
+    true ->
+      false; % over soft limit, no bumping
+    false ->
+      BumpF = fun(BD = #mcb_board_dynamic{ threads=T }) ->
+                  BD#mcb_board_dynamic{
+                    threads = [ThreadId | lists:delete(ThreadId, T)]
+                   }
+              end,
+      {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF),
+      true
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates structure for a new post, returns it. Does not write.
-%% BUG: Creating post with attachment actually writes attachment to database!
 construct_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId  = macaba:propget(thread_id, Opts),
   Author    = macaba:propget(author,    Opts),
   Email     = macaba:propget(email,     Opts),
   Subject   = macaba:propget(subject,   Opts),
   Message   = macaba:propget(message,   Opts),
+  DeletePw  = macaba:propget(deletepw,  Opts),
 
   %% if this crashes, don't create anything and fail here
   MessageProcessed = call_markup_plugin(Message),
 
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
-    thread_id   = macaba:as_binary(ThreadId),
-    post_id     = PostId,
-    board_id    = BoardId,
-    subject     = Subject,
-    author      = Author,
-    email       = Email,
-    message_raw = Message,
-    message     = MessageProcessed,
-    created     = get_now_utc(),
-    %% attach_ids = [macaba:as_binary(AttachId)],
-    sage        = false
+      thread_id   = macaba:as_binary(ThreadId)
+    , post_id     = PostId
+    , board_id    = BoardId
+    , subject     = Subject
+    , author      = Author
+    , email       = Email
+    , message_raw = Message
+    , message     = MessageProcessed
+    , created     = get_now_utc()
+    , delete_pass = DeletePw
    }.
 
 %% @private

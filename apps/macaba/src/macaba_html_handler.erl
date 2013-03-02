@@ -11,8 +11,9 @@
         , terminate/3]).
 -export([ macaba_handle_index/2
         , macaba_handle_board/2
-        , macaba_handle_thread_new/2
         , macaba_handle_thread/2
+        , macaba_handle_thread_new/2
+        , macaba_handle_thread_manage/2
         , macaba_handle_post_new/2
         , macaba_handle_attach/2
         , macaba_handle_attach_thumb/2
@@ -184,10 +185,7 @@ chain_post_new_redirect({Req0, State0}) ->
   ThreadId       = Post#mcb_post.thread_id,
   PostId         = Post#mcb_post.post_id,
   lager:debug("http POST reply, board=~s thread=~s", [BoardId, ThreadId]),
-  {ok, redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
-                ++ macaba:as_string(ThreadId) ++ "#i"
-                ++ macaba:as_string(PostId), Req, State0)
-  }.
+  {ok, redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State0)}.
 
 %%%---------------------------------------------------
 %% @private
@@ -223,7 +221,7 @@ get_post_create_options(_Req0, State=#mcb_html_state{post_data=PD}) ->
   Subject  = macaba:propget(<<"subject">>,   PD, ""),
   Message  = macaba:propget(<<"message">>,   PD, ""),
   Attach   = macaba:propget(<<"attach">>,    PD, ""),
-  %%Captcha  = macaba:propget(<<"captcha">>,   PD, ""),
+  DeletePw = macaba:propget(<<"deletepw">>,  PD, ""),
 
   orddict:from_list([ {thread_id,  ThreadId}
                     , {author,     Author}
@@ -232,10 +230,32 @@ get_post_create_options(_Req0, State=#mcb_html_state{post_data=PD}) ->
                     , {message,    Message}
                     , {attach,     Attach}
                     , {attach_key, state_get_var(attach_key, State)}
+                    , {deletepw,   DeletePw}
                     ]).
 
 %%%-----------------------------------------------------------------------------
-%% @doc Do GET board/b_id/thread/t_id
+%% @doc Do POST board/b_id/thread/t_id/manage - delete posts by password
+%%%-----------------------------------------------------------------------------
+macaba_handle_thread_manage(<<"POST">>, {Req0, State0}) ->
+  {_, {Req1, State}} = macaba_web:chain_run(
+                         [ fun chain_thread_manage_delete/1
+                         ], {Req0, State0}),
+  {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
+  {BoardId, Req3}  = cowboy_req:binding(mcb_board,  Req2),
+  redirect_to_thread(BoardId, ThreadId, Req3, State0).
+
+chain_thread_manage_delete({Req0, State0=#mcb_html_state{post_data=PD}}) ->
+  %%lager:debug("manage_delete post=~p", [PD]),
+  MarkedPosts = orddict:fetch(<<"array_mark">>, PD),
+  Password = orddict:fetch(<<"pass">>, PD),
+  {BoardId, Req1}  = cowboy_req:binding(mcb_board,  Req0),
+  lists:foreach(fun(M) ->
+                    macaba_board_cli:anonymous_delete_post(BoardId, M, Password)
+                end, MarkedPosts),
+  {ok, {Req1, State0}}.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Do GET board/b_id/thread/t_id - show thread contents
 %%%-----------------------------------------------------------------------------
 macaba_handle_thread(<<"GET">>, {Req0, State0}) ->
   {_, {Req, State}} = macaba_web:chain_run(
@@ -254,8 +274,7 @@ chain_get_thread_info({Req0, State0}) ->
   lager:debug("http GET thread ~s", [ThreadId]),
   case macaba_board_cli:get_thread(BoardId, ThreadId) of
     {error, not_found} ->
-      {Req1, State1} = render_page(404, "thread_404", Req, State0),
-      {error, {Req1, State1}};
+      {error, render_page(404, "thread_404", Req, State0)};
     ThreadInfo ->
       State = state_set_var(thread_info, ThreadInfo, State0),
       {ok, {Req, State}}
@@ -268,8 +287,14 @@ chain_get_thread_posts({Req0, State0}) ->
   {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
   Posts = macaba_board_cli:get_thread_preview(BoardId, ThreadId, all),
   State1 = state_set_var(posts, Posts, State0),
-  State = state_set_var(first_post, hd(Posts), State1),
-  {ok, {Req, State}}.
+  case Posts of
+    [] ->
+      macaba_board_worker:delete_thread(BoardId, ThreadId),
+      {error, render_page(404, "thread_404", Req0, State1)};
+    _ ->
+      State2 = state_set_var(first_post, hd(Posts), State1),
+      {ok, {Req, State2}}
+  end.
 
 
 %%%-----------------------------------------------------------------------------
@@ -385,6 +410,21 @@ redirect(URL, Req0, State) ->
                 <<>>, Req0),
   {Req, State}.
 
+%%%-----------------------------------------------------------------------------
+%% @private
+redirect_to_thread(BoardId, ThreadId, Req, State) ->
+   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
+                ++ macaba:as_string(ThreadId), Req, State).
+
+%%%-----------------------------------------------------------------------------
+%% @private
+redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
+   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
+                ++ macaba:as_string(ThreadId) ++ "#i"
+                ++ macaba:as_string(PostId), Req, State).
+
+%%%-----------------------------------------------------------------------------
+%% @private
 render_error(Msg, Req0, State0) ->
   State1 = state_set_var(error, Msg, State0),
   {Req1, State2} = render_page(400, "error", Req0, State1),
@@ -411,7 +451,7 @@ parse_multipart_form_data_1([], State) -> State;
 parse_multipart_form_data_1([{Headers, Value} | Rest],
                             State=#mcb_html_state{ post_data=PD0 }) ->
   FieldName = get_multipart_field_name(Headers),
-  PD1 = orddict:store(FieldName, Value, PD0),
+  PD1 = set_multipart_value(FieldName, Value, PD0),
 
   ContentType = macaba:propget(<<"content-type">>, Headers, undefined),
   PD = orddict:store({content_type, FieldName}, ContentType, PD1),
@@ -427,6 +467,22 @@ get_multipart_field_name([{<<"content-disposition">>, Bin} | _]) ->
              binary:part(Name, 0, byte_size(Name) - 1)
            end || <<" name=\"", Name/binary>> <- Parts],
   Ret.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Sets field value parsed from POST multipart form, if value name starts
+%% with "array_" sets it as list instead, accumulating multiple values
+set_multipart_value(<<"array_", _/binary>>=Name, Value, []) ->
+  orddict:store(Name, [Value], []);
+set_multipart_value(<<"array_", _/binary>>=Name, Value, Dict) ->
+  try
+    X = orddict:fetch(Name, Dict),
+    orddict:store(Name, [Value | X], Dict)
+  catch _E ->
+      orddict:store(Name, [Value], Dict)
+  end;
+set_multipart_value(Name, Value, Dict) ->
+  orddict:store(Name, Value, Dict).
 
 %%%-----------------------------------------------------------------------------
 %% @private

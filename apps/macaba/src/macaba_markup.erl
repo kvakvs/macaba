@@ -5,13 +5,17 @@
 %%%-----------------------------------------------------------------------------
 -module(macaba_markup).
 
--export([ process/1
+-export([ wakabamark/1
+        , erlmarkdown/1
         ]).
 
-process(T) when is_binary(T) ->
-  process(unicode:characters_to_list(T, utf8));
+erlmarkdown(T) ->
+  markdown:conv_utf8(T).
 
-process(T0) when is_list(T0) ->
+wakabamark(T) when is_binary(T) ->
+  wakabamark(unicode:characters_to_list(T, utf8));
+
+wakabamark(T0) when is_list(T0) ->
   %% html encode and add end of line to simplify regex searching
   T1 = [$\n | xmerl_lib:export_text(T0) ++ "\n"],
   Rules = [% **bold**
@@ -26,6 +30,12 @@ process(T0) when is_list(T0) ->
           , {"([^`])`([^`].+?[^`])`([^`])",
              "\\1<code>\\2</code>\\3"}
           , {"``", "`"}
+          %% URL
+          %% , {"((https?|ftp)://[-\\.a-zA-Z0-9]+?/?\\?"
+          %%    "[-_.=/a-zA-z0-9;&\"]*?)",
+          , {"(https?://[^\\s<>\"]*?)((?:\\s|<|>|\"|\\.|\\)|\\]|!"
+             "|\\?|,|&#44;|&quot;)*(?:[\\s<>\"]|$))"
+             , "<a href=\"\\1\">\\1</a>"}
           %% line breaks for ordered/unordered list items
           %% , {"- .*?\\R\s+.*?\\R", ""}
           ],
@@ -34,19 +44,16 @@ process(T0) when is_list(T0) ->
                        re:replace(Acc, Re0, Replace,
                                   [global, unicode, multiline, {return, list}])
                    end, T1, Rules),
-  %% io:format(standard_error, "T2=~p~n", [T2]),
 
   %% detect line-constructs like blockquote or code
   U1 = lists:map(fun process_line/1, string:tokens(T2, [ $\n ])),
 
   %% merge similar tagged constructs
-  %% io:format(standard_error, "U1=~p~n", [U1]),
   U2 = lists:foldl(fun({Tag, L}, []) -> [{Tag, L}];
                       ({Tag, L}, [{Tag, M} | Tail]) ->
                                          [{Tag, lines(Tag, [L, M])} | Tail];
                       (L, Acc) -> [L | Acc]
                   end, [], lists:reverse(U1)),
-  %% io:format(standard_error, "U2=~p~n", [U2]),
   U = lists:map(fun({blockquote, L}) ->
                     "<blockquote>" ++ L ++ "</blockquote>";
                    ({code, L}) ->
@@ -57,11 +64,8 @@ process(T0) when is_list(T0) ->
                     "<ul><li>" ++ L ++ "</li></ul>";
                    (L)               -> L
                 end, U2),
-  %% io:format(standard_error, "U=~p~n", [U]),
 
   %% remove leading and trailing empty lines
-  %%string:strip(string:join(U, "<br />\n"), both, $\n).
-  lager:debug("markup: ~p", [U]),
   U.
 
 %% @private

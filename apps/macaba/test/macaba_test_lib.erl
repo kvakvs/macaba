@@ -11,6 +11,7 @@
 
 -define(HTTP_TIMEOUT, 5000).
 
+%%%-----------------------------------------------------------------------------
 %% @doc Execute a Method request to the URL, Opts: body: body of the request
 %% http_options: http options for lhttpc, request_headers: headers for lhttpc
 request(Url, Method, Opts) ->
@@ -19,6 +20,7 @@ request(Url, Method, Opts) ->
   Headers = macaba:propget(request_headers, Opts, []),
   lhttpc:request(Url, Method, Headers, Body, ?HTTP_TIMEOUT, Options).
 
+%%%-----------------------------------------------------------------------------
 mock_riak() ->
   meck:new(riak_pool_auto, [passthrough]),
   PutFn = fun(B, K, V) -> erlang:put({riakmock, B, K}, V) end,

@@ -20,9 +20,12 @@
          terminate/2, code_change/3]).
 
 -record(conf_state, {
-          conf = []
+            conf = []
+          , load_time = 0 :: integer()
          }).
 -define(SERVER, ?MODULE).
+-define(CONF_FILENAME,    "macaba.config").
+-define(CONF_RELOAD_MSEC, 30000).
 
 %%====================================================================
 %% API
@@ -62,19 +65,15 @@ start_link() ->
 -spec init(Args :: list()) -> {ok, #conf_state{}} | ignore |
                               {stop, Reason :: any()}.
 init([]) ->
-  ConfData = case file:read_file("macaba.config") of
-               {ok, C1} ->
-                 binary_to_list(C1);
-               {error, Err1} ->
-                 macaba:fatal("Loading macaba.config", Err1)
-             end,
-  Conf = case etoml:parse(ConfData) of
-           {ok, C2} ->
-             C2;
-           {error, Err2} ->
-             macaba:fatal("Parsing macaba.config", Err2)
-         end,
-  {ok, #conf_state{ conf=Conf }}.
+  case load_config(#conf_state{}) of
+    State=#conf_state{} ->
+      erlang:send_after(?CONF_RELOAD_MSEC, self(), conf_reload),
+      {ok, State};
+    {error, {not_found, Err1}} ->
+      macaba:fatal("Loading config " ?CONF_FILENAME, Err1);
+    {error, {syntax, Err2}} ->
+      macaba:fatal("Parsing config " ?CONF_FILENAME, Err2)
+  end.
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
@@ -113,6 +112,25 @@ handle_cast(_Msg, State) ->
                          {noreply, #conf_state{}} |
                          {noreply, #conf_state{}, Timeout :: integer()} |
                          {stop, Reason :: any(), #conf_state{}}.
+handle_info(conf_reload, State) ->
+  erlang:send_after(?CONF_RELOAD_MSEC, self(), conf_reload),
+  FTime = calendar:datetime_to_gregorian_seconds(
+            filelib:last_modified(?CONF_FILENAME)),
+  OldTime = calendar:datetime_to_gregorian_seconds(State#conf_state.load_time),
+  case FTime > OldTime of
+    false ->
+      {noreply, State};
+    true ->
+      case load_config(State) of
+        S2=#conf_state{} ->
+          lager:info("Config reloaded"),
+          {noreply, S2};
+        {error, E} ->
+          lager:error("Config reload error: ~p", E),
+          {noreply, State}
+      end
+  end;
+
 handle_info(_Info, State) ->
   {noreply, State}.
 
@@ -135,12 +153,37 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+%% @private
+%% @doc Traverses the tree following list of keys, returns subtree or value
 traverse([], Tree) -> {ok, Tree};
 traverse([K|K2], Tree) ->
   case macaba:propget(K, Tree, undefined) of
     undefined -> {error, not_found};
     Subtree -> traverse(K2, Subtree)
   end.
+
+%% @private
+%% @doc Reloads config and updates the state with config and time
+-spec load_config(#conf_state{}) -> #conf_state{} | {error, tuple()}.
+load_config(S) ->
+  case file:read_file(?CONF_FILENAME) of
+    {ok, C1} ->
+      ConfData = binary_to_list(C1),
+      Conf = case etoml:parse(ConfData) of
+               {ok, C2} ->
+                 C2;
+               {error, Err2} ->
+                 {error, syntax, Err2}
+             end,
+      S#conf_state{
+          conf      = Conf
+        , load_time = filelib:last_modified(?CONF_FILENAME)
+       };
+    {error, Err1} ->
+      {error, {not_found, Err1}}
+  end.
+
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

@@ -36,23 +36,27 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Basic board functions: board index, thread index, thread view
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
 *   File upload (1 per post)
-*   Full Wakaba markup support (as a pluggable module)
+*   WakabaMark and Markdown support (configurable)
+*   Board limits, delete when thread is sinking
 
 ### Tier 1 TODO: important
 
-*   Admin UI (configuring boards list, global board options, maintenance mode,
-    read-only mode)
-*   Captcha support, flood detection, basic DDOS resistance
-*   Words/regex blacklisting, image hash/similarity? blacklisting
-*   User blacklisting & banning
-*   Authentication for mods and admins, maybe sessions?
+*   Deleting posts by user
+*   Authentication for mods and admins, maybe sessions. User groups and post
+    access for different groups
 *   Users participation - reporting posts and threads
-*   Moderation UI (bans, thread management - locking pinning, deleting,
-    reviewing reported posts, etc)
+*   Moderation UI
+    *   Words/regex blacklisting, image hash/similarity? blacklisting
+    *   User blacklisting, bans, ban page with ban reason
+    *   Thread management - locking, pinning, deleting, moving
+    *   Reviewing reported posts
+*   Admin UI
+    *   Configuring boards list and board options
+    *   Site options, maintenance mode, read-only mode
+*   Captcha support, flood detection, basic DDOS resistance
 
 ### Tier 2 TODO: do it later
 
-*   Deleting posts by user
 *   Video embedding support (configurable)
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications
@@ -68,6 +72,9 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Fighting Unicode quirks (reverse text direction)
 *   A torrent-tracker module (tourettes or peasy or something else?)
 *   Permanent authentication, VIP passwords
+*   International board mode (geoip flags)
+*   Oekaki drawing
+*   Mobile-friendly template
 
 ## Prerequisites
 

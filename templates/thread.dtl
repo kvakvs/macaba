@@ -30,10 +30,22 @@
   </div>
 </div>
 
+<form method="post"  enctype="multipart/form-data"
+  action="/board/{{ board_info.board_id }}/thread/{{ thread_info.thread_id }}/manage">
 <div class="row">
   <div class="span12">
-    {% for p in posts %}{% include "post.html" %}{% endfor %}
+    {% for p in posts %}{% with inside_thread = 1 %}
+    {% include "post.html" %}{% endwith %}{% endfor %}
+    <hr />
   </div>
 </div>
+<div class="row">
+  <div class="span8"></div>
+  <div class="span4">
+    <input type="password" name="pass" class="input-small" />
+    <input type="submit" value="Delete" class="btn btn-warning" />
+  </div>
+</div>
+</form>
 
 {% include "footer.html" %}

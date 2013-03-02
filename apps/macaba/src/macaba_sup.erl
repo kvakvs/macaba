@@ -37,6 +37,7 @@ init([]) ->
          , child(macaba_masternode, worker)
          , child(macaba_ses_sup, supervisor)
          , child(macaba_startup, worker, transient)
+         , child(macaba_board_worker, worker)
          ]} }.
 
 
