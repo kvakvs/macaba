@@ -1,0 +1,15 @@
+{% comment %}-------------------------------------------------------------------
+| Userbar displays current user name, role, and toolbar with actions
+----------------------------------------------------------------{% endcomment %}
+{% if user.type == "mod" %}
+Authenticated as: <strong>Mod</strong>
+{% elif user.type == "admin" %}
+Authenticated as: <strong>Admin</strong>
+{% endif %}
+| Actions: 
+{% if user.type == "mod" %}
+Dashboard
+{% endif %}
+{% if user.type == "admin" %}
+Admin:Site Admin:Boards
+{% endif %}

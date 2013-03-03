@@ -11,4 +11,5 @@
 
   <body>
     <div class="container">
+{% if user %}{% include "user_bar.html" %}{% endif %}
 {% if boards %}{% include "navigation_bar.html" %}{% endif %}

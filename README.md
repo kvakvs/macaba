@@ -29,19 +29,17 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Done
 
-*   Versioned data model (reading data always works no matter how old the data
-    version was)
-*   Distributed monotonically growing post counters using Mnesia memory tables
-*   Designed for running as a cluster, or as a single node
-*   Basic board functions: board index, thread index, thread view
+*   Designed for running as a single node or as multiple nodes
+*   Basic board functions: board index, thread index, thread view, new thread,
+    reply
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
 *   File upload (1 per post)
 *   WakabaMark and Markdown support (configurable)
 *   Board limits, delete when thread is sinking
+*   Deleting posts by user
 
 ### Tier 1 TODO: important
 
-*   Deleting posts by user
 *   Authentication for mods and admins, maybe sessions. User groups and post
     access for different groups
 *   Users participation - reporting posts and threads

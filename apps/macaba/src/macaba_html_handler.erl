@@ -51,9 +51,10 @@ handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     {Method, Req1} = cowboy_req:method(Req0),
 
     %% parse request body as multipart, this will not work for POST urlencoded
-    {Req2, State1} = case Method of
-                       <<"POST">> -> parse_multipart_form_data(Req1, State0);
-                       _ -> {Req1, State0}
+    {Req2, State1} = case is_POST_and_multipart(Req1) of
+                       {true, true}  -> parse_multipart_form_data(Req1, State0);
+                       {true, false}  -> parse_body_qs(Req1, State0);
+                       {false, _} -> {Req1, State0}
                      end,
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
     {Req3, State2} = apply(?MODULE, FnName, [Method, {Req2, State1}]),
@@ -289,7 +290,6 @@ chain_get_thread_posts({Req0, State0}) ->
   State1 = state_set_var(posts, Posts, State0),
   case Posts of
     [] ->
-      macaba_board_worker:delete_thread(BoardId, ThreadId),
       {error, render_page(404, "thread_404", Req0, State1)};
     _ ->
       State2 = state_set_var(first_post, hd(Posts), State1),
@@ -442,11 +442,38 @@ state_get_var(K, #mcb_html_state{ page_vars=PV }) ->
 
 %%%-----------------------------------------------------------------------------
 %% @private
+%% @doc Returns pair of boolean() for POST method and multipart/* content-type
+is_POST_and_multipart(Req0) ->
+  {Method, Req1} = cowboy_req:method(Req0),
+  {CT, Req2} = cowboy_req:header(<<"content-type">>, Req1),
+  Post = case Method of
+           <<"POST">>  -> true;
+           _ -> false
+         end,
+  Multipart = case CT of
+                <<"multipart/", _/binary>> -> true;
+                _ -> false
+              end,
+  {Post, Multipart}.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Retrieves POST body with urlencoded form data and saves it to
+%% state.post_data
+parse_body_qs(Req0, State0) ->
+  {PD, Req1} = cowboy_req:body_qs(Req0),
+  {Req1, State0#mcb_html_state{ post_data = PD }}.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Retrieves POST body with multipart form data, parses fields and array
+%% fields and saves it to state.post_data
 parse_multipart_form_data(Req0, State0) ->
   {MPD, Req1} = acc_multipart(Req0),
   %% lager:debug("{{post}} multipart data ~p", [MPD]),
   {Req1, parse_multipart_form_data_1(MPD, State0)}.
 
+%% @private
 parse_multipart_form_data_1([], State) -> State;
 parse_multipart_form_data_1([{Headers, Value} | Rest],
                             State=#mcb_html_state{ post_data=PD0 }) ->
@@ -460,6 +487,7 @@ parse_multipart_form_data_1([{Headers, Value} | Rest],
   State1 = State#mcb_html_state{ post_data=PD },
   parse_multipart_form_data_1(Rest, State1).
 
+%% @private
 get_multipart_field_name([{<<"content-disposition">>, Bin} | _]) ->
   [<<"form-data">>|Parts] = binary:split(Bin, <<";">>, [global, trim]),
   [Ret] = [begin
