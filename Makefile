@@ -41,8 +41,10 @@ rel: rebar deps
 
 #testrel: $(DEVNODES) $(TESTNODES)
 
-COMBO_PLT = $(HOME)/.macaba_combo_dialyzer_plt
-PLT_LIBS  = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
+OTP_PLT   = $(HOME)/.macaba_otp.plt
+COMBO_PLT = $(HOME)/.macaba_combo.plt
+PLT_LIBS0 = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
+PLT_LIBS  = $(subst deps/riak_pb/ebin,,$(PLT_LIBS0))
 
 DIALYZER_APPS = macaba
 DIALYZER_APPS_PATHS = $(addsuffix /ebin, $(addprefix apps/, $(DIALYZER_APPS)))
@@ -51,14 +53,24 @@ DIALYZER_APPS_PATHS = $(addsuffix /ebin, $(addprefix apps/, $(DIALYZER_APPS)))
 check_plt: rel
 	dialyzer --check_plt --plt $(COMBO_PLT) $(PLT_LIBS)
 
+.PHONY: build_sysplt
+build_sysplt: $(OTP_PLT)
+
+$(OTP_PLT):
+	dialyzer --output_plt $(OTP_PLT) --build_plt \
+		--apps erts kernel stdlib mnesia compiler syntax_tools runtime_tools \
+		crypto tools inets sasl ssh ssl public_key xmerl
+
 .PHONY: build_plt
-build_plt: rel
-	dialyzer --build_plt --output_plt $(COMBO_PLT) $(PLT_LIBS)
+build_plt: build_sysplt $(COMBO_PLT)
+
+$(COMBO_PLT):
+	dialyzer --plt $(OTP_PLT) --output_plt $(COMBO_PLT) --add_to_plt $(PLT_LIBS)
 
 .PHONY: dialyzer
-dialyzer: compile
-	dialyzer -Wno_return --fullpath --plt $(COMBO_PLT) $(DIALYZER_APPS_PATHS) | \
-	    fgrep -v -f ./dialyzer.ignore-warnings
+dialyzer: compile check_plt
+	dialyzer -Wno_return --fullpath --plt $(COMBO_PLT) $(DIALYZER_APPS_PATHS) \
+	    | fgrep -v -f ./dialyzer.ignore-warnings
 
 .PHONY: cleanplt
 cleanplt:
