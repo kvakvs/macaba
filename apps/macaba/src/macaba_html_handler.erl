@@ -17,6 +17,7 @@
         , macaba_handle_post_new/2
         , macaba_handle_attach/2
         , macaba_handle_attach_thumb/2
+        , macaba_handle_admin/2
         ]).
 -export([ chain_get_boards/1
         , chain_get_board_info/1
@@ -72,6 +73,21 @@ handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
 %%%-----------------------------------------------------------------------------
 terminate(_Reason, _Req, _State) ->
   ok.
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET/POST: /admin
+%%%-----------------------------------------------------------------------------
+macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
+  lager:debug("http GET admin"),
+  Boards = macaba_board_cli:get_boards(),
+  State1 = state_set_var(boards, Boards, State0),
+  render_page("admin_login", Req0, State1).
+
+%% macaba_handle_admin(<<"POST">>, {Req0, State0}) ->
+%%   lager:debug("http POST admin"),
+%%   Boards = macaba_board_cli:get_boards(),
+%%   State1 = state_set_var(boards, Boards, State0),
+%%   render_page("admin_login", Req0, State1).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET /

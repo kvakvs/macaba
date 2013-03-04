@@ -1,0 +1,24 @@
+{% comment %}-------------------------------------------------------------------
+| This admin panel login page
+|
+| Incoming parameters: boards - an indexable property list, see
+| macaba_server.config for options description
++---------------------------------------------------------------{% endcomment %}
+{% include "header.html" %}
+
+<div class="row">
+  <div class="span4"></div>
+  <div class="span8">
+    <form method="POST" action="">
+      <h2>And you are?</h2>
+      <input type="text" placeholder="علي بابا"><br />
+      <input type="password" placeholder="إفتح يا سمسم"><br />
+      <label class="checkbox">
+        <input type="checkbox" value="remember-me">Remember me longer
+      </label>
+      <button class="btn btn-large btn-primary" type="submit">Sign in</button>
+    </form>
+  </div>
+</div> <!-- /row -->
+
+{% include "footer.html" %}

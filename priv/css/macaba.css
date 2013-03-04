@@ -68,3 +68,15 @@ div.filedeleted {
     border: 1px solid gray;
     padding: 8px;
 }
+
+/* bottom div with board engine name and link */
+div.macaba-branding {
+    padding-top: 96px;
+    text-align: right;
+    font-size: 9pt;
+    color: #aaa;
+}
+div.macaba-branding a {
+    color: #88c;
+    text-decoration: underline;
+}

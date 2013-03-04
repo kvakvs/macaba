@@ -60,12 +60,14 @@ start_web() ->
   BShow2   = {"/board/:mcb_board", H, [board]},
   AttThumb = {"/attach/:mcb_attach/thumb", H, [attach_thumb]},
   Attach   = {"/attach/:mcb_attach", H, [attach]},
+  ALogin   = {"/admin", H, [admin]},
 
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
+                   , AttThumb, Attach
                    , TNew, TManage, TShow, TRepl
                    , BShow1, BShow2
-                   , AttThumb, Attach
+                   , ALogin
                    , {"/", H, [index]}
                    ]}
            ]),
