@@ -24,7 +24,6 @@ start() ->
   application:start(macaba).
 
 start(_StartType, _StartArgs) ->
-  %% TODO: reorder start calls to db and board and leader (spawned under sup)
   macaba_sup:start_link().
 
 stop(_State) ->

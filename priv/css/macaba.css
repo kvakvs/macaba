@@ -57,3 +57,14 @@ hr {
     border-style: solid none none;
     border-width: 1px;
 }
+
+/* bottom bar with delete/report buttons */
+div.reportbar {
+    text-align: right;
+}
+
+/* framed message inside post to indicate file was deleted */
+div.filedeleted {
+    border: 1px solid gray;
+    padding: 8px;
+}

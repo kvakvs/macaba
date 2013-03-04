@@ -21,6 +21,7 @@
         , attachment_exists/1
         , delete_thread/2
         , delete_post/2
+        , delete_post_attach/2
         , delete_post_dirty/2
         , delete_attachment/1
         ]).
@@ -88,6 +89,16 @@ delete_thread(BoardId, ThreadId) ->
   %% mnesia delete will also delete in riak but 1 sec later, delete now
   macaba_db_riak:delete(mcb_thread_dynamic, TDKey),
   macaba_db_mnesia:delete(mcb_thread_dynamic, TDKey).
+
+%%%-----------------------------------------------------------------------------
+-spec delete_post_attach(BoardId :: binary(),
+                         PostId :: binary()) -> ok | {error, any()}.
+delete_post_attach(BoardId, PostId) ->
+  P = get_post(BoardId, PostId),
+  lists:foreach(fun(AttId) -> delete_attachment(AttId) end,
+                P#mcb_post.attach_ids),
+  P2 = P#mcb_post{ attach_ids=[], attach_deleted=true },
+  macaba_db_riak:write(mcb_post, P2).
 
 %%%-----------------------------------------------------------------------------
 -spec delete_post(BoardId :: binary(),

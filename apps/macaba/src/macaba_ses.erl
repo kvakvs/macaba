@@ -18,82 +18,84 @@
 
 -record(mcb_session, {
           %% this like, allows ipv6 too, but will we ever support that?
-          remote_addr = {0,0,0,0} :: ipaddr_t()
+          remote_addr = {0,0,0,0} :: ipaddr_t(),
+          user :: #mcb_user{}
          }).
 -define(SERVER, ?MODULE).
 
 %%====================================================================
 %% API
 %%====================================================================
-%%--------------------------------------------------------------------
-%% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
-%% Description: Starts the server
-%%--------------------------------------------------------------------
+%% @doc Starts the server
+-spec start_link([{atom(), any()}]) ->
+                    {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Params) ->
-  gen_server:start_link(%%{local, ?SERVER}, 
+  gen_server:start_link( %%{local, ?SERVER},
     ?MODULE, Params, []).
 
 %%====================================================================
 %% gen_server callbacks
 %%====================================================================
-%%--------------------------------------------------------------------
-%% Function: init(Args) -> {ok, State} |
-%%                         {ok, State, Timeout} |
-%%                         ignore               |
-%%                         {stop, Reason}
-%% Description: Initiates the server
-%%--------------------------------------------------------------------
+%% @private
+%% @doc Initializes the server
+-spec init(Args :: list()) -> {ok, #mcb_session{}} | ignore
+                                  | {stop, Reason :: any()}.
 init(Params) ->
   RemoteAddr = macaba:propget(remote_addr, Params, {0,0,0,0}),
+  User = macaba:propget(user, Params, #mcb_user{}),
   {ok, #mcb_session{
+     user = User,
      remote_addr = RemoteAddr
     }}.
 
 %%--------------------------------------------------------------------
-%% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
-%%                                      {reply, Reply, State, Timeout} |
-%%                                      {noreply, State} |
-%%                                      {noreply, State, Timeout} |
-%%                                      {stop, Reason, Reply, State} |
-%%                                      {stop, Reason, State}
-%% Description: Handling call messages
-%%--------------------------------------------------------------------
+%% @doc Handling call messages
+-spec handle_call(Request :: any(), From :: pid, #mcb_session{}) ->
+                         {reply, Reply :: any(), #mcb_session{}} |
+                         {reply, Reply :: any(), #mcb_session{},
+                          Timeout :: integer()} | {noreply, #mcb_session{}} |
+                         {noreply, #mcb_session{}, Timeout :: integer()} |
+                         {stop, Reason :: any(), Reply :: any(),
+                          #mcb_session{}} |
+                         {stop, Reason :: any(), #mcb_session{}}.
+handle_call(get_user, _From, State) ->
+  {reply, State#mcb_session.user, State};
+
 handle_call(_Request, _From, State) ->
   Reply = ok,
   {reply, Reply, State}.
 
 %%--------------------------------------------------------------------
-%% Function: handle_cast(Msg, State) -> {noreply, State} |
-%%                                      {noreply, State, Timeout} |
-%%                                      {stop, Reason, State}
-%% Description: Handling cast messages
-%%--------------------------------------------------------------------
+%% @doc Handling cast messages
+-spec handle_cast(Msg :: any(), #mcb_session{}) ->
+                         {noreply, #mcb_session{}} |
+                         {noreply, #mcb_session{}, Timeout :: integer()} |
+                         {stop, Reason :: any(), #mcb_session{}}.
 handle_cast(_Msg, State) ->
   {noreply, State}.
 
 %%--------------------------------------------------------------------
-%% Function: handle_info(Info, State) -> {noreply, State} |
-%%                                       {noreply, State, Timeout} |
-%%                                       {stop, Reason, State}
-%% Description: Handling all non call/cast messages
-%%--------------------------------------------------------------------
+%% @doc Handling all non call/cast messages
+-spec handle_info(Info :: any(), #mcb_session{}) ->
+                         {noreply, #mcb_session{}} |
+                         {noreply, #mcb_session{}, Timeout :: integer()} |
+                         {stop, Reason :: any(), #mcb_session{}}.
 handle_info(_Info, State) ->
   {noreply, State}.
 
 %%--------------------------------------------------------------------
-%% Function: terminate(Reason, State) -> void()
-%% Description: This function is called by a gen_server when it is about to
+%% @doc This function is called by a gen_server when it is about to
 %% terminate. It should be the opposite of Module:init/1 and do any necessary
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
-%%--------------------------------------------------------------------
+-spec terminate(Reason :: any(), #mcb_session{}) -> any().
 terminate(_Reason, _State) ->
   ok.
 
 %%--------------------------------------------------------------------
-%% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% Description: Convert process state when code is changed
-%%--------------------------------------------------------------------
+%% @doc Convert process state when code is changed
+-spec code_change(OldVsn :: any(), #mcb_session{}, Extra :: any()) ->
+                                 {ok, #mcb_session{}}.
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 

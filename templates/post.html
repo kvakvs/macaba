@@ -44,6 +44,7 @@ use p.created_local for server time, or p.created_utc for GMT time
   <tr>
     <td width="1">
       <span id="exlink_{{ p.post_id }}">
+        {% if p.attach_deleted %}<div class="filedeleted">File deleted</div>{% endif %}
         {% for att in p.attach_info %}
         <!--Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}-->
         <a href="/attach/{{ att.hash_hex|lower }}">

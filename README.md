@@ -52,6 +52,8 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
     *   Configuring boards list and board options
     *   Site options, maintenance mode, read-only mode
 *   Captcha support, flood detection, basic DDOS resistance
+*   Different backends for storing attachments (static file system, S3)
+*   Import quickstart scripts for Wakaba/Kusaba
 
 ### Tier 2 TODO: do it later
 

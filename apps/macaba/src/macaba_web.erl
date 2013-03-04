@@ -7,7 +7,8 @@
 -export([ compile/1
         , render/2
         , chain_run/2
-        , get_user/1
+        , get_session/1
+        , new_session/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -53,8 +54,35 @@ chain_run([F | Tail], State) ->
 
 %%%------------------------------------------------------------------------
 %% @doc Examines request for session cookie, and gets current user
-get_user(Req) ->
-  #mcb_user{}.
+-spec get_session(SesId :: undefined | binary()) -> #mcb_user{}.
+get_session(undefined) -> #mcb_user{};
+get_session(SesId) ->
+  case gproc:lookup_local_name({macaba_session, SesId}) of
+    undefined -> #mcb_user{};
+    Pid -> gen_server:call(Pid, get_user)
+  end.
+
+%%%------------------------------------------------------------------------
+%% @doc Creates session process with given 'Params' returns SesId and Pid
+%% Params[remote_addr] - erlang tuple with IPv4 or IPv6, Params[user] -
+%% #mcb_user{} structure
+-spec new_session(Params :: orddict:orddict()) -> {binary(), pid()}.
+new_session(Params) ->
+  SesId = make_random_sesid(32, []),
+  %%Pid = gen_server:start_link(macaba_ses, [Params], []),
+  Pid = supervisor:start_link(macaba_ses, [Params]),
+  {SesId, Pid}.
+
+%%%------------------------------------------------------------------------
+%% @private
+make_random_sesid(0, A) -> list_to_binary(A);
+make_random_sesid(X, A) ->
+  Ch = case random:uniform(62)-1 of
+         C when C < 10 -> $0 + C;
+         C when C < 10+26 -> $A + C - 26;
+         C -> $a + C - 52
+       end,
+  make_random_sesid(X-1, [Ch|A]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

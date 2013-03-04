@@ -11,7 +11,7 @@
         , get_threads/3
         , get_thread_previews/3
         , get_thread_preview/3
-        , anonymous_delete_post/3
+        , anonymous_delete_post/4
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -20,13 +20,18 @@
 %% @doc Attempts to delete post if passwords match
 -spec anonymous_delete_post(BoardId :: binary(),
                             PostId :: binary(),
+                            FileOnly :: boolean(),
                             Password :: binary()) -> ok | {error, any()}.
-anonymous_delete_post(BoardId, PostId, Password) ->
+anonymous_delete_post(BoardId, PostId, FileOnly, Password) ->
   lager:info("board_cli: anonymous_delete_post B=~s P=~s Pass=~s",
              [BoardId, PostId, Password]),
   P = macaba_board:get_post(BoardId, PostId),
   case P#mcb_post.delete_pass of
-    Password -> macaba_board:delete_post(BoardId, PostId);
+    Password when byte_size(Password) > 0 ->
+      case FileOnly of
+        true -> macaba_board:delete_post_attach(BoardId, PostId);
+        false -> macaba_board:delete_post(BoardId, PostId)
+      end;
     _ -> {error, password}
   end.
 

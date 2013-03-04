@@ -36,7 +36,8 @@
           mode           :: board_cmd_t(),
           page_vars = [] :: orddict:orddict(),
           already_rendered = false :: boolean(),
-          post_data = [] :: orddict:orddict()
+          post_data = [] :: orddict:orddict(),
+          user :: #mcb_user{}
          }).
 
 %%%-----------------------------------------------------------------------------
@@ -56,12 +57,13 @@ handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
                        {true, false}  -> parse_body_qs(Req1, State0);
                        {false, _} -> {Req1, State0}
                      end,
+    {Req3, State2} = get_user(Req2, State1),
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
-    {Req3, State2} = apply(?MODULE, FnName, [Method, {Req2, State1}]),
-    {ok, Req3, State2}
+    {Req4, State3} = apply(?MODULE, FnName, [Method, {Req3, State2}]),
+    {ok, Req4, State3}
   catch
-    E -> T = lists:flatten(io_lib:format(
-                             "~p ~p", [E, erlang:get_stacktrace()])),
+    E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
+                                         [E, erlang:get_stacktrace()])),
          lager:error(E),
          {ReqE, StateE} = response_text(500, T, Req0, State0),
          {ok, ReqE, StateE}
@@ -243,15 +245,17 @@ macaba_handle_thread_manage(<<"POST">>, {Req0, State0}) ->
                          ], {Req0, State0}),
   {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
   {BoardId, Req3}  = cowboy_req:binding(mcb_board,  Req2),
-  redirect_to_thread(BoardId, ThreadId, Req3, State0).
+  redirect_to_thread(BoardId, ThreadId, Req3, State).
 
 chain_thread_manage_delete({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   %%lager:debug("manage_delete post=~p", [PD]),
   MarkedPosts = orddict:fetch(<<"array_mark">>, PD),
   Password = orddict:fetch(<<"pass">>, PD),
+  FileOnly = macaba:as_bool(orddict:fetch(<<"fileonly">>, PD)),
   {BoardId, Req1}  = cowboy_req:binding(mcb_board,  Req0),
   lists:foreach(fun(M) ->
-                    macaba_board_cli:anonymous_delete_post(BoardId, M, Password)
+                    macaba_board_cli:anonymous_delete_post(
+                      BoardId, M, FileOnly, Password)
                 end, MarkedPosts),
   {ok, {Req1, State0}}.
 
@@ -445,7 +449,7 @@ state_get_var(K, #mcb_html_state{ page_vars=PV }) ->
 %% @doc Returns pair of boolean() for POST method and multipart/* content-type
 is_POST_and_multipart(Req0) ->
   {Method, Req1} = cowboy_req:method(Req0),
-  {CT, Req2} = cowboy_req:header(<<"content-type">>, Req1),
+  {CT, _Req2} = cowboy_req:header(<<"content-type">>, Req1),
   Post = case Method of
            <<"POST">>  -> true;
            _ -> false
@@ -526,6 +530,16 @@ acc_multipart({end_of_part, Req}, [{Headers, BodyAcc}|Acc]) ->
                 [{Headers, list_to_binary(lists:reverse(BodyAcc))}|Acc]);
 acc_multipart({eof, Req}, Acc) ->
   {lists:reverse(Acc), Req}.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+-spec get_user(Req :: tuple(), State :: #mcb_html_state{}) ->
+                  {tuple(), #mcb_html_state{}}.
+get_user(Req0, State0) ->
+  {SesId, Req} = cowboy_req:cookie(?MACABA_COOKIE, Req0),
+  User = macaba_web:get_session(SesId),
+  State = state_set_var(user, macaba:record_to_proplist(User), State0),
+  {Req, State#mcb_html_state{user=User}}.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

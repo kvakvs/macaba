@@ -1,6 +1,8 @@
 -ifndef(MACABA_TYPES_HRL).
 -define(MACABA_TYPES_HRL, true).
 
+-define(MACABA_COOKIE, <<"macaba">>).
+
 -type proplist_t() :: [ {K :: atom()|binary()|string(), V :: any()} ].
 -type proplist_of(T) :: [ {K :: atom()|binary()|string(), V :: T} ].
 
@@ -87,6 +89,7 @@
           , message_raw = <<>> :: binary()  % trusted HTML
           , created            :: integer() % unix time
           , attach_ids = []    :: [binary()]
+          , attach_deleted = false :: boolean()
           , delete_pass = <<>> :: binary()
          }).
 
@@ -117,9 +120,10 @@
 
 %% @doc A user info structure, you can get this by calling macaba_web:get_user
 -record(mcb_user, {
-          type = 'anon' :: 'anon' | 'mod' | 'admin',
-          session_key :: binary(),
-          session_pid :: pid()
+            type = 'anon' :: 'anon' | 'mod' | 'admin'
+          , session_key :: binary()
+          , session_pid :: pid()
+          , name = <<>> :: binary()
          }).
 
 -endif. % MACABA_TYPES_HRL

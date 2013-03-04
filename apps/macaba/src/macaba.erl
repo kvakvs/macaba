@@ -48,6 +48,9 @@ record_to_proplist(#mcb_attachment{}=Rec) ->
 record_to_proplist(#mcb_attachment_body{}=Rec) ->
   lists:zip(record_info(fields, mcb_attachment_body), tl(tuple_to_list(Rec)));
 
+record_to_proplist(#mcb_user{}=Rec) ->
+  lists:zip(record_info(fields, mcb_user), tl(tuple_to_list(Rec)));
+
 record_to_proplist(X) -> error({badarg, X}).
 
 %% unix_time_to_str(U) ->

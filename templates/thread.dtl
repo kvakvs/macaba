@@ -40,10 +40,12 @@
   </div>
 </div>
 <div class="row">
-  <div class="span8"></div>
-  <div class="span4">
+  <div class="span12 reportbar">
     <input type="password" name="pass" class="input-small" />
+    <input type="checkbox" name="fileonly" value="true" /> File only
     <input type="submit" value="Delete" class="btn btn-warning" />
+    <input type="text" disabled="disabled" name="report" class="input-small" />
+    <input type="submit" disabled="disabled" value="Report" class="btn btn-danger" />
   </div>
 </div>
 </form>
