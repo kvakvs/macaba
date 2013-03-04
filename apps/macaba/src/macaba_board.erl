@@ -350,23 +350,29 @@ post_write_attach_set_ids(P, Opts) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates new post, writes to database
+-spec new_post(BoardId :: binary(), Opts :: orddict:orddict()) ->
+                  {ok, #mcb_post{}} | {error, any()}.
 new_post(BoardId, Opts) when is_binary(BoardId) ->
-  Post0 = construct_post(BoardId, Opts),
-  Post  = post_write_attach_set_ids(Post0, Opts),
-  macaba_db_riak:write(mcb_post, Post),
+  case construct_post(BoardId, Opts) of
+    {ok, Post0} ->
+      Post  = post_write_attach_set_ids(Post0, Opts),
+      macaba_db_riak:write(mcb_post, Post),
 
-  ThreadId = macaba:propget(thread_id, Opts),
+      ThreadId = macaba:propget(thread_id, Opts),
 
-  %% update thread post list
-  ReplyF = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
-               TD#mcb_thread_dynamic{ post_ids=L++[Post#mcb_post.post_id] }
-           end,
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
+      %% update thread post list
+      ReplyF = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
+                   TD#mcb_thread_dynamic{ post_ids=L++[Post#mcb_post.post_id] }
+               end,
+      TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+      {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
 
-  %% update board thread list (bump thread)
-  bump_if_no_sage(BoardId, ThreadId, Post),
-  Post.
+      %% update board thread list (bump thread)
+      bump_if_no_sage(BoardId, ThreadId, Post),
+      {ok, Post};
+    {error, E} ->
+      {error, E}
+  end.
 
 %% @private
 %% @doc Checks email field of the new post, if it contains no <<"sage">> -
@@ -393,6 +399,8 @@ bump_if_no_sage(BoardId, ThreadId, _Post) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates structure for a new post, returns it. Does not write.
+-spec construct_post(BoardId :: binary(), Opts :: orddict:orddict()) ->
+                        {ok, #mcb_post{}} | {error, any()}.
 construct_post(BoardId, Opts) when is_binary(BoardId) ->
   ThreadId  = macaba:propget(thread_id, Opts),
   Author    = macaba:propget(author,    Opts),
@@ -401,22 +409,27 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
   Message   = macaba:propget(message,   Opts),
   DeletePw  = macaba:propget(deletepw,  Opts),
 
-  %% if this crashes, don't create anything and fail here
-  MessageProcessed = macaba_plugins:call(markup, [Message]),
+  case string:strip(binary_to_list(Message), both) of
+    [] -> {error, body_empty};
+    _ ->
+      %% if this crashes, don't create anything and fail here
+      MessageProcessed = macaba_plugins:call(markup, [Message]),
 
-  PostId = macaba:as_binary(next_board_post_id(BoardId)),
-  #mcb_post{
-      thread_id   = macaba:as_binary(ThreadId)
-    , post_id     = PostId
-    , board_id    = BoardId
-    , subject     = Subject
-    , author      = Author
-    , email       = Email
-    , message_raw = Message
-    , message     = MessageProcessed
-    , created     = get_now_utc()
-    , delete_pass = DeletePw
-   }.
+      PostId = macaba:as_binary(next_board_post_id(BoardId)),
+      P = #mcb_post{
+        thread_id   = macaba:as_binary(ThreadId)
+        , post_id     = PostId
+        , board_id    = BoardId
+        , subject     = Subject
+        , author      = Author
+        , email       = Email
+        , message_raw = Message
+        , message     = MessageProcessed
+        , created     = get_now_utc()
+        , delete_pass = DeletePw
+       },
+      {ok, P}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @private

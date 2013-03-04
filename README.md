@@ -36,7 +36,8 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   File upload (1 per post)
 *   WakabaMark (no ^H support as of yet) and Markdown support (configurable)
 *   Board limits, delete when thread is sinking
-*   Deleting posts by user
+*   Deleting posts by user, optional deletion of attachments only
+*   Simple plugins system. Extension modules and hooks are work-in-progress
 
 ### Tier 1 TODO: important
 

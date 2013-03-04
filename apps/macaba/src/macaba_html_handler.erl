@@ -197,9 +197,13 @@ chain_post_new_redirect({Req0, State0}) ->
 chain_post_new({Req0, State0}) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
   PostOpt = get_post_create_options(Req, State0),
-  Post = macaba_board:new_post(BoardId, PostOpt),
-  State = state_set_var(created_post, Post, State0),
-  {ok, {Req, State}}.
+  case macaba_board:new_post(BoardId, PostOpt) of
+    {ok, Post} ->
+      State = state_set_var(created_post, Post, State0),
+      {ok, {Req, State}};
+    {error, E} ->
+      render_error(E, Req, State0)
+  end.
 
 %%%---------------------------------------------------
 %% @private
