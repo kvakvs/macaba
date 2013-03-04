@@ -38,20 +38,22 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Board limits, delete when thread is sinking
 *   Deleting posts by user, optional deletion of attachments only
 *   Simple plugins system. Extension modules and hooks are work-in-progress
+*   Admin UI
+    *   Login form and login handler located at /admin
+    *   Sessions support
 
 ### Tier 1 TODO: important
 
 *   Authentication for mods and admins, maybe sessions. User groups and post
     access for different groups
 *   Users participation - reporting posts and threads
-*   Moderation UI
-    *   Words/regex blacklisting, image hash/similarity? blacklisting
-    *   User blacklisting, bans, ban page with ban reason
-    *   Thread management - locking, pinning, deleting, moving
-    *   Reviewing reported posts
 *   Admin UI
-    *   Configuring boards list and board options
-    *   Site options, maintenance mode, read-only mode
+    *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
+    *   Mod: User blacklisting, bans, ban page with ban reason
+    *   Mod: Thread management - locking, pinning, deleting, moving
+    *   Mod: Reviewing reported posts
+    *   Admin: Configuring boards list and board options
+    *   Admin: Site options, maintenance mode, read-only mode
 *   Captcha support, flood detection, basic DDOS resistance
 *   Different backends for storing attachments (static file system, S3)
 *   Import quickstart scripts for Wakaba/Kusaba
