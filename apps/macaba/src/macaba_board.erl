@@ -402,7 +402,7 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
   DeletePw  = macaba:propget(deletepw,  Opts),
 
   %% if this crashes, don't create anything and fail here
-  MessageProcessed = macaba_plugins:call_markup_plugin(Message),
+  MessageProcessed = macaba_plugins:call(markup, [Message]),
 
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{

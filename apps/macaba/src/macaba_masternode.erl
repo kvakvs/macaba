@@ -138,6 +138,11 @@ handle_leader_call({updated_in_mnesia, Type, Key}, _From,
   ets:insert(State#leader_state.riak_sync_tab, SyncValue),
   {reply, ok, State};
 
+%% @doc Do nothing if sync=false
+handle_leader_call({updated_in_mnesia, Type, Key}, _From,
+                   State=#leader_state{sync=false}, _Election) ->
+  {reply, ok, State};
+
 %% @doc Starts sync mode for Mnesia data
 handle_leader_call(start_resync, _From, State=#leader_state{sync=false}, _E) ->
   lager:info("masternode: resync to RIAK enabled"),
