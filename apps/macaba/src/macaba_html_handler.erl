@@ -254,9 +254,9 @@ macaba_handle_thread_manage(<<"POST">>, {Req0, State0}) ->
 
 chain_thread_manage_delete({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   %%lager:debug("manage_delete post=~p", [PD]),
-  MarkedPosts = orddict:fetch(<<"array_mark">>, PD),
-  Password = orddict:fetch(<<"pass">>, PD),
-  FileOnly = macaba:as_bool(orddict:fetch(<<"fileonly">>, PD)),
+  MarkedPosts = macaba:propget(<<"array_mark">>, PD),
+  Password = macaba:propget(<<"pass">>, PD),
+  FileOnly = macaba:as_bool(macaba:propget(<<"fileonly">>, PD, false)),
   {BoardId, Req1}  = cowboy_req:binding(mcb_board,  Req0),
   lists:foreach(fun(M) ->
                     macaba_board_cli:anonymous_delete_post(
@@ -471,7 +471,8 @@ is_POST_and_multipart(Req0) ->
 %% @doc Retrieves POST body with urlencoded form data and saves it to
 %% state.post_data
 parse_body_qs(Req0, State0) ->
-  {PD, Req1} = cowboy_req:body_qs(Req0),
+  {PD0, Req1} = cowboy_req:body_qs(Req0),
+  PD = [{K, V} || {K, V} <- PD0],
   {Req1, State0#mcb_html_state{ post_data = PD }}.
 
 %%%-----------------------------------------------------------------------------
