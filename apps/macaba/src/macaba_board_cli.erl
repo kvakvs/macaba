@@ -131,9 +131,10 @@ get_thread_preview(BoardId, ThreadId, PreviewSize) ->
 
 additional_fields_for_post(P = #mcb_post{}, PropList) ->
   %% load attachment headers
+  AttachMod = macaba_plugins:mod(attachments),
   Att0 = lists:map(fun(AttId) ->
-                      macaba_db_riak:read(mcb_attachment, AttId)
-                  end, P#mcb_post.attach_ids),
+                       AttachMod:read_header(AttId)
+                   end, P#mcb_post.attach_ids),
   %% filter out only existing attachments
   Att1 = lists:filter(fun(#mcb_attachment{}) -> true; (_) -> false end, Att0),
   Att = lists:map(fun macaba:record_to_proplist/1, Att1),

@@ -150,7 +150,8 @@ chain_check_post_attach({Req0, State0=#mcb_html_state{post_data=PD}}) ->
       {ok, {Req0, State1}};
     _ ->
       AttachKey = crypto:sha(Attach),
-      case macaba_board:attachment_exists(AttachKey) of
+      AttachMod = macaba_plugins:mod(attachments),
+      case AttachMod:exists(AttachKey) of
         true ->
           render_error(<<"duplicate_image">>, Req0, State0);
         false ->
@@ -332,7 +333,8 @@ chain_get_attach({Req0, State0}) ->
   %% for primary image data attachid=attach_body_id
   State1 = state_set_var(body_id, AttachId, State0),
 
-  case macaba_db_riak:read(mcb_attachment, AttachId) of
+  AttachMod = macaba_plugins:mod(attachments),
+  case AttachMod:read_header(AttachId) of
     {error, not_found} ->
       {Req1, State} = render_page(404, "attach_404", Req, State1),
       {error, {Req1, State}};
@@ -366,9 +368,9 @@ chain_attach_send({Req0, State0}) ->
     false ->
       Att       = state_get_var(attach, State0),
       AttachId  = state_get_var(body_id, State0),
-      Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type}
-                  ],
-      AttBody   = macaba_db_riak:read(mcb_attachment_body, AttachId),
+      Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type} ],
+      AttachMod = macaba_plugins:mod(attachments),
+      AttBody   = AttachMod:read_body(AttachId),
       {ok, Req} = cowboy_req:reply(
                     200, Headers, AttBody#mcb_attachment_body.data, Req0),
       State = State0#mcb_html_state{already_rendered=true},

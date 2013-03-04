@@ -18,12 +18,10 @@
         , start/0
         , load_board_dynamics/0
         , detect_content_type/1
-        , attachment_exists/1
         , delete_thread/2
         , delete_post/2
         , delete_post_attach/2
         , delete_post_dirty/2
-        , delete_attachment/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -95,7 +93,8 @@ delete_thread(BoardId, ThreadId) ->
                          PostId :: binary()) -> ok | {error, any()}.
 delete_post_attach(BoardId, PostId) ->
   P = get_post(BoardId, PostId),
-  lists:foreach(fun(AttId) -> delete_attachment(AttId) end,
+  AttachMod = macaba_plugins:mod(attachments),
+  lists:foreach(fun(AttId) -> AttachMod:delete(AttId) end,
                 P#mcb_post.attach_ids),
   P2 = P#mcb_post{ attach_ids=[], attach_deleted=true },
   macaba_db_riak:write(mcb_post, P2).
@@ -136,28 +135,11 @@ delete_post_dirty(BoardId, PostId) ->
       lager:error("board: delete_post B=~s P=~s not found", [BoardId, PostId]),
       {error, not_found};
     P = #mcb_post{} ->
-      lists:foreach(fun(AttId) -> delete_attachment(AttId) end,
+      AttachMod = macaba_plugins:mod(attachments),
+      lists:foreach(fun(AttId) -> AttachMod:delete(AttId) end,
                     P#mcb_post.attach_ids),
       macaba_db_riak:delete(mcb_post, PKey),
       lager:info("board: delete_post B=~s P=~s", [BoardId, PostId]),
-      ok
-  end.
-
-%%%-----------------------------------------------------------------------------
-%% @doc Deletes attachment by Id, does not update post which contained it!
--spec delete_attachment(A :: binary()) -> ok | {error, not_found}.
-delete_attachment(AttId) ->
-  AttIdHex = bin_to_hex:bin_to_hex(AttId),
-  case macaba_db_riak:read(mcb_attachment, AttId) of
-    {error, not_found} ->
-      lager:error("board: delete_attachment ~s not found", [AttIdHex]),
-      {error, not_found};
-    A = #mcb_attachment{} ->
-      macaba_db_riak:delete(mcb_attachment_body,
-                            A#mcb_attachment.thumbnail_hash),
-      macaba_db_riak:delete(mcb_attachment_body, AttId),
-      macaba_db_riak:delete(mcb_attachment, AttId),
-      lager:info("board: delete_attachment ~s", [AttIdHex]),
       ok
   end.
 
@@ -420,7 +402,7 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
   DeletePw  = macaba:propget(deletepw,  Opts),
 
   %% if this crashes, don't create anything and fail here
-  MessageProcessed = call_markup_plugin(Message),
+  MessageProcessed = macaba_plugins:call_markup_plugin(Message),
 
   PostId = macaba:as_binary(next_board_post_id(BoardId)),
   #mcb_post{
@@ -436,27 +418,6 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
     , delete_pass = DeletePw
    }.
 
-%% @private
-%% @doc Gets config parameter board.markup_plugin, converts it to M,F,A and
-%% calls to transform user input
-call_markup_plugin(Txt) ->
-  {ok, [MarkupMod0, MarkupFun0]} = macaba_conf:get(
-                                     [<<"board">>, <<"markup_plugin">>],
-                                     [<<"macaba_markup">>, <<"process">>]),
-  MarkupMod = erlang:binary_to_atom(MarkupMod0, latin1),
-  MarkupFun = erlang:binary_to_atom(MarkupFun0, latin1),
-  U = erlang:apply(MarkupMod, MarkupFun, [Txt]),
-  unicode:characters_to_binary(lists:flatten(U), utf8).
-
-%%%-----------------------------------------------------------------------------
-%% @private
-attachment_exists(<<>>) -> false;
-attachment_exists(Digest) ->
-  case macaba_db_riak:read(mcb_attachment, Digest) of
-    #mcb_attachment{} -> true;
-    {error, not_found} -> false
-  end.
-
 %%%-----------------------------------------------------------------------------
 %% @private
 %% @doc Writes to database, no unique checks or existence check
@@ -471,12 +432,13 @@ write_attachment(Digest, Data) ->
     thumbnail_hash = ThumbKey,
     thumbnail_size = ThumbSize
    },
-  macaba_db_riak:write(mcb_attachment, A),
+  AttachMod = macaba_plugins:mod(attachments),
+  AttachMod:write_header(A),
   B = #mcb_attachment_body{
     key  = Digest,
     data = Data
    },
-  macaba_db_riak:write(mcb_attachment_body, B),
+  AttachMod:write_body(B),
   Digest.
 
 %%%-----------------------------------------------------------------------------
@@ -502,7 +464,8 @@ write_thumbnail_1(TypeAtom, Data) ->
     key  = TDigest,
     data = TData
    },
-  macaba_db_riak:write(mcb_attachment_body, TBody),
+  AttachMod = macaba_plugins:mod(attachments),
+  AttachMod:write_body(TBody),
   {TDigest, byte_size(TData)}.
 
 %%%-----------------------------------------------------------------------------

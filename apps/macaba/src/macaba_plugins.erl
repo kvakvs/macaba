@@ -9,7 +9,8 @@
 -behaviour(gen_server).
 
 %% API
--export([
+-export([ call/2,
+          mod/1
         ]).
 -export([ start_link/0
         ]).
@@ -24,6 +25,22 @@
 %%====================================================================
 %% API
 %%====================================================================
+%% @private
+%% @doc Gets config parameter board.markup_plugin, converts it to M,F,A and
+%% calls to transform user input
+call(markup, [Txt]) ->
+  {ok, [MarkupMod0, MarkupFun0]} = macaba_conf:get(
+                                     [<<"board">>, <<"markup_plugin">>],
+                                     [<<"macaba_markup">>, <<"process">>]),
+  MarkupMod = erlang:binary_to_atom(MarkupMod0, latin1),
+  MarkupFun = erlang:binary_to_atom(MarkupFun0, latin1),
+  U = erlang:apply(MarkupMod, MarkupFun, [Txt]),
+  unicode:characters_to_binary(lists:flatten(U), utf8).
+
+mod(T) ->
+  {ok, Mod0} = macaba_conf:get([<<"plugins">>, macaba:as_binary(T)],
+                               <<"undefined">>),
+  macaba:as_atom(Mod0).
 
 %%--------------------------------------------------------------------
 %% @doc Starts the server

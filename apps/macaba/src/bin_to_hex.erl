@@ -1,3 +1,8 @@
+%%%------------------------------------------------------------------------
+%%% @doc A bin2hex conversion module
+% http://stackoverflow.com/questions/3768197/erlang-ioformatting-a-binary-to-hex
+%%% @author http://stackoverflow.com/users/49197/hynek-pichi-vychodil
+%%%------------------------------------------------------------------------
 -module(bin_to_hex).
 
 -compile([native, {hipe, [o3]}]).
