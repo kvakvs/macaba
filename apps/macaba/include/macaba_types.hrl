@@ -115,7 +115,8 @@
 %% RIAK also stores all Mnesia objects, they are updated regularly by leader
 %% node, and reloaded on cluster1 restart
 -type macaba_riak_object()   :: mcb_site_config | mcb_thread | mcb_post
-                              | mcb_attachment | macaba_mnesia_object().
+                              | mcb_attachment | mcb_attachment_body
+                              | macaba_mnesia_object().
 -type macaba_db_object()     :: macaba_riak_object().
 
 %% @doc A user info structure, you can get this by calling macaba_web:get_user

@@ -45,7 +45,7 @@ exists(Digest) ->
 -spec delete(A :: binary()) -> ok | {error, not_found}.
 delete(AttId) ->
   AttIdHex = bin_to_hex:bin_to_hex(AttId),
-  case ?MODULE:read(AttId) of
+  case ?MODULE:read_header(AttId) of
     {error, not_found} ->
       lager:error("board: delete_attachment ~s not found", [AttIdHex]),
       {error, not_found};

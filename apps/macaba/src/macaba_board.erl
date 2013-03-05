@@ -187,7 +187,7 @@ fake_default_boards() ->
         board_id       = <<"unconfigured">>
       , short_name     = <<"default_board">>
       , category       = <<"no_category">>
-      , title          = "Board not configured"
+      , title          = <<"Board not configured">>
       , anonymous_name = DefaultAnon
       , max_threads    = 20 * 10
      }].
@@ -195,8 +195,8 @@ fake_default_boards() ->
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of threads in board (only info headers, no contents!), also
 %% a proplist with board contents (first post and X last posts - configurable)
--spec get_threads(BoardId :: binary()) ->
-                     {[#mcb_thread{}], [{binary(), [#mcb_post{}]}]}.
+-spec get_threads(BoardId :: binary()) -> [#mcb_thread{}].
+
 get_threads(BoardId) when is_binary(BoardId) ->
   Ids = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
           {error, not_found} -> [];
@@ -273,7 +273,7 @@ get_post(BoardId, PostId) when is_binary(BoardId), is_binary(PostId) ->
 %% @doc Creates a new thread with a single post, thread_id is set to the first
 %% post id. Writes both thread and post to database.
 new_thread(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
-  Post0    = construct_post(BoardId, PostOpts),
+  {ok, Post0} = construct_post(BoardId, PostOpts),
   PostId   = Post0#mcb_post.post_id,
 
   Hidden   = macaba:propget(hidden,    ThreadOpts, false),
@@ -344,8 +344,13 @@ post_write_attach_set_ids(P, Opts) ->
   case Attach of
     <<>> -> P;
     Data when byte_size(Data) > 4 ->
-      AttachId = write_attachment(AttachKey, Attach),
-      P#mcb_post{ attach_ids = [AttachId] }
+      case write_attachment(AttachKey, Attach) of
+        {error, _}=Err ->
+          lager:error("board: write attach: ~p", [Err]),
+          P;
+        {ok, AttachId} ->
+          P#mcb_post{ attach_ids = [AttachId] }
+      end
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -434,32 +439,45 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
 %%%-----------------------------------------------------------------------------
 %% @private
 %% @doc Writes to database, no unique checks or existence check
-write_attachment(_, <<>>) -> <<>>;
-write_attachment(Digest, Data) ->
-  ContentType = detect_content_type(Data),
-  {ThumbKey, ThumbSize} = write_thumbnail(ContentType, Data),
-  A = #mcb_attachment{
-    size           = byte_size(Data),
-    hash           = Digest,
-    content_type   = ContentType,
-    thumbnail_hash = ThumbKey,
-    thumbnail_size = ThumbSize
-   },
-  AttachMod = macaba_plugins:mod(attachments),
-  AttachMod:write_header(A),
-  B = #mcb_attachment_body{
-    key  = Digest,
-    data = Data
-   },
-  AttachMod:write_body(B),
-  Digest.
+-spec write_attachment(Digest :: binary(),
+                       Data :: binary()) ->
+                          {ok, Key::binary()} | {error, any()}.
+
+write_attachment(_, <<>>) -> {error, no_data};
+write_attachment(Digest, Data) when is_binary(Digest), is_binary(Data) ->
+  case detect_content_type(Data) of
+    ContentTypeError when is_atom(ContentTypeError) ->
+      {error, {content_type, ContentTypeError}};
+    ContentType ->
+      case write_thumbnail(ContentType, Data) of
+        {ok, ThumbKey, ThumbSize} ->
+          A = #mcb_attachment{
+            size           = byte_size(Data),
+            hash           = Digest,
+            content_type   = ContentType,
+            thumbnail_hash = ThumbKey,
+            thumbnail_size = ThumbSize
+           },
+          AttachMod = macaba_plugins:mod(attachments),
+          AttachMod:write_header(A),
+          B = #mcb_attachment_body{
+            key  = Digest,
+            data = Data
+           },
+          AttachMod:write_body(B),
+          {ok, Digest};
+        {error, Err} ->
+          {error, Err}
+      end
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @private
 -spec write_thumbnail(ContentType :: atom()|binary(), Data :: binary()) ->
-                         {RiakKey :: binary(), Sz :: integer()}.
-write_thumbnail(empty, _)   -> {<<>>, 0};
-write_thumbnail(no_idea, _) -> {<<>>, 0};
+                         {ok, RiakKey :: binary(), Sz :: integer()}
+                           | {error, any()}.
+write_thumbnail(empty, _)   -> {error, no_data};
+write_thumbnail(no_idea, _) -> {error, unknown_content_type};
 write_thumbnail(<<"image/gif">>,  Data) -> write_thumbnail_1(gif, Data);
 write_thumbnail(<<"image/png">>,  Data) -> write_thumbnail_1(png, Data);
 write_thumbnail(<<"image/jpeg">>, Data) -> write_thumbnail_1(jpg, Data).
@@ -479,7 +497,7 @@ write_thumbnail_1(TypeAtom, Data) ->
    },
   AttachMod = macaba_plugins:mod(attachments),
   AttachMod:write_body(TBody),
-  {TDigest, byte_size(TData)}.
+  {ok, TDigest, byte_size(TData)}.
 
 %%%-----------------------------------------------------------------------------
 %% @private

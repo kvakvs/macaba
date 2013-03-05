@@ -70,7 +70,7 @@ $(COMBO_PLT):
 .PHONY: dialyzer
 dialyzer: compile check_plt
 	dialyzer -Wno_return --fullpath --plt $(COMBO_PLT) $(DIALYZER_APPS_PATHS) \
-	    | fgrep -v -f ./dialyzer.ignore-warnings
+	    | fgrep -v -f ./dialyzer.ignore-warnings | tee dialyzer.log -
 
 .PHONY: cleanplt
 cleanplt:
