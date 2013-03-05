@@ -50,14 +50,14 @@ init(Params) ->
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
--spec handle_call(Request :: any(), From :: pid, #mcb_session{}) ->
-                         {reply, Reply :: any(), #mcb_session{}} |
-                         {reply, Reply :: any(), #mcb_session{},
-                          Timeout :: integer()} | {noreply, #mcb_session{}} |
-                         {noreply, #mcb_session{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), Reply :: any(),
-                          #mcb_session{}} |
-                         {stop, Reason :: any(), #mcb_session{}}.
+-spec handle_call(Request :: any(), From :: {pid(), any()}, #mcb_session{}) ->
+                     {reply, Reply :: any(), #mcb_session{}} |
+                     {reply, Reply :: any(), #mcb_session{},
+                      Timeout :: non_neg_integer()}
+                       | {noreply, #mcb_session{}} |
+                     {noreply, #mcb_session{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), Reply :: any(),
+                      #mcb_session{}} | {stop, Reason :: any(), #mcb_session{}}.
 handle_call(get_user, _From, State) ->
   {reply, State#mcb_session.user, State};
 
@@ -68,18 +68,18 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @doc Handling cast messages
 -spec handle_cast(Msg :: any(), #mcb_session{}) ->
-                         {noreply, #mcb_session{}} |
-                         {noreply, #mcb_session{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #mcb_session{}}.
+                     {noreply, #mcb_session{}} |
+                     {noreply, #mcb_session{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), #mcb_session{}}.
 handle_cast(_Msg, State) ->
   {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @doc Handling all non call/cast messages
 -spec handle_info(Info :: any(), #mcb_session{}) ->
-                         {noreply, #mcb_session{}} |
-                         {noreply, #mcb_session{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #mcb_session{}}.
+                     {noreply, #mcb_session{}} |
+                     {noreply, #mcb_session{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), #mcb_session{}}.
 handle_info(_Info, State) ->
   {noreply, State}.
 

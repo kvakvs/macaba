@@ -70,7 +70,7 @@ get_session(SesId) ->
 new_session(Params) ->
   SesId = make_random_sesid(32, []),
   %%Pid = gen_server:start_link(macaba_ses, [Params], []),
-  Pid = supervisor:start_link(macaba_ses, [Params]),
+  {ok, Pid} = supervisor:start_link(macaba_ses, [Params]),
   {SesId, Pid}.
 
 %%%------------------------------------------------------------------------

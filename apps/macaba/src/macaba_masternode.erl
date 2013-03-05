@@ -62,7 +62,7 @@ start_link(Nodes) ->
 -spec start_link([node()], node() | list()) ->
                     {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Nodes, Seed) when is_list(Nodes), is_atom(Seed) ->
-  start_link(Nodes, {seed_node, Seed});
+  start_link(Nodes, [{seed_node, Seed}]);
 
 start_link(Nodes, Opts) ->
   gen_leader:start_link(?SERVER, Nodes, Opts, ?MODULE, [], []).
@@ -91,7 +91,7 @@ init([]) ->
 %% term will be broadcasted to all the nodes in the cluster.
 -spec elected(State :: #leader_state{},
               Election :: gen_leader:election(),
-              Node :: node() | undefined) ->
+              Node :: pid() | 'undefined') ->
                  {ok, Synch :: any(), State :: #leader_state{}}.
 elected(State, _Election, undefined) ->
   lager:debug("masternode: elected(node=undef)"),
@@ -126,8 +126,8 @@ surrendered(State, _Synch, _Eelection) ->
                             {reply, Reply :: any(), #leader_state{}} |
                             {noreply, #leader_state{}} |
                             {stop, Reason :: any(), Reply :: any(),
-                             #leader_state{}} |
-                            {stop, Reason :: any(), #leader_state{}}.
+                             #leader_state{}}.
+                              %% | {stop, Reason :: any(), #leader_state{}}.
 
 %% @doc Command from mnesia db that a record was updated. Handled only if sync
 %% flag in state set to true
@@ -164,9 +164,9 @@ handle_leader_call(Request, _From, State, _Election) ->
 %% @doc Handling cast messages. Called in the leader.
 -spec handle_leader_cast(Request :: any(), #leader_state{},
                          Election :: gen_leader:election()) ->
-                                {ok, Broadcast :: any(), #leader_state{}} |
-                                {noreply, #leader_state{}} |
-                                {stop, Reason :: any(), #leader_state{}}.
+                                {ok, Broadcast :: any(), #leader_state{}}
+                              | {noreply, #leader_state{}}.
+                              %% | {stop, Reason :: any(), #leader_state{}}.
 handle_leader_cast(Request, State, _Election) ->
   lager:error("masternode: unk leader_cast ~p", [Request]),
   {noreply, State}.
@@ -198,10 +198,10 @@ handle_DOWN(_Node, State, _Election) ->
 %% @doc Handling call messages
 -spec handle_call(Request :: any(), From :: pid(), #leader_state{},
                   Election :: gen_leader:election()) ->
-                     {reply, Reply :: any(), #leader_state{}} |
-                     {noreply, #leader_state{}} |
-                     {stop, Reason :: any(), Reply :: any(), #leader_state{}} |
-                     {stop, Reason :: any(), #leader_state{}}.
+                     {reply, Reply :: any(), #leader_state{}}
+                     | {noreply, #leader_state{}}
+                   %%| {stop, Reason :: any(), Reply :: any(), #leader_state{}}.
+                     | {stop, Reason :: any(), #leader_state{}}.
 handle_call(get_leader, _, S, Election) ->
   {reply, gen_leader:leader_node(Election), S};
 
@@ -258,9 +258,9 @@ terminate(_Reason, _State) ->
 %% @doc Convert process state when code is changed
 -spec code_change(OldVsn :: any(), #leader_state{},
                   Election :: gen_leader:election(), Extra :: any()) ->
-                     {ok, #leader_state{}} |
-                     {ok, #leader_state{},
-                      NewElection :: gen_leader:election()}.
+                     {ok, #leader_state{}}.
+                       %% | {ok, #leader_state{}, NewElection ::
+                       %%                           gen_leader:election()}.
 code_change(_OldVsn, State, _Election, _Extra) ->
   {ok, State}.
 

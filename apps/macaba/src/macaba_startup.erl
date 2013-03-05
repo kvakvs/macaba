@@ -75,14 +75,15 @@ init([]) ->
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
--spec handle_call(Request :: any(), From :: pid, #startup_state{}) ->
-                         {reply, Reply :: any(), #startup_state{}} |
-                         {reply, Reply :: any(), #startup_state{},
-                          Timeout :: integer()} | {noreply, #startup_state{}} |
-                         {noreply, #startup_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), Reply :: any(),
-                          #startup_state{}} | {stop, Reason :: any(),
-                                               #startup_state{}}.
+-spec handle_call(Request :: any(), From :: {pid(), any()}, #startup_state{}) ->
+                     {reply, Reply :: any(), #startup_state{}} |
+                     {reply, Reply :: any(), #startup_state{},
+                      Timeout :: non_neg_integer()}
+                       | {noreply, #startup_state{}} |
+                     {noreply, #startup_state{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), Reply :: any(),
+                      #startup_state{}} | {stop, Reason :: any(),
+                                           #startup_state{}}.
 handle_call(_Request, _From, State) ->
   Reply = ok,
   {reply, Reply, State}.
@@ -90,18 +91,18 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @doc Handling cast messages
 -spec handle_cast(Msg :: any(), #startup_state{}) ->
-                         {noreply, #startup_state{}} |
-                         {noreply, #startup_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #startup_state{}}.
+                     {noreply, #startup_state{}} |
+                     {noreply, #startup_state{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), #startup_state{}}.
 handle_cast(_Msg, State) ->
   {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @doc Handling all non call/cast messages
 -spec handle_info(Info :: any(), #startup_state{}) ->
-                         {noreply, #startup_state{}} |
-                         {noreply, #startup_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #startup_state{}}.
+                     {noreply, #startup_state{}} |
+                     {noreply, #startup_state{}, Timeout :: non_neg_integer()} |
+                     {stop, Reason :: any(), #startup_state{}}.
 handle_info(_Info, State) ->
   {noreply, State}.
 

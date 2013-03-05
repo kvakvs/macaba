@@ -486,7 +486,7 @@ is_POST_and_multipart(Req0) ->
 %% @doc Retrieves POST body with urlencoded form data and saves it to
 %% state.post_data
 parse_body_qs(Req0, State0) ->
-  {PD0, Req1} = cowboy_req:body_qs(Req0),
+  {ok, PD0, Req1} = cowboy_req:body_qs(Req0),
   %%PD = [{K, V} || {K, V} <- PD0],
   {Req1, State0#mcb_html_state{ post_data = orddict:from_list(PD0) }}.
 

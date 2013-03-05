@@ -62,11 +62,11 @@ init([]) ->
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
--spec handle_call(Request :: any(), From :: pid, #state{}) ->
+-spec handle_call(Request :: any(), From :: {pid(), any()}, #state{}) ->
                          {reply, Reply :: any(), #state{}} |
                          {reply, Reply :: any(), #state{},
-                          Timeout :: integer()} | {noreply, #state{}} |
-                         {noreply, #state{}, Timeout :: integer()} |
+                          Timeout :: non_neg_integer()} | {noreply, #state{}} |
+                         {noreply, #state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), Reply :: any(), #state{}} |
                          {stop, Reason :: any(), #state{}}.
 handle_call(_Request, _From, State) ->
@@ -77,7 +77,7 @@ handle_call(_Request, _From, State) ->
 %% @doc Handling cast messages
 -spec handle_cast(Msg :: any(), #state{}) ->
                          {noreply, #state{}} |
-                         {noreply, #state{}, Timeout :: integer()} |
+                         {noreply, #state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #state{}}.
 handle_cast(_Msg, State) ->
   {noreply, State}.
@@ -86,7 +86,7 @@ handle_cast(_Msg, State) ->
 %% @doc Handling all non call/cast messages
 -spec handle_info(Info :: any(), #state{}) ->
                          {noreply, #state{}} |
-                         {noreply, #state{}, Timeout :: integer()} |
+                         {noreply, #state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #state{}}.
 handle_info(_Info, State) ->
   {noreply, State}.
