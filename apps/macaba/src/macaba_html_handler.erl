@@ -79,13 +79,31 @@ terminate(_Reason, _Req, _State) ->
 %%%-----------------------------------------------------------------------------
 macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
   lager:debug("http GET admin"),
-  Boards = macaba_board_cli:get_boards(),
-  State1 = state_set_var(boards, Boards, State0),
-  render_page("admin_login", Req0, State1);
+  %% Boards = macaba_board_cli:get_boards(),
+  %% State1 = state_set_var(boards, Boards, State0),
+  {_, {Req, State}} = macaba_web:chain_run(
+                        [ fun chain_get_boards/1
+                        , fun(X) -> chain_fail_if_user(X, anon) end
+                        ], {Req0, State0}),
+  render_page("admin", Req, State);
 
 macaba_handle_admin(<<"POST">>, {Req0, State0}) ->
   lager:debug("http POST admin"),
   redirect("/admin/", Req0, State0).
+
+%% @private
+%% @doc Gets user from ses cookie, checks if its type is Role, changes to login
+%% page if user.type=Role
+chain_fail_if_user({Req0, State0}, Role) ->
+  {Req, State} = get_user(Req0, State0),
+  #mcb_user{type=Type} = State#mcb_html_state.user,
+  case Type of
+    Role ->
+      %% Login required if accessing this as anonymous
+      {error, render_page("admin_login", Req, State)};
+    _ ->
+      {ok, {Req, State}}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET /
@@ -556,7 +574,7 @@ acc_multipart({eof, Req}, Acc) ->
 %%%-----------------------------------------------------------------------------
 %% @private
 -spec get_user(Req :: cowboy_req:req(), State :: #mcb_html_state{}) ->
-                  {tuple(), #mcb_html_state{}}.
+                  {cowboy_req:req(), #mcb_html_state{}}.
 get_user(Req0, State0) ->
   {SesId, Req} = cowboy_req:cookie(?MACABA_COOKIE, Req0),
   User = macaba_web:get_session(SesId),
