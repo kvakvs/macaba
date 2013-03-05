@@ -1,5 +1,6 @@
 # TODO technical debt list
 
+*   Move types from HRL file to ERL files and export them.
 *   HTTP client tests for empty board, new thread, post reply, upload image,
     upload bad file, check all possible error conditions, etc.
 *   Attach size limit per board

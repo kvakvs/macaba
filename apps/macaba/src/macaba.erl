@@ -15,6 +15,8 @@
         , pagination/3
         , propget/2
         , propget/3
+        %% , propget_binary/2
+        %% , propget_binary/3
         , record_to_proplist/1
         , hexstr_to_bin/1
         , fatal/2
@@ -59,6 +61,12 @@ record_to_proplist(X) -> error({badarg, X}).
 %%   F = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0B ~2.10.0B:~2.10.0B:~2.10.0B",
 %%         [Year, Month, Day, Hour, Min, Sec]),
 %%   lists:flatten(F).
+
+%% -spec propget_binary(K :: any(), Prop :: proplist_t()) -> binary().
+%% propget_binary(K, Prop) -> as_binary(propget(K, Prop)).
+%% -spec propget_binary(K :: any(), Prop :: proplist_t(),
+%%                      Default :: binary()) -> binary().
+%% propget_binary(K, Prop, Default) -> as_binary(propget(K, Prop, Default)).
 
 %%-----------------------------------------------------------------------------
 %% @doc Faster replacement for proplists:get_value

@@ -19,9 +19,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
+-include_lib("macaba/include/macaba_types.hrl").
+
 -record(conf_state, {
-            conf = []
-          , load_time = 0 :: integer()
+            conf = [] :: proplist_of(binary()|proplist_t())
+          , load_time :: calendar:datetime()
          }).
 -define(SERVER, ?MODULE).
 -define(CONF_FILENAME,    "macaba.config").
@@ -69,20 +71,19 @@ init([]) ->
     State=#conf_state{} ->
       erlang:send_after(?CONF_RELOAD_MSEC, self(), conf_reload),
       {ok, State};
-    {error, {not_found, Err1}} ->
-      macaba:fatal("Loading config " ?CONF_FILENAME, Err1);
-    {error, {syntax, Err2}} ->
-      macaba:fatal("Parsing config " ?CONF_FILENAME, Err2)
+    {error, Err1} ->
+      macaba:fatal("Loading config " ?CONF_FILENAME, Err1)
   end.
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
--spec handle_call(Request :: any(), From :: pid, #conf_state{}) ->
+-spec handle_call(Request :: any(), From :: {pid(), any()}, #conf_state{}) ->
                          {reply, Reply :: any(), #conf_state{}} |
                          {reply, Reply :: any(), #conf_state{},
-                          Timeout :: integer()} | {noreply, #conf_state{}} |
-                         {noreply, #conf_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), Reply :: any(),
+                          Timeout :: non_neg_integer()}
+                       | {noreply, #conf_state{}} |
+                         {noreply, #conf_state{}, Timeout :: non_neg_integer()}
+                       | {stop, Reason :: any(), Reply :: any(),
                           #conf_state{}} |
                          {stop, Reason :: any(), #conf_state{}}.
 handle_call({get, Key}, _From, State=#conf_state{conf=Conf}) ->
@@ -100,18 +101,18 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @doc Handling cast messages
 -spec handle_cast(Msg :: any(), #conf_state{}) ->
-                         {noreply, #conf_state{}} |
-                         {noreply, #conf_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #conf_state{}}.
+                         {noreply, #conf_state{}}
+                       | {noreply, #conf_state{}, Timeout :: non_neg_integer()}
+                       | {stop, Reason :: any(), #conf_state{}}.
 handle_cast(_Msg, State) ->
   {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @doc Handling all non call/cast messages
 -spec handle_info(Info :: any(), #conf_state{}) ->
-                         {noreply, #conf_state{}} |
-                         {noreply, #conf_state{}, Timeout :: integer()} |
-                         {stop, Reason :: any(), #conf_state{}}.
+                         {noreply, #conf_state{}}
+                       | {noreply, #conf_state{}, Timeout :: non_neg_integer()}
+                       | {stop, Reason :: any(), #conf_state{}}.
 handle_info(conf_reload, State) ->
   erlang:send_after(?CONF_RELOAD_MSEC, self(), conf_reload),
   FTime = calendar:datetime_to_gregorian_seconds(
@@ -126,7 +127,7 @@ handle_info(conf_reload, State) ->
           lager:info("Config reloaded"),
           {noreply, S2};
         {error, E} ->
-          lager:error("Config reload error: ~p", E),
+          lager:error("Config reload error: ~p", [E]),
           {noreply, State}
       end
   end;
@@ -171,10 +172,8 @@ load_config(S) ->
     {ok, C1} ->
       ConfData = binary_to_list(C1),
       Conf = case etoml:parse(ConfData) of
-               {ok, C2} ->
-                 C2;
-               {error, Err2} ->
-                 {error, syntax, Err2}
+               {ok, C2} -> C2;
+               {error, Err2} -> {error, {syntax, Err2}}
              end,
       S#conf_state{
           conf      = Conf

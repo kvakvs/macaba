@@ -134,8 +134,9 @@ chain_get_threads({Req0, State0}) ->
   {ok, BPageSize} = macaba_conf:get([<<"board">>, <<"page_size">>]),
   {ok, PreviewSize} = macaba_conf:get([<<"board">>, <<"thread">>,
                                        <<"preview_last_posts">>]),
-  Threads = macaba_board_cli:get_threads(BoardId, {Page, BPageSize},
-                                         PreviewSize),
+  Threads = macaba_board_cli:get_threads(
+              BoardId, {macaba:as_integer(Page), macaba:as_integer(BPageSize)},
+              macaba:as_integer(PreviewSize)),
   State = state_set_var(threads, Threads, State0),
   {ok, {Req, State}}.
 
@@ -156,13 +157,13 @@ macaba_handle_thread_new(<<"POST">>, {Req0, State0}) ->
 chain_check_post_attach({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   Attach = macaba:propget(<<"attach">>, PD, <<>>),
   case macaba_board:detect_content_type(Attach) of
-    no_idea ->
+    {error, no_idea} ->
       render_error(<<"bad_attach_format">>, Req0, State0);
-    empty ->
+    {error, empty} ->
       %% do nothing for empty attach
       State1 = state_set_var(attach_key, <<>>, State0),
       {ok, {Req0, State1}};
-    _ ->
+    {ok, _} ->
       AttachKey = crypto:sha(Attach),
       AttachMod = macaba_plugins:mod(attachments),
       case AttachMod:exists(AttachKey) of
@@ -486,8 +487,8 @@ is_POST_and_multipart(Req0) ->
 %% state.post_data
 parse_body_qs(Req0, State0) ->
   {PD0, Req1} = cowboy_req:body_qs(Req0),
-  PD = [{K, V} || {K, V} <- PD0],
-  {Req1, State0#mcb_html_state{ post_data = PD }}.
+  %%PD = [{K, V} || {K, V} <- PD0],
+  {Req1, State0#mcb_html_state{ post_data = orddict:from_list(PD0) }}.
 
 %%%-----------------------------------------------------------------------------
 %% @private
@@ -554,7 +555,7 @@ acc_multipart({eof, Req}, Acc) ->
 
 %%%-----------------------------------------------------------------------------
 %% @private
--spec get_user(Req :: tuple(), State :: #mcb_html_state{}) ->
+-spec get_user(Req :: cowboy_req:req(), State :: #mcb_html_state{}) ->
                   {tuple(), #mcb_html_state{}}.
 get_user(Req0, State0) ->
   {SesId, Req} = cowboy_req:cookie(?MACABA_COOKIE, Req0),

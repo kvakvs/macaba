@@ -44,7 +44,7 @@ get_boards() ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board header formatted as proplist
--spec get_board(BoardId :: binary()) -> proplist_t().
+-spec get_board(BoardId :: binary()) -> proplist_t() | {error, not_found}.
 get_board(BoardId) ->
   case macaba_board:get_board(BoardId) of
     {error, not_found} -> {error, not_found};
@@ -53,7 +53,8 @@ get_board(BoardId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns thread header formatted as proplist
--spec get_thread(BoardId :: binary(), ThreadId :: binary()) -> proplist_t().
+-spec get_thread(BoardId :: binary(), ThreadId :: binary()) ->
+                    proplist_t() | {error, not_found}.
 get_thread(BoardId, ThreadId) ->
   case macaba_board:get_thread(BoardId, ThreadId) of
     {error, not_found} -> {error, not_found};
@@ -121,7 +122,7 @@ get_thread_previews(BoardId, ThreadIdList, PreviewSize) ->
 %%%-----------------------------------------------------------------------------
 -spec get_thread_preview(BoardId :: binary(),
                          ThreadId :: binary(),
-                         PreviewSize :: non_neg_integer()) ->
+                         PreviewSize :: non_neg_integer() | 'all') ->
                             [proplist_t()].
 get_thread_preview(BoardId, ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),

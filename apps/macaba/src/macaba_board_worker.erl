@@ -47,11 +47,12 @@ init([]) ->
 
 %%--------------------------------------------------------------------
 %% @doc Handling call messages
--spec handle_call(Request :: any(), From :: pid, #bw_state{}) ->
+-spec handle_call(Request :: any(), From :: {pid(), any()}, #bw_state{}) ->
                          {reply, Reply :: any(), #bw_state{}} |
                          {reply, Reply :: any(), #bw_state{},
-                          Timeout :: integer()} | {noreply, #bw_state{}} |
-                         {noreply, #bw_state{}, Timeout :: integer()} |
+                          Timeout :: non_neg_integer()}
+                       | {noreply, #bw_state{}} |
+                         {noreply, #bw_state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), Reply :: any(), #bw_state{}} |
                          {stop, Reason :: any(), #bw_state{}}.
 handle_call(Request, _From, State) ->
@@ -63,7 +64,7 @@ handle_call(Request, _From, State) ->
 %% @doc Handling cast messages
 -spec handle_cast(Msg :: any(), #bw_state{}) ->
                          {noreply, #bw_state{}} |
-                         {noreply, #bw_state{}, Timeout :: integer()} |
+                         {noreply, #bw_state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #bw_state{}}.
 handle_cast(Msg, State) ->
   lager:error("board_worker: unk case ~p", [Msg]),
@@ -73,7 +74,7 @@ handle_cast(Msg, State) ->
 %% @doc Handling all non call/cast messages
 -spec handle_info(Info :: any(), #bw_state{}) ->
                          {noreply, #bw_state{}} |
-                         {noreply, #bw_state{}, Timeout :: integer()} |
+                         {noreply, #bw_state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #bw_state{}}.
 handle_info({delete_thread, {BoardId, ThreadId}}, State) ->
   macaba_board:delete_thread(BoardId, ThreadId),

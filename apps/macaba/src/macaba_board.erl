@@ -342,8 +342,9 @@ post_write_attach_set_ids(P, Opts) ->
   Attach    = macaba:propget(attach,     Opts),
   AttachKey = macaba:propget(attach_key, Opts),
   case Attach of
-    <<>> -> P;
-    Data when byte_size(Data) > 4 ->
+    <<>> ->
+      P;
+    _ ->
       case write_attachment(AttachKey, Attach) of
         {error, _}=Err ->
           lager:error("board: write attach: ~p", [Err]),
@@ -446,11 +447,11 @@ construct_post(BoardId, Opts) when is_binary(BoardId) ->
 write_attachment(_, <<>>) -> {error, no_data};
 write_attachment(Digest, Data) when is_binary(Digest), is_binary(Data) ->
   case detect_content_type(Data) of
-    ContentTypeError when is_atom(ContentTypeError) ->
+    {error, ContentTypeError} ->
       {error, {content_type, ContentTypeError}};
-    ContentType ->
+    {ok, ContentType} ->
       case write_thumbnail(ContentType, Data) of
-        {ok, ThumbKey, ThumbSize} ->
+        {ok, {ThumbKey, ThumbSize}} ->
           A = #mcb_attachment{
             size           = byte_size(Data),
             hash           = Digest,
@@ -473,16 +474,18 @@ write_attachment(Digest, Data) when is_binary(Digest), is_binary(Data) ->
 
 %%%-----------------------------------------------------------------------------
 %% @private
--spec write_thumbnail(ContentType :: atom()|binary(), Data :: binary()) ->
-                         {ok, RiakKey :: binary(), Sz :: integer()}
-                           | {error, any()}.
-write_thumbnail(empty, _)   -> {error, no_data};
-write_thumbnail(no_idea, _) -> {error, unknown_content_type};
+-spec write_thumbnail(ContentType :: atom()|binary(),
+                      Data :: binary()) ->
+                         {ok, {RiakKey :: binary(), Sz :: integer()}}.
+%% write_thumbnail(empty, _)   -> {error, no_data};
+%% write_thumbnail(no_idea, _) -> {error, unknown_content_type};
 write_thumbnail(<<"image/gif">>,  Data) -> write_thumbnail_1(gif, Data);
 write_thumbnail(<<"image/png">>,  Data) -> write_thumbnail_1(png, Data);
 write_thumbnail(<<"image/jpeg">>, Data) -> write_thumbnail_1(jpg, Data).
 
 %% @private
+-spec write_thumbnail_1(TypeAtom :: atom(), Data :: binary()) ->
+                           {ok, {RiakKey :: binary(), Sz :: integer()}}.
 write_thumbnail_1(TypeAtom, Data) ->
   {ok, Image} = eim:load(Data),
   {ok, FitH} = macaba_conf:get([<<"board">>, <<"thread">>,
@@ -497,30 +500,31 @@ write_thumbnail_1(TypeAtom, Data) ->
    },
   AttachMod = macaba_plugins:mod(attachments),
   AttachMod:write_body(TBody),
-  {ok, TDigest, byte_size(TData)}.
+  {ok, {TDigest, byte_size(TData)}}.
 
 %%%-----------------------------------------------------------------------------
 %% @private
--spec detect_content_type(binary()) -> empty | no_idea | binary().
+-spec detect_content_type(binary()) -> {error, empty | no_idea}
+                                         | {ok, binary()}.
 detect_content_type(<<>>) ->
-  empty;
+  {error, empty};
 detect_content_type(<<"GIF87a", _/binary>>) ->
-  <<"image/gif">>;
+  {ok, <<"image/gif">>};
 detect_content_type(<<"GIF89a", _/binary>>) ->
-  <<"image/gif">>;
+  {ok, <<"image/gif">>};
 detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e0, _:16, "JFIF", 0,
                       _/binary>>) ->
-  <<"image/jpeg">>; % jpeg without EXIF
+  {ok, <<"image/jpeg">>}; % jpeg without EXIF
 detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e1, _:16, "Exif", 0,
                       _/binary>>) ->
-  <<"image/jpeg">>; % jpeg with EXIF
+  {ok, <<"image/jpeg">>}; % jpeg with EXIF
 detect_content_type(<<16#ff, 16#d8, 16#ff, 16#e9, _:16, "SPIFF", 0,
                       _/binary>>) ->
-  <<"image/jpeg">>; % jpeg
+  {ok, <<"image/jpeg">>}; % jpeg
 detect_content_type(<<137, 80, 78, 71, 13, 10, 26, 10, _/binary>>) ->
-  <<"image/png">>;
+  {ok, <<"image/png">>};
 detect_content_type(_) ->
-  no_idea.
+  {error, no_idea}.
 
 %%%-----------------------------------------------------------------------------
 %% @private
