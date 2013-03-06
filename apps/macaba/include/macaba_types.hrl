@@ -1,7 +1,8 @@
 -ifndef(MACABA_TYPES_HRL).
 -define(MACABA_TYPES_HRL, true).
 
--define(MACABA_COOKIE, <<"macaba">>).
+%% moved to macaba.config[board]
+%% -define(MACABA_COOKIE, <<"macaba">>).
 
 -type proplist_t() :: [ {K :: atom()|binary()|string(), V :: any()} ].
 -type proplist_of(T) :: [ {K :: atom()|binary()|string(), V :: T} ].
@@ -118,6 +119,13 @@
                               | mcb_attachment | mcb_attachment_body
                               | macaba_mnesia_object().
 -type macaba_db_object()     :: macaba_riak_object().
+
+%% @doc A user login/password credentials structure used for login
+-define(MCB_USER_CRED_VER, 1).
+-record(mcb_user_cred, {
+            login = <<>>     :: binary()
+          , password = <<>>  :: binary()
+         }).
 
 %% @doc A user info structure, you can get this by calling macaba_web:get_user
 -record(mcb_user, {

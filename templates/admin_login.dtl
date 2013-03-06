@@ -11,10 +11,11 @@
   <div class="span8">
     <form method="POST" action="">
       <h2>And you are?</h2>
-      <input type="text" placeholder="علي بابا"><br />
-      <input type="password" placeholder="إفتح يا سمسم"><br />
+      <input type="text" name="login" placeholder="علي بابا"><br />
+      <input type="password" name="password" placeholder="إفتح يا سمسم"><br />
       <label class="checkbox">
-        <input type="checkbox" value="remember-me">Remember me longer
+        <input type="checkbox" name="remember" value="remember">
+        Remember me longer
       </label>
       <button class="btn btn-large btn-primary" type="submit">Sign in</button>
     </form>

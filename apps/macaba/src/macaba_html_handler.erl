@@ -89,7 +89,31 @@ macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
 
 macaba_handle_admin(<<"POST">>, {Req0, State0}) ->
   lager:debug("http POST admin"),
+  {_, {Req, State}} = macaba_web:chain_run(
+                        [ fun chain_check_admin_login/1
+                        , fun chain_check_mod_login/1
+                        ], {Req0, State0}),
   redirect("/admin/", Req0, State0).
+
+%% @private
+%% @doc Checks admin login and password from macaba.config
+chain_check_admin_login({Req0, State0=#mcb_html_state{ post_data=PD }}) ->
+  {ok, ALogin} = macaba_conf:get([<<"board">>, <<"admin_login">>]),
+  {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
+  Login = macaba:propget(<<"login">>, PD),
+  Password = macaba:propget(<<"password">>, PD),
+  case {ALogin =:= Login, APassword = Password} of
+    {true, true} ->
+      {Req, State} = create_session_for(#mcb_user{type=admin}, Req0, State0),
+      {ok, {Req, State}};
+    _ ->
+      {ok, {Req0, State0}}
+  end.
+
+%% @private
+%% @doc Checks mod login and password from database
+chain_check_mod_login({Req0, State0}) ->
+  {ok, {Req0, State0}}.
 
 %% @private
 %% @doc Gets user from ses cookie, checks if its type is Role, changes to login
@@ -576,10 +600,28 @@ acc_multipart({eof, Req}, Acc) ->
 -spec get_user(Req :: cowboy_req:req(), State :: #mcb_html_state{}) ->
                   {cowboy_req:req(), #mcb_html_state{}}.
 get_user(Req0, State0) ->
-  {SesId, Req} = cowboy_req:cookie(?MACABA_COOKIE, Req0),
+  {SesId, Req} = cowboy_req:cookie(ses_cookie_name(), Req0),
   User = macaba_web:get_session(SesId),
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
   {Req, State#mcb_html_state{user=User}}.
+
+%% @private
+%% @doc Creates session process, sets response cookie, and sets user field
+%% in state
+create_session_for(U=#mcb_user{}, Req0, State0) ->
+  {RemoteAddr, _} = cowboy_req:peer(Req0),
+  Opts = [ {remote_addr, RemoteAddr}
+         , {user, U}
+         ],
+  SesId = macaba_web:new_session(Opts),
+  Req = cowboy_req:set_resp_cookie(ses_cookie_name(), SesId, [], Req0),
+  State = State0#mcb_html_state{ user=U },
+  {Req, State}.
+
+%% @doc Gets ses cookie name from config
+ses_cookie_name() ->
+  {ok, CookieName} = macaba_conf:get([<<"board">>, <<"session_cookie_name">>]),
+  CookieName.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2
