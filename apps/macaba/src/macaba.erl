@@ -10,6 +10,7 @@
         , as_bool/1
         , as_binary/1
         , as_integer/1
+        , as_integer/2
         , as_ipv4/1
         , as_existing_atom/1
         , pagination/3
@@ -157,7 +158,16 @@ as_ipv4(Str) when is_list(Str) ->
 
 %%-----------------------------------------------------------------------------
 %% @doc Converts integer, list or binary to integer
--spec as_integer(Value :: binary() | string() | integer()) -> integer().
+as_integer(Value, Default) ->
+  case as_integer(Value) of
+    undefined ->
+      Default;
+    V ->
+      V
+  end.
+
+-spec as_integer(Value :: binary() | string() | integer()) ->
+                    integer() | {error, undefined}.
 as_integer(Value)
   when is_integer(Value) ->
   Value;
@@ -168,7 +178,8 @@ as_integer(Value)
 as_integer(Value)
   when is_list(Value) ->
   {Num,_} = string:to_integer(Value),
-  Num.
+  Num;
+as_integer(_) -> undefined.
 
 %%-----------------------------------------------------------------------------
 %% @doc Converts string or binary() to existing atom, or undefined is returned
