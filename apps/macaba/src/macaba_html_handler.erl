@@ -1,9 +1,9 @@
-%%%------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %%% @doc This module has few predefined handlers (init, handle and terminate)
 %%% which are called by cowboy on incoming HTTP request.
 %%% Serves HTML templates, and provides basic HTTP access to the board.
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
-%%%------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 -module(macaba_html_handler).
 
 -export([ init/3
@@ -199,7 +199,7 @@ macaba_handle_thread_new(<<"POST">>, {Req0, State0}) ->
 %% @doc Checks that attach is recognized content type and doesn't exist in db
 chain_check_post_attach({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   Attach = macaba:propget(<<"attach">>, PD, <<>>),
-  case macaba_board:detect_content_type(Attach) of
+  case macaba_attach:detect_content_type(Attach) of
     {error, no_idea} ->
       render_error(<<"bad_attach_format">>, Req0, State0);
     {error, empty} ->
@@ -226,7 +226,7 @@ chain_thread_new({Req0, State0}) ->
   lager:debug("http POST new thread, board=~s", [BoardId]),
   PostOpt = get_post_create_options(Req, State0),
   ThreadOpt = orddict:from_list([]),
-  macaba_board:new_thread(BoardId, ThreadOpt, PostOpt),
+  macaba_thread:new(BoardId, ThreadOpt, PostOpt),
   {ok, {Req, State0}}.
 
 %%%-----------------------------------------------------------------------------
@@ -255,7 +255,7 @@ chain_post_new_redirect({Req0, State0}) ->
 chain_post_new({Req0, State0}) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
   PostOpt = get_post_create_options(Req, State0),
-  case macaba_board:new_post(BoardId, PostOpt) of
+  case macaba_post:new(BoardId, PostOpt) of
     {ok, Post} ->
       State = state_set_var(created_post, Post, State0),
       {ok, {Req, State}};
@@ -269,7 +269,7 @@ chain_post_new({Req0, State0}) ->
 chain_check_thread_exists({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
-  case macaba_board:get_thread(BoardId, ThreadId) of
+  case macaba_thread:get(BoardId, ThreadId) of
     {error, not_found} ->
       {Req2, State1} = render_page(404, "thread_404", Req1, State0),
       {error, {Req2, State1}};

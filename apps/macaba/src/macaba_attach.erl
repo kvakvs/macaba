@@ -6,6 +6,7 @@
 
 -export([ write/2
         , write_thumbnail/2
+        , detect_content_type/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -19,7 +20,7 @@
 
 write(_, <<>>) -> {error, no_data};
 write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
-  case detect_content_type(Data) of
+  case ?MODULE:detect_content_type(Data) of
     {error, ContentTypeError} ->
       {error, {content_type, ContentTypeError}};
     {ok, ContentType} ->
@@ -77,7 +78,6 @@ write_thumbnail_1(TypeAtom, Data) ->
   {ok, {TDigest, byte_size(TData)}}.
 
 %%%-----------------------------------------------------------------------------
-%% @private
 %% @doc Attempts to figure out file type by first bytes of data
 -spec detect_content_type(binary()) -> {error, empty | no_idea}
                                          | {ok, binary()}.

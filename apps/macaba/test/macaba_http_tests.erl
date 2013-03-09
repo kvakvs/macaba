@@ -13,7 +13,7 @@
 html_handler_test_() ->
   {setup, fun setup/0, fun teardown/1,
    {foreach, fun foreach_setup/0, fun foreach_teardown/1,
-    [ {"Site Root",fun check_site_root/0}
+    [ %%{"Site Root",fun check_site_root/0}
     ]
    }}.
 

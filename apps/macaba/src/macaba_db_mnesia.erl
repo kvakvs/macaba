@@ -72,15 +72,23 @@ write(Tab, Value) ->
   end.
 
 %%--------------------------------------------------------------------
-%% @doc Start transaction, read, do Fun(Object), write, return new value
+%% @doc Start transaction, read, do Fun(Object), write, return new value. If
+%% object was not found, Fun is called with Fun({error, not_found))
+%% if it didn't crash, return value is written to database
 -spec update(Tab :: atom(), Key :: binary(), Fun :: fun()) ->
                 {atomic, any()} | {error, any()}.
 update(Tab, Key, Fun) when is_binary(Key) ->
   UF = fun() ->
-           [Object1] = mnesia:read(Tab, Key, read),
-           Object = Fun(Object1),
-           mnesia:write(Object),
-           Object
+           case mnesia:read(Tab, Key, read) of
+             [Object1] ->
+               Object = Fun(Object1),
+               mnesia:write(Object),
+               Object;
+             [] ->
+               Object = Fun({error, not_found}),
+               mnesia:write(Object),
+               Object
+           end
        end,
   case mnesia:transaction(UF) of
     {atomic, _} = X ->

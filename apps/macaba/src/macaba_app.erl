@@ -31,9 +31,9 @@ stop(_State) ->
 
 %% @doc TODO: move this out of macaba_app
 start_web() ->
-  ok = application:start(crypto),
-  ok = application:start(ranch),
-  ok = application:start(cowboy),
+  ok = macaba:ensure_started(crypto),
+  ok = macaba:ensure_started(ranch),
+  ok = macaba:ensure_started(cowboy),
 
   CurrentDir = filename:absname(""),
   CSSPath = filename:join([CurrentDir, "priv", "css"]),

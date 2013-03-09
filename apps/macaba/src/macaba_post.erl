@@ -83,7 +83,7 @@ get(BoardId, PostId) when is_binary(BoardId), is_binary(PostId) ->
 -spec new(BoardId :: binary(), Opts :: orddict:orddict()) ->
              {ok, #mcb_post{}} | {error, any()}.
 new(BoardId, Opts) when is_binary(BoardId) ->
-  case construct(BoardId, Opts) of
+  case ?MODULE:construct(BoardId, Opts) of
     {ok, Post0} ->
       Post  = macaba_post:write_attach_set_ids(Post0, Opts),
       ThreadId = macaba:propget(thread_id, Opts),

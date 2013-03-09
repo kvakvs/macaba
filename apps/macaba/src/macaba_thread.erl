@@ -76,9 +76,7 @@ delete(BoardId, ThreadId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Thread is identified by board name and number
-get(BoardId, ThreadId)
-  when is_binary(BoardId), is_binary(ThreadId) ->
-
+get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   K = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
   case macaba_db_riak:read(mcb_thread, K) of
     #mcb_thread{}=Value -> Value;
@@ -163,6 +161,7 @@ get_contents(BoardId, ThreadId, LastCount0)
 %% post limit not reached, also locks thread if hard post limit reached. Post
 %% must already have its attachments saved
 add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
+  lager:debug("thread: add_post"),
   macaba_db_riak:write(mcb_post, Post),
 
   Board = macaba_board:get(BoardId),

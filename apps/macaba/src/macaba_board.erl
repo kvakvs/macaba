@@ -135,12 +135,15 @@ thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit, _Post) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Generates new post_id for creating thread on the board
 next_post_id(BoardId) when is_binary(BoardId) ->
-  lager:debug("next_board_post_id board=~p", [BoardId]),
   F = fun(BD = #mcb_board_dynamic{ last_post_id=L }) ->
-          BD#mcb_board_dynamic{ last_post_id = L+1 }
+          BD#mcb_board_dynamic{ last_post_id = L+1 };
+         ({error, not_found}) ->
+          #mcb_board_dynamic{ last_post_id = 1 }
       end,
   {atomic, NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
-  macaba:as_binary(NewD#mcb_board_dynamic.last_post_id).
+  Next = macaba:as_binary(NewD#mcb_board_dynamic.last_post_id),
+  lager:debug("board: next_post_id board=~p result=~s", [BoardId, Next]),
+  Next.
 
 %%%-----------------------------------------------------------------------------
 %% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread
