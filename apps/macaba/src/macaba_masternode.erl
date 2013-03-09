@@ -139,7 +139,7 @@ handle_leader_call({updated_in_mnesia, Type, Key}, _From,
   {reply, ok, State};
 
 %% @doc Do nothing if sync=false
-handle_leader_call({updated_in_mnesia, Type, Key}, _From,
+handle_leader_call({updated_in_mnesia, _Type, _Key}, _From,
                    State=#leader_state{sync=false}, _Election) ->
   {reply, ok, State};
 

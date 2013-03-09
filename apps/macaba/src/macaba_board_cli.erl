@@ -46,7 +46,7 @@ get_boards() ->
 %% @doc Returns board header formatted as proplist
 -spec get_board(BoardId :: binary()) -> proplist_t() | {error, not_found}.
 get_board(BoardId) ->
-  case macaba_board:get_board(BoardId) of
+  case macaba_board:get(BoardId) of
     {error, not_found} -> {error, not_found};
     B -> macaba:record_to_proplist(B)
   end.
@@ -56,7 +56,7 @@ get_board(BoardId) ->
 -spec get_thread(BoardId :: binary(), ThreadId :: binary()) ->
                     proplist_t() | {error, not_found}.
 get_thread(BoardId, ThreadId) ->
-  case macaba_board:get_thread(BoardId, ThreadId) of
+  case macaba_thread:get(BoardId, ThreadId) of
     {error, not_found} -> {error, not_found};
     T -> macaba:record_to_proplist(T)
   end.
@@ -86,7 +86,7 @@ additional_fields_for_thread(T, PreviewSize) ->
   ThreadId    = macaba:propget(thread_id, T),
   PreviewList = get_thread_preview(BoardId, ThreadId, PreviewSize),
   Preview = {preview, PreviewList},
-  TD = macaba_board:get_thread_dynamic(BoardId, ThreadId),
+  TD = macaba_thread:get_dynamic(BoardId, ThreadId),
   PostIds = TD#mcb_thread_dynamic.post_ids,
   SkippedP = {skipped_posts, max(0, length(PostIds) - PreviewSize - 1)},
   PreviewListTl = case PreviewList of
@@ -126,7 +126,7 @@ get_thread_previews(BoardId, ThreadIdList, PreviewSize) ->
                             [proplist_t()].
 get_thread_preview(BoardId, ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
-  Posts = macaba_board:get_thread_contents(BoardId, ThreadId, PreviewSize),
+  Posts = macaba_thread:get_contents(BoardId, ThreadId, PreviewSize),
   %% convert each record in preview to proplist
   [additional_fields_for_post(P, macaba:record_to_proplist(P)) || P <- Posts].
 

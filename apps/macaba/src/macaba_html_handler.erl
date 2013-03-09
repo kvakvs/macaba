@@ -93,7 +93,7 @@ macaba_handle_admin(<<"POST">>, {Req0, State0}) ->
                         [ fun chain_check_admin_login/1
                         , fun chain_check_mod_login/1
                         ], {Req0, State0}),
-  redirect("/admin/", Req0, State0).
+  redirect("/admin/", Req, State).
 
 %% @private
 %% @doc Checks admin login and password from macaba.config
@@ -614,7 +614,7 @@ create_session_for(U=#mcb_user{}, Req0, State0) ->
   Opts = [ {remote_addr, RemoteAddr}
          , {user, U}
          ],
-  SesId = macaba_web:new_session(Opts),
+  {SesId, _SesPid} = macaba_web:new_session(Opts),
   Req = cowboy_req:set_resp_cookie(ses_cookie_name(), SesId, [], Req0),
   State = State0#mcb_html_state{ user=U },
   {Req, State}.

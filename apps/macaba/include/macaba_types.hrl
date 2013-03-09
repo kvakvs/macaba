@@ -35,6 +35,8 @@
           , max_threads = 20 :: integer()
           %% soft limit: post count before thread stops bumping
           , max_thread_posts = 500 :: integer()
+          %% hard limit: thread is locked at this point (mods can unlock)
+          , max_thread_post_lock = 2500 :: integer()
 
         %% , post_mod_only   :: boolean() % only mods can post and make threads
         %% , thread_mod_only :: boolean() % only mods can make threads

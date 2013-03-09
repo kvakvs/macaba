@@ -9,7 +9,9 @@
 -behaviour(gen_server).
 
 %% API
--export([ delete_thread/2
+-export([ thread_delete/2
+        , thread_set_read_only/3
+        , board_add_thread/2
         ]).
 -export([ start_link/0
         ]).
@@ -25,8 +27,14 @@
 %% API
 %%====================================================================
 
-delete_thread(BoardId, ThreadId) ->
-  ?SERVER ! {delete_thread, {BoardId, ThreadId}}.
+thread_delete(BoardId, ThreadId) ->
+  gen_server:cast(?SERVER, {thread_delete, {BoardId, ThreadId}}).
+
+thread_set_read_only(BoardId, ThreadId, RO) ->
+  gen_server:cast(?SERVER, {thread_set_read_only, {BoardId, ThreadId, RO}}).
+
+board_add_thread(BoardId, ThreadId) ->
+  gen_server:cast(?SERVER, {board_add_thread, {BoardId, ThreadId}}).
 
 %%--------------------------------------------------------------------
 %% @doc Starts the server
@@ -66,6 +74,19 @@ handle_call(Request, _From, State) ->
                          {noreply, #bw_state{}} |
                          {noreply, #bw_state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #bw_state{}}.
+
+handle_cast({thread_delete, {BoardId, ThreadId}}, State) ->
+  macaba_thread:delete(BoardId, ThreadId),
+  {noreply, State};
+
+handle_cast({thread_set_read_only, {BoardId, ThreadId, RO}}, State) ->
+  macaba_thread:set_read_only(BoardId, ThreadId, RO),
+  {noreply, State};
+
+handle_cast({board_add_thread, {BoardId, ThreadId}}, State) ->
+  macaba_board:add_thread(BoardId, ThreadId),
+  {noreply, State};
+
 handle_cast(Msg, State) ->
   lager:error("board_worker: unk case ~p", [Msg]),
   {noreply, State}.
@@ -76,10 +97,6 @@ handle_cast(Msg, State) ->
                          {noreply, #bw_state{}} |
                          {noreply, #bw_state{}, Timeout :: non_neg_integer()} |
                          {stop, Reason :: any(), #bw_state{}}.
-handle_info({delete_thread, {BoardId, ThreadId}}, State) ->
-  macaba_board:delete_thread(BoardId, ThreadId),
-  {noreply, State};
-
 handle_info(Info, State) ->
   lager:error("board_worker: unk info ~p", [Info]),
   {noreply, State}.
