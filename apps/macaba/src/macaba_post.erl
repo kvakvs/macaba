@@ -83,8 +83,7 @@ write_attach_set_ids(P = #mcb_post{}, Opts) ->
   Attach    = macaba:propget(attach,     Opts),
   AttachKey = macaba:propget(attach_key, Opts),
   case Attach of
-    <<>> ->
-      P;
+    <<>> -> P;
     _ ->
       case macaba_attach:write(AttachKey, Attach) of
         {error, _}=Err ->

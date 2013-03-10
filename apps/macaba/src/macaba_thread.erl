@@ -41,7 +41,6 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
     , board_id  = BoardId
     , post_ids  = [PostId]
    },
-  %% TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, PostId}),
   macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
   Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
 
@@ -93,16 +92,17 @@ get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
 
 get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  case macaba_db_riak:read(mcb_thread_dynamic, TDKey) of
-    {error, not_found} ->
-      lager:debug("thread: get_dynamic not found ~p - make default", [TDKey]),
-      #mcb_thread_dynamic{
-          internal_mnesia_key = TDKey
-        , board_id = BoardId
-        , thread_id = ThreadId
-      };
-    {ok, Value} -> {ok, Value}
-  end.
+  macaba_db_mnesia:read(mcb_thread_dynamic, TDKey).
+  %% case macaba_db_riak:read(mcb_thread_dynamic, TDKey) of
+  %%   {error, not_found} ->
+  %%     lager:debug("thread: get_dynamic not found ~p", [TDKey]),
+  %%     #mcb_thread_dynamic{
+  %%         internal_mnesia_key = TDKey
+  %%       , board_id = BoardId
+  %%       , thread_id = ThreadId
+  %%     };
+  %%   {ok, Value} -> {ok, Value}
+  %% end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Sets thread read-only, ignores possible chance of conflicting writes
