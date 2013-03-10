@@ -18,6 +18,9 @@ use p.created_local for server time, or p.created_utc for GMT time
 <a name="i{{ p.post_id }}"></a>
 <table border="0" cellpadding="8" cellspacing="0" id="post_{{ p.post_id }}"
        class="{% if forloop.counter == 1 %}oppost {% endif %}post">
+{% comment %}-------------------------------
+| Post header and flags row
+-----------------------------{% endcomment %}
   <tr>
     <td colspan="2">
       {% if inside_thread %}
@@ -36,17 +39,28 @@ use p.created_local for server time, or p.created_utc for GMT time
           №{{ p.post_id }}</a></span>
       {% if p.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}
 
+      {% if forloop.counter == 1 %}
+        {% if p.read_only %}<i class="icon-lock"></i> locked{% endif %}
+        {% if p.pinned %}<i class="icon-warning-sign"></i> pinned{% endif %}
+      {% endif %}
+
       {% if not inside_thread %}
-      {% if forloop.counter == 1 %}[<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]{% endif %}
+        {% if forloop.counter == 1 %}
+ [<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]
+        {% endif %}
       {% endif %}
     </td>
   </tr>
+{% comment %}-------------------------------
+| Attachment thumbnail and message row
+-----------------------------{% endcomment %}
   <tr>
     <td width="1">
       <span id="exlink_{{ p.post_id }}">
-        {% if p.attach_deleted %}<div class="filedeleted">File deleted</div>{% endif %}
+        {% if p.attach_deleted %}<div class="filedeleted">File deleted</div>
+        {% endif %}
+
         {% for att in p.attach_info %}
-        <!--Attach #{{ att.hash_hex|lower }}; ct={{ att.content_type }}; size={{ att.size }}-->
         <a href="/attach/{{ att.hash_hex|lower }}">
           <img class="img" src="/attach/{{ att.hash_hex|lower }}/thumb"></a>
         {% endfor %}
