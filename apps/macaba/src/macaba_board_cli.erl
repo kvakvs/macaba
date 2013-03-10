@@ -135,7 +135,8 @@ additional_fields_for_post(P = #mcb_post{}, PropList) ->
   %% load attachment headers
   AttachMod = macaba_plugins:mod(attachments),
   Att0 = lists:map(fun(AttId) ->
-                       AttachMod:read_header(AttId)
+                       {ok, H1} = AttachMod:read_header(AttId),
+                       H1
                    end, P#mcb_post.attach_ids),
   %% filter out only existing attachments
   Att1 = lists:filter(fun(#mcb_attachment{}) -> true; (_) -> false end, Att0),

@@ -23,6 +23,7 @@ write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
   case ?MODULE:detect_content_type(Data) of
     {error, ContentTypeError} ->
       {error, {content_type, ContentTypeError}};
+
     {ok, ContentType} ->
       case write_thumbnail(ContentType, Data) of
         {ok, {ThumbKey, ThumbSize}} ->
@@ -41,8 +42,8 @@ write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
            },
           AttachMod:write_body(B),
           {ok, Digest};
-        {error, Err} ->
-          {error, Err}
+
+        {error, Err} -> {error, Err}
       end
   end.
 

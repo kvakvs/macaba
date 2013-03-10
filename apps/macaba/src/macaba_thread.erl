@@ -7,6 +7,7 @@
 -export([ get/2
         , get_contents/3
         , get_dynamic/2
+        , get_dynamic_riak/2
         , add_post/3
         , new/3
         , delete/2
@@ -93,16 +94,16 @@ get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
 get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
   macaba_db_mnesia:read(mcb_thread_dynamic, TDKey).
-  %% case macaba_db_riak:read(mcb_thread_dynamic, TDKey) of
-  %%   {error, not_found} ->
-  %%     lager:debug("thread: get_dynamic not found ~p", [TDKey]),
-  %%     #mcb_thread_dynamic{
-  %%         internal_mnesia_key = TDKey
-  %%       , board_id = BoardId
-  %%       , thread_id = ThreadId
-  %%     };
-  %%   {ok, Value} -> {ok, Value}
-  %% end.
+
+%%%-----------------------------------------------------------------------------
+-spec get_dynamic_riak(BoardId :: binary(),
+                       ThreadId :: binary()) ->
+                          {ok, #mcb_thread_dynamic{}} | {error, not_found}.
+
+get_dynamic_riak(BoardId, ThreadId)
+  when is_binary(BoardId), is_binary(ThreadId) ->
+  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  macaba_db_riak:read(mcb_thread_dynamic, TDKey).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Sets thread read-only, ignores possible chance of conflicting writes

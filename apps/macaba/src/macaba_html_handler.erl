@@ -400,7 +400,7 @@ chain_get_attach({Req0, State0}) ->
     {error, not_found} ->
       {Req1, State} = render_page(404, "attach_404", Req, State1),
       {error, {Req1, State}};
-    Att ->
+    {ok, Att = #mcb_attachment{}} ->
       %% for thumbnail attachid.thumbnail_hash=attach_body_id
       State2 = case state_get_var(thumbnail, State1) of
                  false ->
@@ -432,9 +432,10 @@ chain_attach_send({Req0, State0}) ->
       AttachId  = state_get_var(body_id, State0),
       Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type} ],
       AttachMod = macaba_plugins:mod(attachments),
-      AttBody   = AttachMod:read_body(AttachId),
-      {ok, Req} = cowboy_req:reply(
-                    200, Headers, AttBody#mcb_attachment_body.data, Req0),
+
+      {ok, AttBody} = AttachMod:read_body(AttachId),
+      {ok, Req}     = cowboy_req:reply(
+                        200, Headers, AttBody#mcb_attachment_body.data, Req0),
       State = State0#mcb_html_state{already_rendered=true},
       {ok, {Req, State}}
   end.

@@ -170,7 +170,7 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
 update_dynamics_for_threads(_BoardId, []) -> ok;
 update_dynamics_for_threads(BoardId, [ThreadId | Threads])
   when is_binary(ThreadId) ->
-  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = macaba_thread:get_dynamic_riak(BoardId, ThreadId),
   lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
   macaba_db_mnesia:write(mcb_thread_dynamic, TD),
   update_dynamics_for_threads(BoardId, Threads).
