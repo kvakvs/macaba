@@ -286,7 +286,7 @@ sync_mnesia_to_riak_2(Tab, K) ->
     {error, not_found} ->
       lager:debug("masternode sync: delete ~p key=~p", [Type, Key]),
       macaba_db_riak:delete(Type, Key);
-    Value ->
+    {ok, Value} ->
       lager:debug("masternode sync: write ~p key=~p", [Type, Key]),
       macaba_db_riak:write(Type, Value)
   end,

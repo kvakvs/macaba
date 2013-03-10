@@ -62,7 +62,7 @@ $(OTP_PLT):
 		crypto tools inets sasl ssh ssl public_key xmerl
 
 .PHONY: build_plt
-build_plt: build_sysplt $(COMBO_PLT)
+build_plt: compile build_sysplt $(COMBO_PLT)
 
 $(COMBO_PLT):
 	dialyzer --plt $(OTP_PLT) --output_plt $(COMBO_PLT) --add_to_plt $(PLT_LIBS)

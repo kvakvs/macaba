@@ -63,7 +63,7 @@ delete(BoardId, ThreadId) ->
   {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BUpd),
 
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  TD = macaba_db_mnesia:read(mcb_thread_dynamic, TDKey),
+  {ok, TD} = macaba_db_mnesia:read(mcb_thread_dynamic, TDKey),
   lists:foreach(fun(P) -> macaba_post:delete_dirty(BoardId, P) end,
                 TD#mcb_thread_dynamic.post_ids),
 
@@ -76,14 +76,21 @@ delete(BoardId, ThreadId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Thread is identified by board name and number
+-spec get(BoardId :: binary(),
+          ThreadId :: binary()) -> {ok, #mcb_thread{}} | {error, not_found}.
+
 get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   K = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
   case macaba_db_riak:read(mcb_thread, K) of
-    #mcb_thread{}=Value -> Value;
+    {ok, #mcb_thread{}=Value} -> {ok, Value};
     {error, _} -> {error, not_found}
   end.
 
 %%%-----------------------------------------------------------------------------
+-spec get_dynamic(BoardId :: binary(),
+                  ThreadId :: binary()) ->
+                     {ok, #mcb_thread_dynamic{}} | {error, not_found}.
+
 get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
   case macaba_db_riak:read(mcb_thread_dynamic, TDKey) of
@@ -94,7 +101,7 @@ get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
         , board_id = BoardId
         , thread_id = ThreadId
       };
-    Value -> Value
+    {ok, Value} -> {ok, Value}
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -105,9 +112,9 @@ get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
                            ok | {error, not_found}.
 set_read_only(BoardId, ThreadId, RO) ->
   case ?MODULE:get(BoardId, ThreadId) of
-    #mcb_thread{ read_only = RO } ->
+    {ok, #mcb_thread{ read_only = RO }} ->
       ok; % do nothing if already set
-    T = #mcb_thread{} ->
+    {ok, T = #mcb_thread{}} ->
       %% do not bother with concurrent writes conflicting, i will regret it
       lager:info("thread: set_read_only B=~s T=~s -> ~p",
                  [BoardId, ThreadId, RO]),
@@ -128,10 +135,10 @@ set_read_only(BoardId, ThreadId, RO) ->
 get_contents(BoardId, ThreadId, LastCount0)
   when is_binary(BoardId), is_binary(ThreadId) ->
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  TD = case macaba_db_mnesia:read(mcb_thread_dynamic, TDKey) of
-         {error, not_found} -> #mcb_thread_dynamic{};
-         D -> D
-       end,
+  case macaba_db_mnesia:read(mcb_thread_dynamic, TDKey) of
+    {error, not_found} -> TD = #mcb_thread_dynamic{};
+    {ok, TD} -> TD
+  end,
   PostIds = TD#mcb_thread_dynamic.post_ids,
 
   %% if lastcount was set to 'all' - change it to thread length
@@ -142,7 +149,12 @@ get_contents(BoardId, ThreadId, LastCount0)
   LastCount = min(LastCount1, length(PostIds)),
 
   %% get first and cut last
-  First = case PostIds of [] -> []; [F|_] -> macaba_post:get(BoardId, F) end,
+  First = case PostIds of
+            [] -> [];
+            [F|_] ->
+              {ok, PFirst} = macaba_post:get(BoardId, F),
+              PFirst
+          end,
   %% FIXME: this may run slow on large threads >1000 posts?
   LastIds = case PostIds of
                [] -> [];
@@ -151,7 +163,10 @@ get_contents(BoardId, ThreadId, LastCount0)
                 T = min(length(PostIds2), max(0, length(PostIds2) - LastCount)),
                 lists:nthtail(T, PostIds2)
             end,
-  Last = lists:map(fun(Id) -> macaba_post:get(BoardId, Id) end, LastIds),
+  Last = lists:map(fun(Id) ->
+                       {ok, P} = macaba_post:get(BoardId, Id),
+                       P
+                   end, LastIds),
   lists:flatten([First | Last]).
 
 
@@ -164,7 +179,7 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
   lager:debug("thread: add_post"),
   macaba_db_riak:write(mcb_post, Post),
 
-  Board = macaba_board:get(BoardId),
+  {ok, Board} = macaba_board:get(BoardId),
   ThreadHardLimit = Board#mcb_board.max_thread_post_lock,
   ThreadSoftLimit = Board#mcb_board.max_thread_posts,
 

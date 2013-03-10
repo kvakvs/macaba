@@ -51,32 +51,15 @@ construct(BoardId, Opts) when is_binary(BoardId) ->
   end.
 
 %%%-----------------------------------------------------------------------------
-%% @doc Writes attachments from Opts to database and updates post rec
-write_attach_set_ids(P, Opts) ->
-  %% Write attach and set attach_id in post
-  %% TODO: Multiple attachments
-  Attach    = macaba:propget(attach,     Opts),
-  AttachKey = macaba:propget(attach_key, Opts),
-  case Attach of
-    <<>> ->
-      P;
-    _ ->
-      case macaba_attach:write(AttachKey, Attach) of
-        {error, _}=Err ->
-          lager:error("board: write attach: ~p", [Err]),
-          P;
-        {ok, AttachId} ->
-          P#mcb_post{ attach_ids = [AttachId] }
-      end
-  end.
-
-%%%-----------------------------------------------------------------------------
 %% @doc Loads post info
 -spec get(BoardId :: binary(), PostId :: binary()) ->
-             [#mcb_post{}] | {error, not_found}.
+             {ok, #mcb_post{}} | {error, not_found}.
 get(BoardId, PostId) when is_binary(BoardId), is_binary(PostId) ->
-  macaba_db_riak:read(mcb_post, macaba_db:key_for(mcb_post, {BoardId, PostId})).
-
+  PKey = macaba_db:key_for(mcb_post, {BoardId, PostId}),
+  case macaba_db_riak:read(mcb_post, PKey) of
+    {ok, P = #mcb_post{}} -> {ok, P};
+    {error, _} = E -> E
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates new post, writes to database
@@ -94,10 +77,29 @@ new(BoardId, Opts) when is_binary(BoardId) ->
   end.
 
 %%%-----------------------------------------------------------------------------
+%% @doc Writes attachments from Opts to database and updates post rec
+write_attach_set_ids(P = #mcb_post{}, Opts) ->
+  %% TODO: Multiple attachments
+  Attach    = macaba:propget(attach,     Opts),
+  AttachKey = macaba:propget(attach_key, Opts),
+  case Attach of
+    <<>> ->
+      P;
+    _ ->
+      case macaba_attach:write(AttachKey, Attach) of
+        {error, _}=Err ->
+          lager:error("post: write attach: ~p", [Err]),
+          P;
+        {ok, AttachId} ->
+          P#mcb_post{ attach_ids = [AttachId] }
+      end
+  end.
+
+%%%-----------------------------------------------------------------------------
 -spec delete_attach(BoardId :: binary(),
                          PostId :: binary()) -> ok | {error, any()}.
 delete_attach(BoardId, PostId) ->
-  P = macaba_post:get(BoardId, PostId),
+  {ok, P} = macaba_post:get(BoardId, PostId),
   AttachMod = macaba_plugins:mod(attachments),
   lists:foreach(fun(AttId) -> AttachMod:delete(AttId) end,
                 P#mcb_post.attach_ids),
@@ -108,7 +110,7 @@ delete_attach(BoardId, PostId) ->
 -spec delete(BoardId :: binary(),
              PostId :: binary()) -> ok | {error, any()}.
 delete(BoardId, PostId) ->
-  P = ?MODULE:get(BoardId, PostId),
+  {ok, P} = ?MODULE:get(BoardId, PostId),
   Upd = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
             L2 = lists:delete(PostId, L),
             %% if thread empty, send message to worker to delete thread
@@ -139,7 +141,7 @@ delete_dirty(BoardId, PostId) ->
     {error, not_found} ->
       lager:error("post: delete B=~s P=~s not found", [BoardId, PostId]),
       {error, not_found};
-    P = #mcb_post{} ->
+    {ok, P = #mcb_post{}} ->
       AttachMod = macaba_plugins:mod(attachments),
       lists:foreach(fun(AttId) -> AttachMod:delete(AttId) end,
                     P#mcb_post.attach_ids),

@@ -43,13 +43,15 @@ start() ->
 
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
-           Key  :: any()) -> orddict:orddict() | tuple() | {error, not_found}.
+           Key  :: binary()) ->
+              {ok, macaba_mnesia_record()} | {error, not_found}.
+
 read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
   case mnesia:transaction(RFun) of
     {atomic, [Row]} ->
       %% lager:debug("mnesia read K=~p Value=~p", [Key, Row]),
-      Row;
+      {ok, Row};
     _ ->
       %% lager:debug("mnesia read K=~p not found", [Key]),
       %% lager:debug("~p", [erlang:get_stacktrace()]),
@@ -58,7 +60,8 @@ read(Tab, Key) when is_binary(Key) ->
 
 %%--------------------------------------------------------------------
 -spec write(Type :: macaba_mnesia_object(),
-            Value :: any()) -> {atomic, any()} | {error, any()}.
+            Value :: macaba_mnesia_record()) ->
+               {atomic, any()} | {error, any()}.
 write(Tab, Value) ->
   WF = fun() -> mnesia:write(Value) end,
   case mnesia:transaction(WF) of

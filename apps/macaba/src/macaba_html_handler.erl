@@ -177,7 +177,7 @@ chain_get_threads({Req0, State0}) ->
   {ok, PreviewSize} = macaba_conf:get([<<"board">>, <<"thread">>,
                                        <<"preview_last_posts">>]),
   Threads = macaba_board_cli:get_threads(
-              BoardId, {macaba:as_integer(Page, 0),
+              BoardId, {macaba:as_integer(Page, 1),
                         macaba:as_integer(BPageSize)},
               macaba:as_integer(PreviewSize)),
   State = state_set_var(threads, Threads, State0),

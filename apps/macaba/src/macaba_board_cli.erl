@@ -25,12 +25,12 @@
 anonymous_delete_post(BoardId, PostId, FileOnly, Password) ->
   lager:info("board_cli: anonymous_delete_post B=~s P=~s Pass=~s",
              [BoardId, PostId, Password]),
-  P = macaba_board:get_post(BoardId, PostId),
+  {ok, P} = macaba_post:get(BoardId, PostId),
   case P#mcb_post.delete_pass of
     Password when byte_size(Password) > 0 ->
       case FileOnly of
-        true -> macaba_board:delete_post_attach(BoardId, PostId);
-        false -> macaba_board:delete_post(BoardId, PostId)
+        true -> macaba_post:delete_attach(BoardId, PostId);
+        false -> macaba_post:delete(BoardId, PostId)
       end;
     _ -> {error, password}
   end.
@@ -48,7 +48,7 @@ get_boards() ->
 get_board(BoardId) ->
   case macaba_board:get(BoardId) of
     {error, not_found} -> {error, not_found};
-    B -> macaba:record_to_proplist(B)
+    {ok, B} -> macaba:record_to_proplist(B)
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -58,7 +58,7 @@ get_board(BoardId) ->
 get_thread(BoardId, ThreadId) ->
   case macaba_thread:get(BoardId, ThreadId) of
     {error, not_found} -> {error, not_found};
-    T -> macaba:record_to_proplist(T)
+    {ok, T} -> macaba:record_to_proplist(T)
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -70,13 +70,14 @@ get_thread(BoardId, ThreadId) ->
 get_threads(BoardId, {undefined, PageSize}, PreviewSize) ->
   get_threads(BoardId, {1, PageSize}, PreviewSize);
 get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
-  Threads = macaba:pagination(
-              macaba_board:get_threads(BoardId), Page, PageSize),
+  {ok, Threads0} = macaba_board:get_threads(BoardId),
+  Threads = macaba:pagination(Threads0, Page, PageSize),
   Proplists = lists:map(fun macaba:record_to_proplist/1, Threads),
   case PreviewSize of
-    X when X > 1->
+    X when X > 1 ->
       [additional_fields_for_thread(T, PreviewSize) || T <- Proplists];
-    _ -> Proplists
+    _ ->
+      Proplists
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -86,7 +87,7 @@ additional_fields_for_thread(T, PreviewSize) ->
   ThreadId    = macaba:propget(thread_id, T),
   PreviewList = get_thread_preview(BoardId, ThreadId, PreviewSize),
   Preview = {preview, PreviewList},
-  TD = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
   PostIds = TD#mcb_thread_dynamic.post_ids,
   SkippedP = {skipped_posts, max(0, length(PostIds) - PreviewSize - 1)},
   PreviewListTl = case PreviewList of

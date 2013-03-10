@@ -35,7 +35,7 @@ write_body(B=#mcb_attachment_body{}) ->
 exists(<<>>) -> false;
 exists(Digest) ->
   case macaba_db_riak:read(mcb_attachment, Digest) of
-    #mcb_attachment{} -> true;
+    {ok, #mcb_attachment{}} -> true;
     {error, not_found} -> false
   end.
 
@@ -49,7 +49,7 @@ delete(AttId) ->
     {error, not_found} ->
       lager:error("board: delete_attachment ~s not found", [AttIdHex]),
       {error, not_found};
-    A = #mcb_attachment{} ->
+    {ok, A = #mcb_attachment{}} ->
       macaba_db_riak:delete(mcb_attachment_body,
                             A#mcb_attachment.thumbnail_hash),
       macaba_db_riak:delete(mcb_attachment_body, AttId),
@@ -58,9 +58,13 @@ delete(AttId) ->
       ok
   end.
 
+-spec read_header(AttachId :: binary()) ->
+                     {ok, #mcb_attachment{}} | {error, not_found}.
 read_header(AttachId) ->
   macaba_db_riak:read(mcb_attachment, AttachId).
 
+-spec read_body(AttachId :: binary()) ->
+                   {ok, #mcb_attachment{}} | {error, not_found}.
 read_body(AttachId) ->
   macaba_db_riak:read(mcb_attachment_body, AttachId).
 

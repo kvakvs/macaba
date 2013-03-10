@@ -38,16 +38,16 @@ add_thread(BoardId, ThreadId) ->
 -spec get_boards() -> [#mcb_board{}].
 get_boards() ->
   case macaba_db_riak:read(mcb_site_config, <<"default">>) of
-    #mcb_site_config{ boards=B } -> B;
+    {ok, #mcb_site_config{ boards=B }} -> B;
     {error, not_found} -> fake_default_boards()
   end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board by name
--spec get(BoardId :: binary()) -> #mcb_board{} | {error, not_found}.
+-spec get(BoardId :: binary()) -> {ok, #mcb_board{}} | {error, not_found}.
 get(BoardId) ->
   case lists:keysearch(BoardId, #mcb_board.board_id, get_boards()) of
-    {value, X} -> X;
+    {value, X} -> {ok, X};
     false -> {error, not_found}
   end.
 
@@ -68,29 +68,25 @@ fake_default_boards() ->
 %%%-----------------------------------------------------------------------------
 %% @doc Returns list of threads in board (only info headers, no contents!), also
 %% a proplist with board contents (first post and X last posts - configurable)
--spec get_threads(BoardId :: binary()) -> [#mcb_thread{}].
+-spec get_threads(BoardId :: binary()) ->
+                     {ok, [#mcb_thread{}]} | {error, any()}.
 
 get_threads(BoardId) when is_binary(BoardId) ->
-  Ids = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
-          {error, not_found} -> [];
-          #mcb_board_dynamic{threads=T} -> T
-        end,
-  Threads0 = [begin
-                TKey = macaba_db:key_for(mcb_thread, {BoardId, T}),
-                case macaba_db_riak:read(mcb_thread, TKey) of
-                  #mcb_thread{}=Value -> Value;
-                  {error, _} -> []
-                end
-              end || T <- Ids],
-  Threads = lists:flatten(Threads0),
-  Threads.
+  case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+    {error, not_found} ->
+      {error, dynamic_not_found};
+    {ok, #mcb_board_dynamic{threads=BDThreads}} ->
+      Threads = [begin {ok, T} = macaba_thread:get(BoardId, TId),
+                       T end || TId <- BDThreads],
+      {ok, Threads}
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @private
 %% @doc Reads board info and cuts extra threads in the end according to board
 %% settings.
 check_board_threads_limit(BoardId) ->
-  Board = ?MODULE:get(BoardId),
+  {ok, Board} = ?MODULE:get(BoardId),
   F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
           Cut = min(Board#mcb_board.max_threads, length(T)),
           {T2, Delete} = lists:split(Cut, T),
@@ -118,7 +114,7 @@ thread_bump_if_no_sage(_BoardId, _ThreadId, _SoftPostLimit,
                        #mcb_post{email = <<"sage">>}) -> false;
 
 thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit, _Post) ->
-  TD = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
   case length(TD#mcb_thread_dynamic.post_ids) > SoftPostLimit of
     true ->
       false; % over soft limit, no bumping
@@ -163,11 +159,9 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
   BoardId = B#mcb_board.board_id,
   BD = case macaba_db_riak:read(mcb_board_dynamic, BoardId) of
          {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
-         Value -> Value
+         {ok, Value} -> Value
        end,
   lager:debug("{{dbinit}} upd_dyn_b bd=~p", [BD]),
-  %%T = fun() -> mnesia:write(mcb_board_dynamic, BD, write) end,
-  %%{atomic, _} = mnesia:transaction(T),
   macaba_db_mnesia:write(mcb_board_dynamic, BD),
   update_dynamics_for_threads(BoardId, BD#mcb_board_dynamic.threads),
   update_dynamics_for_board(Boards).
@@ -176,10 +170,8 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
 update_dynamics_for_threads(_BoardId, []) -> ok;
 update_dynamics_for_threads(BoardId, [ThreadId | Threads])
   when is_binary(ThreadId) ->
-  TD = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
   lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
-  %% T = fun() -> mnesia:write(mcb_thread_dynamic, TD, write) end,
-  %% {atomic, _} = mnesia:transaction(T),
   macaba_db_mnesia:write(mcb_thread_dynamic, TD),
   update_dynamics_for_threads(BoardId, Threads).
 

@@ -38,8 +38,8 @@ bucket_for(mcb_attachment_body) -> <<"attach-body">>.
 %% @doc Reads a single {bucket,key} from RIAK database. No conflict resolution
 %% or merging is performed, no vclock preserved
 -spec read(Type :: macaba_riak_object(),
-           Key  :: any()) ->
-              tuple() | binary() | {error, not_found}.
+           Key  :: binary()) ->
+              {ok, macaba_riak_record()} | {error, not_found}.
 
 read(Type, Key) when is_binary(Key) ->
     read_internal(Type, bucket_for(Type), Key).
@@ -50,28 +50,25 @@ read(Type, Key) when is_binary(Key) ->
 %% binary file contents return without versioning as is. No conflict resolution
 %% or merging is performed here.
 -spec read_internal(Type :: macaba_riak_object(),
-                    B :: binary(),
-                    K :: binary()) -> tuple() | binary().
+                    B :: binary(), K :: binary()) ->
+                       {ok, macaba_riak_record()} | {error, not_found}.
 read_internal(Type, B, K) ->
   %% versioning on read for all other objects
   case riak_pool_auto:get(B, K) of
     {error, notfound} ->
-      %% lager:debug("riak read B=~p K=~p not found", [B, K]),
-      %% lager:debug("~p", [erlang:get_stacktrace()]),
       {error, not_found};
     {ok, O} ->
       X1 = riakc_obj:get_value(O),
       {Version, Value} = binary_to_term(X1, [safe]),
       X2 = macaba_db:upgrade(Type, Version, Value),
-      %% lager:debug("riak read B=~p K=~p Value=~p", [B, K, X2]),
-      X2
+      {ok, X2}
   end.
 %%--------------------------------------------------------------------
 %% @doc Reads a single {bucket,key} from RIAK database as Riak Object.
 %% Performs the inplace data upgrade and returns whole Riak object with metadata
 %% and vector clocks. Reader is suggested to perform merge on conflict
 -spec read_riakobj(Type :: macaba_riak_object(),
-                   Key  :: any()) -> riakc_obj() | {error, not_found}.
+                   Key  :: binary()) -> riakc_obj() | {error, not_found}.
 
 read_riakobj(Type, Key) when is_binary(Key) ->
   read_riakobj_internal(Type, bucket_for(Type), Key).
@@ -80,7 +77,8 @@ read_riakobj(Type, Key) when is_binary(Key) ->
 %% @private
 -spec read_riakobj_internal(Type :: macaba_riak_object(),
                             B :: binary(),
-                            K :: binary()) -> riakc_obj().
+                            K :: binary()) ->
+                               {ok, riakc_obj()} | {error, not_found}.
 
 read_riakobj_internal(Type, B, K) ->
   %% versioning on read for all other objects
@@ -93,8 +91,7 @@ read_riakobj_internal(Type, B, K) ->
       NewVList = [macaba_db:upgrade(Type, Version, Value)
                   || {Version, Value} <- VList],
       %% Now if we got multiple values, try to resolve conflict and merge
-      resolve_conflict(NewVList)
-      %%riakc_obj:update_value(RObject, Resolved)
+      {ok, resolve_conflict(NewVList)}
   end.
 
 %%--------------------------------------------------------------------
@@ -102,8 +99,8 @@ read_riakobj_internal(Type, B, K) ->
 resolve_conflict([First|_]) -> First.
 
 %%--------------------------------------------------------------------
--spec write(Type :: macaba_riak_object(), Value :: any()) ->
-               ok | {error, any()}.
+-spec write(Type :: macaba_riak_object(),
+            Value :: macaba_riak_record()) -> ok | {error, any()}.
 
 write(Type, Value) ->
   Key = macaba_db:get_key_for_object(Value),
