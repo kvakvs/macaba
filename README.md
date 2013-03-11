@@ -41,17 +41,16 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Admin UI
     *   Login form and login handler located at /admin
     *   Sessions support
+*   (in progress) Board post/reply/upload tests (not perfect, but good to
+    have!), WakabaMark markup tests
+*   (in progress) Authentication for mods and admins, maybe sessions. User
+    groups and post access for different groups
 
 ### Tier 1 TODO: important
 
-*   Authentication for mods and admins, maybe sessions. User groups and post
-    access for different groups
-*   Users participation - reporting posts and threads
+*   Preview function for markup in HTML mode (pop up window)
 *   Admin UI
-    *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
-    *   Mod: User blacklisting, bans, ban page with ban reason
     *   Mod: Thread management - locking, pinning, deleting, moving
-    *   Mod: Reviewing reported posts
     *   Admin: Configuring boards list and board options
     *   Admin: Site options, maintenance mode, read-only mode
 *   Captcha support, flood detection, basic DDOS resistance
@@ -60,24 +59,33 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Tier 2 TODO: do it later
 
-*   Video embedding support (configurable)
+*   Users participation - reporting posts and threads
+*   Admin UI
+    *   Mod: Reviewing reported posts
+    *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
+    *   Mod: User blacklisting, bans, ban page with ban reason
 *   Themes support, porting 1-2 popular themes from Wakaba
-*   REST API for custom UIs and user applications
-*   Websocket API for custom UIs and live update
-*   Modular support for: post parsing, themes, additional site sections, post
-    display (color or text codes for same person detection)
+*   REST API for custom UIs and user applications -
+    *   get/list/create board/thread/post
+    *   check update for board/thread
+    *   markup preview function
+*   Websocket API for custom UIs and live update -
+    *   constant update flow for board/thread
+*   (in progress) Modular support for: post parsing, themes, additional
+    site sections, post display (color or text codes for same person detection)
 
 ### Tier 3 TODO: want, but in future
 
-*   Multiple file upload
+*   Video embedding support (configurable)
+*   Multiple file upload (almost done!)
 *   Tripcodes support
 *   TOR/proxy detection
 *   Fighting Unicode quirks (reverse text direction)
 *   A torrent-tracker module (tourettes or peasy or something else?)
 *   Permanent authentication, VIP passwords
 *   International board mode (geoip flags)
-*   Oekaki drawing
-*   Mobile-friendly template
+*   Oekaki drawing support
+*   Mobile-friendly template (entirely new mobile mode?)
 
 ## Prerequisites
 
