@@ -4,7 +4,7 @@
 %%%------------------------------------------------------------------------
 -module(macaba_attach).
 
--export([ write/2
+-export([ write/1
         , write_thumbnail/2
         , detect_content_type/1
         ]).
@@ -14,12 +14,11 @@
 %%%-----------------------------------------------------------------------------
 %% @private
 %% @doc Writes to database, no unique checks or existence check
--spec write(Digest :: binary(),
-            Data :: binary()) ->
-                   {ok, Key::binary()} | {error, any()}.
+-spec write(Data :: binary()) ->
+               {ok, Key::binary()} | {error, any()}.
 
-write(_, <<>>) -> {error, no_data};
-write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
+write(<<>>) -> {error, no_data};
+write(Data) when is_binary(Data) ->
   case ?MODULE:detect_content_type(Data) of
     {error, ContentTypeError} ->
       {error, {content_type, ContentTypeError}};
@@ -27,9 +26,10 @@ write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
     {ok, ContentType} ->
       case write_thumbnail(ContentType, Data) of
         {ok, {ThumbKey, ThumbSize}} ->
+          Key = crypto:sha(Data),
           A = #mcb_attachment{
             size           = byte_size(Data),
-            hash           = Digest,
+            hash           = Key,
             content_type   = ContentType,
             thumbnail_hash = ThumbKey,
             thumbnail_size = ThumbSize
@@ -37,11 +37,11 @@ write(Digest, Data) when is_binary(Digest), is_binary(Data) ->
           AttachMod = macaba_plugins:mod(attachments),
           AttachMod:write_header(A),
           B = #mcb_attachment_body{
-            key  = Digest,
+            key  = Key,
             data = Data
            },
           AttachMod:write_body(B),
-          {ok, Digest};
+          {ok, Key};
 
         {error, Err} -> {error, Err}
       end

@@ -11,9 +11,32 @@
         , current_version_for/1
         , get_key_for_object/1
         , key_for/2
+        , reset_all_data/0
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+
+%% @doc You would not want to call this in production, no really
+reset_all_data() ->
+  mnesia:clear_table(mcb_board_dynamic),
+  mnesia:clear_table(mcb_thread_dynamic),
+  OTypes = [ mcb_site_config, mcb_board_dynamic, mcb_thread_dynamic
+           , mcb_thread, mcb_post, mcb_attachment, mcb_attachment_body],
+  lists:foreach(fun(T) -> reset_all_data_riak(T) end, OTypes),
+  %% create board dynamic for default board
+  lists:foreach(fun(Board) ->
+                  BD = #mcb_board_dynamic{board_id = Board#mcb_board.board_id},
+                  macaba_db_mnesia:write(mcb_board_dynamic, BD)
+                end, macaba_board:get_boards()).
+
+%% @private
+%% @doc Deletes all RIAK records for given object type
+reset_all_data_riak(ObjType) ->
+  Bucket = macaba_db_riak:bucket_for(ObjType),
+  {ok, Keys} = riak_pool_auto:list_keys(Bucket),
+  lists:foreach(fun(K) ->
+                    ok = riak_pool_auto:delete(Bucket, K)
+                end, Keys).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Stub for data upgrade function, to support multiple versions
@@ -59,11 +82,11 @@ current_version_for(mcb_attachment_body) -> ?MCB_ATTACHMENT_BODY_VER.
 %%--------------------------------------------------------------------
 %% @doc Extracts key from object
 get_key_for_object(#mcb_thread{ thread_id=TId, board_id=BId }) ->
-    key_for(mcb_thread, {BId, TId});
+  key_for(mcb_thread, {BId, TId});
 get_key_for_object(#mcb_post{ post_id=PId, board_id=BId }) ->
-    key_for(mcb_post, {BId, PId});
+  key_for(mcb_post, {BId, PId});
 get_key_for_object(#mcb_thread_dynamic{ board_id=BId, thread_id=TId }) ->
-    key_for(mcb_thread_dynamic, {BId, TId});
+  key_for(mcb_thread_dynamic, {BId, TId});
 get_key_for_object(#mcb_board_dynamic{   board_id  = Id }) -> Id;
 get_key_for_object(#mcb_attachment{      hash      = Id }) -> Id;
 get_key_for_object(#mcb_attachment_body{ key       = Id }) -> Id.
@@ -71,15 +94,18 @@ get_key_for_object(#mcb_attachment_body{ key       = Id }) -> Id.
 %%%-----------------------------------------------------------------------------
 %% @doc Creates complex key
 key_for(mcb_thread, {BId, TId}) ->
-    << "B=", BId/binary, ":T=", TId/binary >>;
+  << "B=", BId/binary, ":T=", TId/binary >>;
 key_for(mcb_post,   {BId, PId}) ->
-    << "B=", BId/binary, ":P=", PId/binary >>;
+  << "B=", BId/binary, ":P=", PId/binary >>;
 key_for(mcb_thread_dynamic, {BId, TId}) ->
-    << "B=", BId/binary, ":T=", TId/binary >>;
+  << "B=", BId/binary, ":T=", TId/binary >>;
 key_for(T, K) ->
-    lager:error("key_for T=~p K=~p unknown type, ~p",
-                [T, K, erlang:get_stacktrace()]),
-    erlang:error({error, badarg}).
+  lager:error("key_for T=~p K=~p unknown type, ~p",
+              [T, K, erlang:get_stacktrace()]),
+  erlang:error({error, badarg}).
 
 %%%-----------------------------------------------------------------------------
 
+%%% Local Variables:
+%%% erlang-indent-level: 2
+%%% End:

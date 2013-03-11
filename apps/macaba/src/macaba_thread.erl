@@ -43,14 +43,16 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
     , post_ids  = [PostId]
    },
   macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
+  io:format(standard_error, "!!! thread:new-2~n", []),
   Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
+  %% io:format(standard_error, "!!! thread:new-3~n", []),
 
   %% link post to thread
   Post = Post1#mcb_post{ thread_id = PostId },
   macaba_db_riak:write(mcb_post, Post),
   macaba_db_riak:write(mcb_thread, Thread),
 
-  macaba_board_worker:board_add_thread(BoardId, ThreadId),
+  macaba_board:add_thread(BoardId, ThreadId),
   {Thread, Post}.
 
 %%%-----------------------------------------------------------------------------

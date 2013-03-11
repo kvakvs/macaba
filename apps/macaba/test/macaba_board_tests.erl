@@ -18,6 +18,7 @@ board_engine_test_() ->
     , {"Basic Mnesia: Board dynamic", fun try_mnesia_board_dynamic/0}
     , {"Post to a new thread", fun try_new_thread/0}
     , {"Post with sage", fun try_post_with_sage/0}
+    , {"Post with attach", fun try_post_with_attach/0}
     , {"Board tests", fun try_board/0}
     ]
    }}.
@@ -47,9 +48,13 @@ teardown(ok) ->
   ok.
 
 foreach_setup() ->
+  %% timer:sleep(500),
+  macaba_db:reset_all_data(),
   ok.
 
 foreach_teardown(ok) ->
+  %% timer:sleep(500),
+  macaba_db:reset_all_data(),
   ok.
 
 %%%------------------------------------------------------------------------
@@ -58,6 +63,7 @@ foreach_teardown(ok) ->
 
 %% @doc Basic check that Mnesia is reading and writing fine
 try_mnesia_board_dynamic() ->
+  %% io:format(standard_error, "+++ try_mnesia_board_dynamic~n", []),
   BoardId = <<"testboard0">>,
   BD1 = #mcb_board_dynamic{ board_id = BoardId },
   {atomic, _} = macaba_db_mnesia:write(mcb_board_dynamic, BD1),
@@ -66,6 +72,7 @@ try_mnesia_board_dynamic() ->
 
 %%%------------------------------------------------------------------------
 try_mnesia_thread_dynamic() ->
+  %% io:format(standard_error, "+++ try_mnesia_thread_dynamic~n", []),
   BoardId = <<"testboard0">>,
   ThreadId1 = <<"012345">>,
   TD1Key = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId1}),
@@ -78,6 +85,7 @@ try_mnesia_thread_dynamic() ->
 
 %%%------------------------------------------------------------------------
 try_new_thread() ->
+  %% io:format(standard_error, "+++ try_new_thread-1~n", []),
   BoardId = <<"unconfigured">>,
   %%----------------------
   %% post a new thread
@@ -104,17 +112,19 @@ try_new_thread() ->
   %%----------------------
   %% enum threads
   %%----------------------
+  io:format(standard_error, "+++ try_new_thread-4~n", []),
   {ok, Threads3} = macaba_board:get_threads(BoardId),
-  io:format(standard_error, "normal: threads3 ~p~n", [Threads3]),
   ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
 
+  %% io:format(standard_error, "+++ try_new_thread-end~n", []),
   ok.
 
 %%%------------------------------------------------------------------------
 try_post_with_sage() ->
+  %% io:format(standard_error, "+++ try_post_with_sage~n", []),
   BoardId = <<"unconfigured">>,
   PostOpt1 = make_post_opts([{thread_id, <<"new">>}]),
-  {Thread1, Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  {Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
   ThreadId1 = Thread1#mcb_thread.thread_id,
 
   PostOpt2 = make_post_opts([{thread_id, ThreadId1}, {email, <<"sage">>}]),
@@ -122,8 +132,33 @@ try_post_with_sage() ->
   ?assertMatch(#mcb_post{}, Post2),
 
   {ok, Threads3} = macaba_board:get_threads(BoardId),
-  io:format(standard_error, "sage: threads3 ~p~n", [Threads3]),
+  %% io:format(standard_error, "sage-threads3 ~p~n", [Threads3]),
   ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
+  ok.
+
+%%%------------------------------------------------------------------------
+try_post_with_attach() ->
+  BoardId = <<"unconfigured">>,
+  Gif1 = base64:decode(
+           "R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="),
+  PostOpt1 = make_post_opts([{thread_id, <<"new">>}, {attach, Gif1}]),
+  io:format(standard_error, "+++ try_post_with_attach-1~n", []),
+  {Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  io:format(standard_error, "+++ try_post_with_attach-1.1~n", []),
+  ThreadId1 = Thread1#mcb_thread.thread_id,
+
+  io:format(standard_error, "+++ try_post_with_attach-2~n", []),
+  Gif2 = <<Gif1/binary, "@">>,
+  PostOpt2 = make_post_opts([{thread_id, ThreadId1}, {attach, Gif2}]),
+  {ok, Post2} = macaba_post:new(BoardId, PostOpt2),
+  ?assertMatch(#mcb_post{}, Post2),
+
+  io:format(standard_error, "+++ try_post_with_attach-3~n", []),
+  {ok, Threads3} = macaba_board:get_threads(BoardId),
+  %% io:format(standard_error, "attach-threads3 ~p~n", [Threads3]),
+  ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
+
+  %% io:format(standard_error, "+++ try_post_with_attach-end~n", []),
   ok.
 
 %%%------------------------------------------------------------------------

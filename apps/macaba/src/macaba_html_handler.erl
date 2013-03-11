@@ -204,17 +204,18 @@ chain_check_post_attach({Req0, State0=#mcb_html_state{post_data=PD}}) ->
       render_error(<<"bad_attach_format">>, Req0, State0);
     {error, empty} ->
       %% do nothing for empty attach
-      State1 = state_set_var(attach_key, <<>>, State0),
-      {ok, {Req0, State1}};
+      %% State1 = state_set_var(attach_key, <<>>, State0),
+      {ok, {Req0, State0}};
     {ok, _} ->
+      %% FIXME: this is calculated twice, here and in macaba_attach:write
       AttachKey = crypto:sha(Attach),
       AttachMod = macaba_plugins:mod(attachments),
       case AttachMod:exists(AttachKey) of
         true ->
           render_error(<<"duplicate_image">>, Req0, State0);
         false ->
-          State1 = state_set_var(attach_key, AttachKey, State0),
-          {ok, {Req0, State1}}
+          %% State1 = state_set_var(attach_key, AttachKey, State0),
+          {ok, {Req0, State0}}
       end
   end.
 
@@ -279,7 +280,7 @@ chain_check_thread_exists({Req0, State0=#mcb_html_state{post_data=PD}}) ->
 
 %%%---------------------------------------------------
 %% @private
-get_post_create_options(_Req0, State=#mcb_html_state{post_data=PD}) ->
+get_post_create_options(_Req0, #mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
   Author   = macaba:propget(<<"author">>,    PD, ""),
@@ -295,7 +296,7 @@ get_post_create_options(_Req0, State=#mcb_html_state{post_data=PD}) ->
                     , {subject,    Subject}
                     , {message,    Message}
                     , {attach,     Attach}
-                    , {attach_key, state_get_var(attach_key, State)}
+                    %% , {attach_key, state_get_var(attach_key, State)}
                     , {deletepw,   DeletePw}
                     ]).
 
