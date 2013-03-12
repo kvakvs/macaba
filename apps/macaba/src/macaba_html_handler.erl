@@ -18,6 +18,7 @@
         , macaba_handle_attach/2
         , macaba_handle_attach_thumb/2
         , macaba_handle_admin/2
+        , macaba_handle_util_preview/2
         ]).
 -export([ chain_get_boards/1
         , chain_get_board_info/1
@@ -73,6 +74,16 @@ handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
 %%%-----------------------------------------------------------------------------
 terminate(_Reason, _Req, _State) ->
   ok.
+
+%%%-----------------------------------------------------------------------------
+%%% Utility: Preview markup
+%%%-----------------------------------------------------------------------------
+macaba_handle_util_preview(<<"POST">>, {Req0, State0}) ->
+  lager:debug("http POST util/preview"),
+  PD = State0#mcb_html_state.post_data,
+  Message = macaba:propget(<<"markup">>, PD, <<>>),
+  MessageProcessed = macaba_plugins:call(markup, [Message]),
+  response_text(200, MessageProcessed, Req0, State0).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET/POST: /admin

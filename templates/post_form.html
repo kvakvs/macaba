@@ -1,9 +1,10 @@
 <form method="post" class="form-inline newpost" enctype="multipart/form-data"
+      name="postform"
       action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
   {% if thread_id == "new" %}
-  <h3>Create new thread</h3>
+  <h4>Create new thread</h4>
   {% else %}
-  <h3>Reply to thread</h3>
+  <h4>Reply to thread</h4>
   {% endif %}
 
   <input type="hidden" name="thread_id" value="{{ thread_id }}">
@@ -17,9 +18,33 @@
   <label>Subject</label>
   <input type="text" name="subject" size="40" />
   <input type="submit" value="{% if thread_id == "new" %}New thread{% else %}Post reply{% endif %}"
-         class="btn btn-primary" /><br/>
+         class="btn btn-primary" />
 
-  <textarea name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
+  <input type="button" value="Preview" class="btn btn-small btn-info" onclick="preview_show()" />
+  <br/>
+  <div id="preview-popup" class="popupdiv">
+    <small><i class="icon-search"></i> Preview, click to close</small><br/>
+    <hr style="margin:0" />
+    <div id="preview-content" class="msg"></div>
+  </div>
+
+<script>
+$(function() {
+  $("div#preview-popup").click(function() {
+      $("div#preview-popup").hide();
+      });
+});
+function preview_show() {
+  var M = $("textarea#message").val();
+  var AJ = { url: "/util/preview", type: "POST", context: document.body, data: { markup: M }};
+  $.ajax(AJ).done(function(Value) {
+    $("div#preview-popup").show();
+    $("div#preview-content").html(Value);
+  });
+}
+</script>
+
+  <textarea id="message" name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
 
   <label>Attach</label>
   <input type="file" name="attach" size="40" />

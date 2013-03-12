@@ -22,17 +22,18 @@ textarea.postmsg {
 }
 
 /* post display block */
-td.msg blockquote {
-   text-color: #4C4;
+.msg blockquote {
+   color: #484;
+   margin-top: 0;
+   margin-bottom: 0;
 }
-
-td.msg code {
+.msg code {
     border: 1px solid silver;
     background: #eed;
     padding: 2px;
     font-family: monospace;
 }
-td.msg pre {
+.msg pre {
     border: 1px solid silver;
     background: #eed;
     padding: 2px;
@@ -79,4 +80,16 @@ div.macaba-branding {
 div.macaba-branding a {
     color: #88c;
     text-decoration: underline;
+}
+
+div.popupdiv {
+  display: none;
+  /*position: absolute;
+  width: 600px;
+  height: 200px;*/
+  padding: 8px;
+  margin: 8px;
+  background: #eeeeee;
+  color: #000000;
+  border: 1px solid #1a1a1a;
 }

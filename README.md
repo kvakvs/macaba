@@ -38,22 +38,25 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
     reply
 *   Basic plain HTML scriptless theme (later REST API, Websocket)
 *   File upload (1 per post)
-*   WakabaMark (no ^H support as of yet) and Markdown support (configurable)
+*   WakabaMark (no ^H or spoiler support as of yet) optional Markdown support
 *   Board limits, delete when thread is sinking
 *   Deleting posts by user, optional deletion of attachments only
 *   Simple plugins system. Extension modules and hooks are work-in-progress
+*   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
+    markup tests
+*   Preview function for markup in HTML mode (ajax inside inline div)
+*   REST API design docs and mock server http://docs.macaba.apiary.io/
+
+### In progress
+
+*   Authentication for mods and admins, maybe sessions. User
+    groups and post access for different groups
 *   Admin UI
     *   Login form and login handler located at /admin
     *   Sessions support
-*   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
-    markup tests
-*   (in progress) Authentication for mods and admins, maybe sessions. User
-    groups and post access for different groups
-*   REST API design docs and mock server http://docs.macaba.apiary.io/
 
 ### Tier 1 TODO: important
 
-*   Preview function for markup in HTML mode (pop up window)
 *   Admin UI
     *   Mod: Thread management - locking, pinning, deleting, moving
     *   Admin: Configuring boards list and board options
