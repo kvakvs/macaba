@@ -48,7 +48,7 @@ GET /board/{board_id}{?timestamp,page,pagesize}
 < 200
 < Content-Type: application/json
 { "threads": [
-    {"board_id": "b", thread_id": "10012381", "hidden": false, "pinned": false,
+    {"board_id": "b", "thread_id": "10012381", "hidden": false, "pinned": false,
     "read_only": false, "url": "board/b/thread/10012381" }
     ]}
 
@@ -101,15 +101,51 @@ POST /board
 [mod] Modify thread flags or delete thread
 POST /board/{board_id}/thread/{thread_id}/manage
 > Content-Type: application/json
-{ "action": "delete|lock|pin|hide" }
+{ "action": "delete|update", "update": { "locked": true, "pinned": true, "hidden": "true" },
+    "ban": { "reason": "board rules", "expires": "unix time" } }
 < 200
 < Content-Type: application/json
-{ "result": "ok" }
+{ "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
 
 [mod] Modify post or delete post
 POST /board/{board_id}/post/{post_id}/manage
 > Content-Type: application/json
-{ "action": "delete|delete_file" }
+{ "action": "delete|delete_file", "ban": { "reason": "board rules", "expires": "unix time" } }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
+
+[mod] Get list of bans
+GET /ban/
+< 200
+< Content-Type: application/json
+{ "bans": [
+    { "ban_id": "78ba981d8a8fe0918902", "ip": "2.3.4.5", "subnet": 24,
+    "reason": "board rules", "expires": "unix time", "author": "Anonymous" }
+    ]}
+
+[mod] Manually edit a ban
+POST /ban/{ban_id}
+> Content-Type: application/json
+{ "delete": true, "update": { "expires": "new unix time" } }
+< 200
+< Content-Type: application/json
+{ "result": "ok" }
+
+[mod] Get list of ban appeal requests. Note to server dev: Comment and email should be
+sanitized before printing to admin/mod screen
+GET /appeal/
+< 200
+< Content-Type: application/json
+{ "appeals": [
+    { "ban_id": "78ba981d8a8fe0918902", "email": "user@example.com",
+    "comment": "I didn't post it\nit was my cat walking on keyboard" }
+    ]}
+
+[mod] Post decision on appeal requests
+POST /appeal/{ban_id}
+> Content-Type: application/json
+{ "decision": "satisfy|reject" }
 < 200
 < Content-Type: application/json
 { "result": "ok" }
