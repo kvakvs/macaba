@@ -10,8 +10,10 @@ and utility calls like previewing markup before posting.
 ---
 
 --
-General Resources
-Site management, user login
+Authentication
+Site management, user login. Some operations in sections below may require authentication, most of them
+are open publicly though. After successful login you get a session token which is valid as long as you
+don't stop using resources at least every few minutes, then session closes and you must relogin.
 --
 
 POST /login
@@ -23,7 +25,9 @@ POST /login
 
 --
 Board Resources
-Resources in this section relate to board access and board management
+Resources in this section relate to board access and board management. Most of the resources are available
+for anonymous client. If you authenticate as mod or admin before posting, client software SHOULD provide
+an option to enable or disable sending session token (for authenticated or anonymous operation).
 --
 
 List available boards, returns list of board structures.
@@ -37,8 +41,10 @@ GET /board
     ]}
 
 List threads in the board (full or paginated). Returns list of thread structures. "hidden" is
-only visible to mods and admins.
-GET /board/{board_id}{?page,pagesize}
+only visible to mods and admins. If `timestamp` is provided you get empty output if board not changed,
+or full board contents if it did change. If `page` and `pagesize` are provided, you get paginated output at
+requested `page` with requested `pagesize`. If only `page` is provided, `pagesize` defaults to 10.
+GET /board/{board_id}{?timestamp,page,pagesize}
 < 200
 < Content-Type: application/json
 { "threads": [
@@ -46,8 +52,9 @@ GET /board/{board_id}{?page,pagesize}
     "read_only": false, "url": "board/b/thread/10012381" }
     ]}
 
-Get posts in thread (full or paginated)
-GET /board/{board_id}/thread/{thread_id}{?timestamp,page,pagesize}
+Get posts in thread (full or diff). If `timestamp` is provided, you only receive changes in
+thread happened from this time. Thread contents is not designed to be paginated at the moment.
+GET /board/{board_id}/thread/{thread_id}{?timestamp}
 < 200
 < Content-Type: application/json
 { "posts": [
