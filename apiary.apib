@@ -83,6 +83,11 @@ POST /board/{board_id}/thread/{thread_id}
 < Content-Type: application/json
 { "result": "ok", "url": "/board/b/thread/10012500#i10012550" }
 
+--
+Administration and moderation
+Functions only available to authenticated mods and admins
+--
+
 [admin] Create or edit board
 POST /board
 > Content-Type: application/json
@@ -92,6 +97,22 @@ POST /board
 < 200
 < Content-Type: application/json
 { "result": "ok", "url": "/board/b/" }
+
+[mod] Modify thread flags or delete thread
+POST /board/{board_id}/thread/{thread_id}/manage
+> Content-Type: application/json
+{ "action": "delete|lock|pin|hide" }
+< 200
+< Content-Type: application/json
+{ "result": "ok" }
+
+[mod] Modify post or delete post
+POST /board/{board_id}/post/{post_id}/manage
+> Content-Type: application/json
+{ "action": "delete|delete_file" }
+< 200
+< Content-Type: application/json
+{ "result": "ok" }
 
 --
 Helpers
