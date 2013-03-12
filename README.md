@@ -10,6 +10,10 @@ be familiar for wakaba users:
     discovering the user's identity
 *   post body uses special markup which is processed to HTML
 
+## Documentation
+
+REST API: http://docs.macaba.apiary.io/
+
 ## Project status
 
 ### Alpha, you can try it
@@ -41,10 +45,11 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Admin UI
     *   Login form and login handler located at /admin
     *   Sessions support
-*   (in progress) Board post/reply/upload tests (not perfect, but good to
-    have!), WakabaMark markup tests
+*   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
+    markup tests
 *   (in progress) Authentication for mods and admins, maybe sessions. User
     groups and post access for different groups
+*   REST API design docs and mock server http://docs.macaba.apiary.io/
 
 ### Tier 1 TODO: important
 
@@ -87,7 +92,9 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Oekaki drawing support
 *   Mobile-friendly template (entirely new mobile mode?)
 
-## Prerequisites
+## Installing
+
+### Before you start
 
 *  Linux operating system (Ubuntu works, Debian and other should be easy),
    MacOSX _may_ work, but you're on your own building dependencies!
@@ -102,7 +109,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *  A working C/C++ compiler to build dependencies (install build-essential on
    Ubuntu)
 
-## Compiling
+### Building
 
 *   Checkout from github by using `git clone git://github.com/kvakvs/macaba.git`
 *   $ `make run` will do full recompile and start (or `make runf` to run without
