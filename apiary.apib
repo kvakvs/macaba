@@ -1,36 +1,87 @@
-HOST: http://www.google.com/
+HOST: http://localhost:12000/rest
 
---- macaba ---
+--- Macaba REST API ---
 
 ---
-Welcome to the our sample API documentation. All comments can be written in (support [Markdown](http://daringfireball.net/projects/markdown/syntax) syntax)
+Welcome to the Macaba board REST API documentation. This API allows anonymous and authorized
+access (for admins, mods and VIP users) to board functions, such as listing boards, threads, posts,
+creating threads and posts, uploading and downloading files, check for thread and board updates,
+and utility calls like previewing markup before posting.
 ---
 
 --
-Shopping Cart Resources
-The following is a section of resources related to the shopping cart
+General Resources
+Site management, user login
 --
 
-List products added into your shopping-cart. (comment block again in Markdown)
-GET /shopping-cart
-< 200
-< Content-Type: application/json
-{ "items": [
-{ "url": "/shopping-cart/1", "product":"2ZY48XPZ", "quantity": 1, "name": "New socks", "price": 1.25 }
-] }
-
-Save new products in your shopping cart
-POST /shopping-cart
+POST /login
 > Content-Type: application/json
-{ "product":"1AB23ORM", "quantity": 2 }
-< 201
-< Content-Type: application/json
-{ "status": "created", "url": "/shopping-cart/2" }
-
--- Payment Resources --
-
-This resource allows you to submit payment information to process your *shopping cart* items
-POST /payment
-{ "cc": "12345678900", "cvc": "123", "expiry": "0112" }
+{ "user": "superadmin", "pass": "notgay" }
 < 200
-{ "receipt": "/payment/receipt/1" }
+< Content-Type: application/json
+
+
+--
+Board Resources
+Resources in this section relate to board access and board management
+--
+
+List available boards, returns list of board structures.
+GET /board
+< 200
+< Content-Type: application/json
+{ "boards": [
+    { "id": "b", "category": "General", "title": "Random /b/", "short_name": "b",
+    "anonymous_name": "Anonymous", "max_threads": 200, "max_thread_posts": 500,
+    "max_thread_post_lock": 2500, "url": "/board/b/" }
+    ]}
+
+List threads in the board (full or paginated). Returns list of thread structures. "hidden" is
+only visible to mods and admins.
+GET /board/{board_id}{?page,pagesize}
+< 200
+< Content-Type: application/json
+{ "threads": [
+    {"board_id": "b", thread_id": "10012381", "hidden": false, "pinned": false,
+    "read_only": false, "url": "board/b/thread/10012381" }
+    ]}
+
+Get posts in thread (full or paginated)
+GET /board/{board_id}/thread/{thread_id}{?timestamp,page,pagesize}
+< 200
+< Content-Type: application/json
+{ "posts": [
+    { "thread_id": "10012381", "board_id": "b", "post_id": "10012444", "subject": "Hello", "author": "",
+    "email": "sage", "message": "I <strong>pooped</strong>", "message_raw": "I **pooped**",
+    "created": "Wed, 27 Jan 2013, 03:29", "attach_ids": ["a7adb7f018e8fa89123bd90012"], "attach_deleted": false }
+    ],
+    "timestamp": "integer unixtime"
+}
+
+Post a new thread
+POST /board/{board_id}
+> Content-Type: application/json
+{ "subject": "Hello", "author": "", "email": "sage", "message": "I **pooped**", "attach": "base64encoded",
+    "delete_password": "fgsfds" }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "url": "/board/b/thread/10012500" }
+
+Post a new post in thread
+POST /board/{board_id}/thread/{thread_id}
+> Content-Type: application/json
+{ "subject": "Hello", "author": "", "email": "sage", "message": "I **pooped**", "attach": "base64encoded",
+    "delete_password": "fgsfds" }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "url": "/board/b/thread/10012500#i10012550" }
+
+[admin] Create or edit board
+POST /board
+> Content-Type: application/json
+{ "id": "b", "category": "General", "title": "Random /b/", "short_name": "b",
+    "anonymous_name": "Anonymous", "max_threads": 200, "max_thread_posts": 500,
+    "max_thread_post_lock": 2500 }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "url": "/board/b/" }
