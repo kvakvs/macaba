@@ -1,0 +1,15 @@
+{% comment %}-------------------------------------------------------------------
+| Admin front page
+|
+| Incoming parameters: boards - an indexable property list, see
+| macaba_server.config for options description
++---------------------------------------------------------------{% endcomment %}
+{% include "header.html" %}
+
+<h1>News for admins</h1>
+
+<p>Hello world</p>
+
+<p>Now get to banning, slacker</p>
+
+{% include "footer.html" %}

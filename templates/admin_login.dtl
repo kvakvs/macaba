@@ -14,12 +14,12 @@
       <input type="text" name="login" placeholder="علي بابا"><br />
       <input type="password" name="password" placeholder="إفتح يا سمسم"><br />
       <label class="checkbox">
-        <input type="checkbox" name="remember" value="remember">
+        <input type="checkbox" name="remember" value="remember" disabled="disabled">
         Remember me longer
       </label>
       <button class="btn btn-large btn-primary" type="submit">Sign in</button>
     </form>
-  </div>
-</div> <!-- /row -->
+  </div> <!-- end span -->
+</div> <!-- end row -->
 
 {% include "footer.html" %}

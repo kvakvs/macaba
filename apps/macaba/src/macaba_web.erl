@@ -7,8 +7,7 @@
 -export([ compile/1
         , render/2
         , chain_run/2
-        , get_session/1
-        , new_session/1
+        , get_poster_id/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -53,36 +52,25 @@ chain_run([F | Tail], State) ->
   end.
 
 %%%------------------------------------------------------------------------
-%% @doc Examines request for session cookie, and gets current user
--spec get_session(SesId :: undefined | binary()) -> #mcb_user{}.
-get_session(undefined) -> #mcb_user{};
-get_session(SesId) ->
-  case gproc:lookup_local_name({macaba_session, SesId}) of
-    undefined -> #mcb_user{};
-    Pid -> gen_server:call(Pid, get_user)
-  end.
+%% @doc Using user IP and user-agent
+get_poster_id(Req0) ->
+  {{{IP1, IP2, IP3, _IP4}, _Port}, Req1} = cowboy_req:peer(Req0),
+  {UA, _Req2} = cowboy_req:header(<<"user-agent">>, Req1),
+  Id0 = erlang:term_to_binary({IP1, IP2, IP3, UA}),
+  %% split 160 bits of sha evenly and bxor together
+  <<Id1:53, Id2:53, Id3:53, _:1>> = crypto:sha(Id0),
+  Id = Id1 bxor Id2 bxor Id3,
+  get_poster_id_encode(Id, []).
 
-%%%------------------------------------------------------------------------
-%% @doc Creates session process with given 'Params' returns SesId and Pid
-%% Params[remote_addr] - erlang tuple with IPv4 or IPv6, Params[user] -
-%% #mcb_user{} structure
--spec new_session(Params :: orddict:orddict()) -> {binary(), pid()}.
-new_session(Params) ->
-  SesId = make_random_sesid(32, []),
-  %%Pid = gen_server:start_link(macaba_ses, [Params], []),
-  {ok, Pid} = supervisor:start_link(macaba_ses, [Params]),
-  {SesId, Pid}.
-
-%%%------------------------------------------------------------------------
-%% @private
-make_random_sesid(0, A) -> list_to_binary(A);
-make_random_sesid(X, A) ->
-  Ch = case random:uniform(62)-1 of
-         C when C < 10 -> $0 + C;
-         C when C < 10+26 -> $A + C - 26;
-         C -> $a + C - 52
+%% @doc Encode a long integer in base62
+get_poster_id_encode(0, A) -> iolist_to_binary(A);
+get_poster_id_encode(X, A) ->
+  Ch = case X rem 62 of
+        C when C < 10 -> $0 + C;
+        C when C < 36 -> $A + C - 10;
+        C -> $a + C - 36
        end,
-  make_random_sesid(X-1, [Ch|A]).
+  get_poster_id_encode(X div 62, [Ch | A]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

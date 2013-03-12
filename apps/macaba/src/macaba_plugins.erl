@@ -34,7 +34,8 @@ call(markup, [Txt]) ->
                                      [<<"macaba_markup">>, <<"process">>]),
   MarkupMod = erlang:binary_to_atom(MarkupMod0, latin1),
   MarkupFun = erlang:binary_to_atom(MarkupFun0, latin1),
-  U = erlang:apply(MarkupMod, MarkupFun, [Txt]),
+  U0 = erlang:apply(MarkupMod, MarkupFun, [Txt]),
+  U = string:join(U0, "<br/>\n"),
   unicode:characters_to_binary(lists:flatten(U), utf8).
 
 mod(T) ->

@@ -8,7 +8,10 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([ start_link/1
+        , get/1
+        , new/1
+        ]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -18,6 +21,7 @@
 
 -record(mcb_session, {
           %% this like, allows ipv6 too, but will we ever support that?
+          sesid = <<>> :: binary(),
           remote_addr = {0,0,0,0} :: ipaddr_t(),
           user :: #mcb_user{}
          }).
@@ -26,12 +30,31 @@
 %%====================================================================
 %% API
 %%====================================================================
+
+%%%------------------------------------------------------------------------
+%% @doc Examines request for session cookie, and gets current user
+-spec get(SesId :: undefined | binary()) -> pid() | undefined.
+get(undefined) -> undefined;
+get(SesId) -> gproc:lookup_local_name({macaba_session, SesId}).
+
+%%%------------------------------------------------------------------------
+%% @doc Creates session process with given 'Params' returns SesId and Pid
+%% Params[remote_addr] - erlang tuple with IPv4 or IPv6, Params[user] -
+%% #mcb_user{} structure
+-spec new(Params :: orddict:orddict()) -> {binary(), pid()}.
+new(Params0) ->
+  SesId = make_random_sesid(32, []),
+  %%Pid = gen_server:start_link(macaba_ses, [Params], []),
+  Params1 = [{sesid, SesId} | Params0],
+  {ok, Pid} = supervisor:start_child(macaba_ses_sup, [Params1]),
+  {SesId, Pid}.
+
+%%%------------------------------------------------------------------------
 %% @doc Starts the server
 -spec start_link([{atom(), any()}]) ->
                     {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Params) ->
-  gen_server:start_link( %%{local, ?SERVER},
-    ?MODULE, Params, []).
+  gen_server:start_link( {local, ?SERVER}, ?MODULE, Params, []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -42,9 +65,12 @@ start_link(Params) ->
                                   | {stop, Reason :: any()}.
 init(Params) ->
   RemoteAddr = macaba:propget(remote_addr, Params, {0,0,0,0}),
-  User = macaba:propget(user, Params, #mcb_user{}),
+  User       = macaba:propget(user, Params, #mcb_user{}),
+  SesId      = macaba:propget(sesid, Params),
+  gproc:add_local_name({macaba_session, SesId}),
   {ok, #mcb_session{
-     user = User,
+     sesid       = SesId,
+     user        = User,
      remote_addr = RemoteAddr
     }}.
 
@@ -103,6 +129,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+%% @private
+make_random_sesid(0, A) -> list_to_binary(A);
+make_random_sesid(X, A) ->
+  Ch = case random:uniform(62)-1 of
+         C when C < 10 -> $0 + C;
+         C when C < 36 -> $A + C - 10;
+         C -> $a + C - 36
+       end,
+  make_random_sesid(X-1, [Ch|A]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

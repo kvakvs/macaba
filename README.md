@@ -46,6 +46,8 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
     markup tests
 *   Preview function for markup in HTML mode (ajax inside inline div)
 *   REST API design docs and mock server http://docs.macaba.apiary.io/
+*   poster_id board option and post field, builds hash of 3 bytes of IP + user
+    agent, hashes it and encodes base62
 
 ### In progress
 
@@ -80,7 +82,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Websocket API for custom UIs and live update -
     *   constant update flow for board/thread
 *   (in progress) Modular support for: post parsing, themes, additional
-    site sections, post display (color or text codes for same person detection)
+    site sections, post display
 
 ### Tier 3 TODO: want, but in future
 

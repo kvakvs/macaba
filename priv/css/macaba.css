@@ -93,3 +93,20 @@ div.popupdiv {
   color: #000000;
   border: 1px solid #1a1a1a;
 }
+
+/* admin and mod links */
+a.mod {
+  color: #44f;
+  border: 1px solid #88f;
+  background: #ffc;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+a.admin {
+  color: #c00;
+  border: 1px solid #f88;
+  background: #ffc;
+  padding-left: 6px;
+  padding-right: 6px;
+}

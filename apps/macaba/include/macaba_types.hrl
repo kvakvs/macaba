@@ -37,7 +37,7 @@
           , max_thread_posts = 500 :: integer()
           %% hard limit: thread is locked at this point (mods can unlock)
           , max_thread_post_lock = 2500 :: integer()
-
+          , poster_id = text :: none | text
         %% , post_mod_only   :: boolean() % only mods can post and make threads
         %% , thread_mod_only :: boolean() % only mods can make threads
         %% , thread_requires_attach :: boolean() % upload pic for new thread
@@ -85,6 +85,7 @@
             thread_id          :: binary()
           , board_id           :: binary()
           , post_id            :: binary()
+          , poster_id = 0      :: integer()
           , subject = <<>>     :: binary()  % trusted HTML
           , author  = <<>>     :: binary()  % trusted HTML
           , email   = <<>>     :: binary()  % trusted HTML

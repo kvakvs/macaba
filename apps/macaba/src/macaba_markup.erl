@@ -66,7 +66,7 @@ wakabamark(T0) when is_list(T0) ->
                 end, U2),
 
   %% remove leading and trailing empty lines
-  string:join(U, "<br/>\n").
+  U.
 
 %% @private
 %% @doc Wraps whole-line constructs into {something, Line}, then later we can

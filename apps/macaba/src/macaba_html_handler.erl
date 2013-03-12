@@ -76,16 +76,6 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 %%%-----------------------------------------------------------------------------
-%%% Utility: Preview markup
-%%%-----------------------------------------------------------------------------
-macaba_handle_util_preview(<<"POST">>, {Req0, State0}) ->
-  lager:debug("http POST util/preview"),
-  PD = State0#mcb_html_state.post_data,
-  Message = macaba:propget(<<"markup">>, PD, <<>>),
-  MessageProcessed = macaba_plugins:call(markup, [Message]),
-  response_text(200, MessageProcessed, Req0, State0).
-
-%%%-----------------------------------------------------------------------------
 %% @doc GET/POST: /admin
 %%%-----------------------------------------------------------------------------
 macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
@@ -113,10 +103,12 @@ chain_check_admin_login({Req0, State0=#mcb_html_state{ post_data=PD }}) ->
   {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
   Login = macaba:propget(<<"login">>, PD),
   Password = macaba:propget(<<"password">>, PD),
-  case {ALogin =:= Login, APassword = Password} of
+  %% lager:debug("L=~s:P=~s AL=~s:AP=~s", [Login, Password, ALogin, APassword]),
+  case {ALogin =:= Login, APassword =:= Password} of
     {true, true} ->
       {Req, State} = create_session_for(#mcb_user{type=admin}, Req0, State0),
-      {ok, {Req, State}};
+      %% stop checking passwords right here
+      {error, {Req, State}};
     _ ->
       {ok, {Req0, State0}}
   end.
@@ -139,6 +131,16 @@ chain_fail_if_user({Req0, State0}, Role) ->
     _ ->
       {ok, {Req, State}}
   end.
+
+%%%-----------------------------------------------------------------------------
+%%% Utility: Preview markup
+%%%-----------------------------------------------------------------------------
+macaba_handle_util_preview(<<"POST">>, {Req0, State0}) ->
+  lager:debug("http POST util/preview"),
+  PD = State0#mcb_html_state.post_data,
+  Message = macaba:propget(<<"markup">>, PD, <<>>),
+  MessageProcessed = macaba_plugins:call(markup, [Message]),
+  response_text(200, MessageProcessed, Req0, State0).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET /
@@ -291,7 +293,7 @@ chain_check_thread_exists({Req0, State0=#mcb_html_state{post_data=PD}}) ->
 
 %%%---------------------------------------------------
 %% @private
-get_post_create_options(_Req0, #mcb_html_state{post_data=PD}) ->
+get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
   ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
   Author   = macaba:propget(<<"author">>,    PD, ""),
@@ -300,6 +302,7 @@ get_post_create_options(_Req0, #mcb_html_state{post_data=PD}) ->
   Message  = macaba:propget(<<"message">>,   PD, ""),
   Attach   = macaba:propget(<<"attach">>,    PD, ""),
   DeletePw = macaba:propget(<<"deletepw">>,  PD, ""),
+  PosterId = macaba_web:get_poster_id(Req0),
 
   orddict:from_list([ {thread_id,  ThreadId}
                     , {author,     Author}
@@ -307,6 +310,7 @@ get_post_create_options(_Req0, #mcb_html_state{post_data=PD}) ->
                     , {subject,    Subject}
                     , {message,    Message}
                     , {attach,     Attach}
+                    , {poster_id,  PosterId}
                     %% , {attach_key, state_get_var(attach_key, State)}
                     , {deletepw,   DeletePw}
                     ]).
@@ -615,8 +619,12 @@ acc_multipart({eof, Req}, Acc) ->
                   {cowboy_req:req(), #mcb_html_state{}}.
 get_user(Req0, State0) ->
   {SesId, Req} = cowboy_req:cookie(ses_cookie_name(), Req0),
-  User = macaba_web:get_session(SesId),
+  User = case macaba_ses:get(SesId) of
+           undefined -> #mcb_user{};
+           Pid -> gen_server:call(Pid, get_user)
+         end,
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
+  %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
   {Req, State#mcb_html_state{user=User}}.
 
 %% @private
@@ -627,8 +635,10 @@ create_session_for(U=#mcb_user{}, Req0, State0) ->
   Opts = [ {remote_addr, RemoteAddr}
          , {user, U}
          ],
-  {SesId, _SesPid} = macaba_web:new_session(Opts),
-  Req = cowboy_req:set_resp_cookie(ses_cookie_name(), SesId, [], Req0),
+  {SesId, _SesPid} = macaba_ses:new(Opts),
+  %% lager:debug("set resp cookie ~p=~p", [ses_cookie_name(), SesId]),
+  Req = cowboy_req:set_resp_cookie(
+          ses_cookie_name(), SesId, [{path, <<"/">>}], Req0),
   State = State0#mcb_html_state{ user=U },
   {Req, State}.
 

@@ -32,6 +32,8 @@ use p.created_local for server time, or p.created_utc for GMT time
         {% if p.author %}{{ p.author }}
           {% else %}{{ board_info.anonymous_name }}{% endif %}
         {% if p.email %}</a>{% endif %}
+
+        {% if board_info.poster_id == "text" %}ID={{p.poster_id}}{% endif %}
       </span>
       <span class="time">{{ p.created_utc|date:"D d M Y" }}
         {{ p.created_utc|time:"H:i:s" }}</span>
@@ -68,4 +70,4 @@ use p.created_local for server time, or p.created_utc for GMT time
     </td>
     <td class="msg" id="m{{ p.post_id }}">{{ p.message }}</td>
   </tr>
-</table>
+</table> <!-- end post -->
