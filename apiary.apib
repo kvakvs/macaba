@@ -92,3 +92,16 @@ POST /board
 < 200
 < Content-Type: application/json
 { "result": "ok", "url": "/board/b/" }
+
+--
+Helpers
+Random utility tools
+--
+
+Runs markup processing over given piece of text, to help user preview his post.
+POST /util/preview
+> Content-Type: application/json
+{ "markup": "Hello _world_ **derp**" }
+< 200
+< Content-Type: application/json
+{ "html": "Hello <em>world</em> <strong>derp</strong>" }
