@@ -45,24 +45,21 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
     markup tests
 *   Preview function for markup in HTML mode (ajax inside inline div)
-*   REST API design docs and mock server http://docs.macaba.apiary.io/
-*   poster_id board option and post field, builds hash of 3 bytes of IP + user
-    agent, hashes it and encodes base62
-
-### In progress
-
-*   Authentication for mods and admins, maybe sessions. User
-    groups and post access for different groups
+*   REST API design in progress http://docs.macaba.apiary.io/
+*   poster_id, a base62 encoded hash of ip/user-agent
 *   Admin UI
     *   Login form and login handler located at /admin
     *   Sessions support
 
-### Tier 1 TODO: important
+### In progress
 
 *   Admin UI
     *   Mod: Thread management - locking, pinning, deleting, moving
     *   Admin: Configuring boards list and board options
     *   Admin: Site options, maintenance mode, read-only mode
+
+### Tier 1 TODO: important
+
 *   Captcha support, flood detection, basic DDOS resistance
 *   Different backends for storing attachments (static file system, S3)
 *   Import quickstart scripts for Wakaba/Kusaba
