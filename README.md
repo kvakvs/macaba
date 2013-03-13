@@ -39,7 +39,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
         reply
     *   Basic plain HTML scriptless theme (later REST API, Websocket)
     *   File upload (1 per post)
-    *   WakabaMark (no ^H or spoiler support as of yet) optional Markdown support
+    *   WakabaMark (no ^H/spoiler support as of yet) optional Markdown support
     *   Board limits, delete when thread is sinking
     *   Deleting posts by user, optional deletion of attachments only
     *   Preview function for markup in HTML mode (ajax inside inline div)
@@ -65,12 +65,19 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Tier 1 TODO: important
 
-*   Captcha support, flood detection, basic DDOS resistance
+*   Timestamps, Etags, If-modified-since, Expires HTTP headers support:
+    *   board_dynamic
+    *   thread_dynamic
+    *   post view as separate resource (related to tier2 todo for post resource)
+    *   attachments
 *   Different backends for storing attachments (static file system, S3)
+*   Modules/hooks support for: post parsing, themes, additional
+    site sections, post display
 *   Import quickstart scripts for Wakaba/Kusaba
 
 ### Tier 2 TODO: do it later
 
+*   Captcha support, flood detection, basic DDOS resistance
 *   Thread viewing mode (pagination, last X posts), post as separate resource
 *   Mod-deleted posts should be visible in thread
 *   Users participation - reporting posts and threads
@@ -79,10 +86,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
     *   get/list/create board/thread/post
     *   check update for board/thread
     *   markup preview function
-*   Websocket API for custom UIs and live update -
-    *   constant update flow for board/thread
-*   (in progress) Modular support for: post parsing, themes, additional
-    site sections, post display
+*   Websocket API for custom UIs and live update for board/thread
 
 ### Tier 3 TODO: want, but in future
 
