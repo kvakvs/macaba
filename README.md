@@ -33,30 +33,35 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Done
 
-*   Designed for running as a single node or as multiple nodes
-*   Basic board functions: board index, thread index, thread view, new thread,
-    reply
-*   Basic plain HTML scriptless theme (later REST API, Websocket)
-*   File upload (1 per post)
-*   WakabaMark (no ^H or spoiler support as of yet) optional Markdown support
-*   Board limits, delete when thread is sinking
-*   Deleting posts by user, optional deletion of attachments only
-*   Simple plugins system. Extension modules and hooks are work-in-progress
-*   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
-    markup tests
-*   Preview function for markup in HTML mode (ajax inside inline div)
-*   REST API design in progress http://docs.macaba.apiary.io/
-*   poster_id, a base62 encoded hash of ip/user-agent
-*   Admin UI
+*   General board features
+    *   Designed for running as a single node or as multiple nodes
+    *   Basic board functions: board index, thread index, thread view, new thread,
+        reply
+    *   Basic plain HTML scriptless theme (later REST API, Websocket)
+    *   File upload (1 per post)
+    *   WakabaMark (no ^H or spoiler support as of yet) optional Markdown support
+    *   Board limits, delete when thread is sinking
+    *   Deleting posts by user, optional deletion of attachments only
+    *   Preview function for markup in HTML mode (ajax inside inline div)
+    *   Optional per board poster_id, a base62 encoded hash of ip/user-agent
+*   Moderator/Administrator UI
     *   Login form and login handler located at /admin
     *   Sessions support
+*   Other features
+    *   Simple plugins system. Extension modules and hooks are work-in-progress
+    *   REST API design in progress http://docs.macaba.apiary.io/
+*   Quality and testing
+    *   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
+        markup tests
 
 ### In progress
 
-*   Admin UI
-    *   Mod: Thread management - locking, pinning, deleting, moving
-    *   Admin: Configuring boards list and board options
-    *   Admin: Site options, maintenance mode, read-only mode
+*   Mod: Thread management - locking, pinning, deleting, moving
+*   Mod: Reviewing reported posts
+*   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
+*   Mod: User blacklisting, bans, ban page with ban reason
+*   Admin: Configuring boards list and board options
+*   Admin: Site options, maintenance mode, read-only mode
 
 ### Tier 1 TODO: important
 
@@ -66,11 +71,9 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Tier 2 TODO: do it later
 
+*   Thread viewing mode (pagination, last X posts), post as separate resource
+*   Mod-deleted posts should be visible in thread
 *   Users participation - reporting posts and threads
-*   Admin UI
-    *   Mod: Reviewing reported posts
-    *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
-    *   Mod: User blacklisting, bans, ban page with ban reason
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications -
     *   get/list/create board/thread/post

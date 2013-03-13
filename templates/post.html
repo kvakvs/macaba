@@ -1,19 +1,21 @@
 {% comment %}-------------------------------------------------------------------
-This snippet represents a forum post, or OP-post (first post in thread)
-this is called from a loop, so 'forloop' variable is always available
-post object is passed as 'p' variable which has fields:
-- p.post_id (string)
-- p.author (string)
-- p.email (string)
-- p.subject (string)
-- p.created_utc, p.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
-- p.attach_info (list of attach objects)
-  - att.hash (binary string) a binary hash key of attach (do not use!)
-  - att.hash_hex (string) a hex representation of att.hash (displayable)
-  - att.content_type (string) HTTP content-type for attach
-  - att.size (integer)
-- p.message (string)
-use p.created_local for server time, or p.created_utc for GMT time
+| This snippet represents a forum post, or OP-post (first post in thread)
+| this is called from a loop, so 'forloop' variable is always available
+| post object is passed as 'p' variable which has fields:
+| - p.post_id (string)
+| - p.author (string)
+| - p.email (string)
+| - p.subject (string)
+| - p.created_utc, p.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
+| - p.attach_info (list of attach objects)
+|   - att.hash (binary string) a binary hash key of attach (do not use!)
+|   - att.hash_hex (string) a hex representation of att.hash (displayable)
+|   - att.content_type (string) HTTP content-type for attach
+|   - att.size (integer)
+| - p.message (string)
+| use p.created_local for server time, or p.created_utc for GMT time
+| - inside_thread: set to 1 if viewing thread, not set if viewing board
+| - board_info: #mcb_board{} struct with board options
 ----------------------------------------------------------------{% endcomment %}
 <a name="i{{ p.post_id }}"></a>
 <table border="0" cellpadding="8" cellspacing="0" id="post_{{ p.post_id }}"
@@ -33,10 +35,16 @@ use p.created_local for server time, or p.created_utc for GMT time
           {% else %}{{ board_info.anonymous_name }}{% endif %}
         {% if p.email %}</a>{% endif %}
 
+        {% if board_info.poster_id == "sage" %}
+        ID={% if p.email == "sage" %}{{board_info.poster_id_sage_text}}
+        {% else %}{{p.poster_id}}{% endif %}{% endif %}
+
         {% if board_info.poster_id == "text" %}ID={{p.poster_id}}{% endif %}
       </span>
+
       <span class="time">{{ p.created_utc|date:"D d M Y" }}
         {{ p.created_utc|time:"H:i:s" }}</span>
+
       <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
           №{{ p.post_id }}</a></span>
       {% if p.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}

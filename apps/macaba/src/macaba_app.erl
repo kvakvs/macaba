@@ -45,23 +45,28 @@ start_web() ->
                      , {<<".jpg">>,  [<<"image/jpeg">>]}
                      , {<<".png">>,  [<<"image/png">>]}
                      ]},
-  S = cowboy_static,
-  H = macaba_html_handler,
+  SMod = cowboy_static,
+  HMod = macaba_html_handler,
+  AMod = macaba_html_admin,
 
-  St1 = {"/css/[...]", S, [{directory, CSSPath}, Mime]},
-  St2 = {"/js/[...]",  S, [{directory, JSPath},  Mime]},
-  St3 = {"/img/[...]", S, [{directory, ImgPath}, Mime]},
+  St1 = {"/css/[...]", SMod, [{directory, CSSPath}, Mime]},
+  St2 = {"/js/[...]",  SMod, [{directory, JSPath},  Mime]},
+  St3 = {"/img/[...]", SMod, [{directory, ImgPath}, Mime]},
 
-  TNew     = {"/board/:mcb_board/thread/new", H, [thread_new]},
-  TManage = {"/board/:mcb_board/thread/:mcb_thread/manage", H, [thread_manage]},
-  TShow    = {"/board/:mcb_board/thread/:mcb_thread", H, [thread]},
-  TRepl    = {"/board/:mcb_board/post/new", H, [post_new]},
-  BShow1   = {"/board/:mcb_board/:mcb_page", H, [board]},
-  BShow2   = {"/board/:mcb_board", H, [board]},
-  AttThumb = {"/attach/:mcb_attach/thumb", H, [attach_thumb]},
-  Attach   = {"/attach/:mcb_attach", H, [attach]},
-  ALogin   = {"/admin", H, [admin]},
-  UPvw   = {"/util/preview", H, [util_preview]},
+  %%--- anonymous/public resources ---
+  Index    = {"/", HMod, [index]},
+  TNew     = {"/board/:mcb_board/thread/new", HMod, [thread_new]},
+  TManage  = {"/board/:mcb_board/thread/:mcb_thread/manage", HMod, [thread_manage]},
+  TShow    = {"/board/:mcb_board/thread/:mcb_thread", HMod, [thread]},
+  TRepl    = {"/board/:mcb_board/post/new", HMod, [post_new]},
+  BShow1   = {"/board/:mcb_board/:mcb_page", HMod, [board]},
+  BShow2   = {"/board/:mcb_board", HMod, [board]},
+  AttThumb = {"/attach/:mcb_attach/thumb", HMod, [attach_thumb]},
+  Attach   = {"/attach/:mcb_attach", HMod, [attach]},
+  UPvw     = {"/util/preview", HMod, [util_preview]},
+
+  %%--- admin resources ---
+  ALogin   = {"/admin", AMod, [admin]},
 
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
@@ -69,7 +74,7 @@ start_web() ->
                    , TNew, TManage, TShow, TRepl
                    , BShow1, BShow2
                    , ALogin, UPvw
-                   , {"/", H, [index]}
+                   , Index
                    ]}
            ]),
   {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),

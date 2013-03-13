@@ -37,7 +37,10 @@
           , max_thread_posts = 500 :: integer()
           %% hard limit: thread is locked at this point (mods can unlock)
           , max_thread_post_lock = 2500 :: integer()
-          , poster_id = text :: none | text
+          %% display userid as "text"=text, "sage"=text but don't display if sage
+          , poster_id = sage :: none | text | sage
+          %% text to display if board.poster_id=sage and post.email=sage
+          , poster_id_sage_text = <<"Heaven">>
         %% , post_mod_only   :: boolean() % only mods can post and make threads
         %% , thread_mod_only :: boolean() % only mods can make threads
         %% , thread_requires_attach :: boolean() % upload pic for new thread
@@ -140,6 +143,14 @@
           , session_key :: binary()
           , session_pid :: pid()
           , name = <<>> :: binary()
+         }).
+
+-record(mcb_html_state, {
+          mode                     :: atom(),
+          page_vars = []           :: orddict:orddict(),
+          already_rendered = false :: boolean(),
+          post_data = []           :: orddict:orddict(),
+          user                     :: #mcb_user{}
          }).
 
 -endif. % MACABA_TYPES_HRL
