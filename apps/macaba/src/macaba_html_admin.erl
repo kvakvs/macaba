@@ -9,7 +9,8 @@
 -export([ init/3
         , handle/2
         , terminate/3]).
--export([ macaba_handle_admin/2
+-export([ macaba_handle_offline/2
+        , macaba_handle_admin/2
         , macaba_handle_admin_site/2
         , macaba_handle_admin_site_boards/2
         , macaba_handle_admin_site_offline/2
@@ -33,6 +34,15 @@ handle(Req0, State0) ->
 
 terminate(_Reason, _Req, _State) ->
   ok.
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET: /offline - board shut down by admin
+%%%-----------------------------------------------------------------------------
+macaba_handle_offline(_, {Req0, State0}) ->
+  Site = macaba_board:get_site_config(),
+  M = Site#mcb_site_config.offline_message,
+  State = macaba_web:state_set_var(offline_message, M, State0),
+  macaba_web:render_page("offline", Req0, State).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/login - login form
@@ -152,20 +162,21 @@ macaba_handle_admin_site_offline(<<"POST">>, {Req0, State0}) ->
   {_, {Req, State}} = macaba_web:chain_run(
                         [ fun(X) -> chain_fail_if_user_not(X, admin) end
                         , fun chain_edit_site_offline/1
-                        ], {Req0, State0}),
-  macaba_web:redirect("/admin", Req, State).
+                        ], {Req0, State0}).
 
 chain_edit_site_offline({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   Site0 = macaba_board:get_site_config(),
-  Offline = macaba:propget(<<"offline">>, PD, false),
+  Offline = macaba:as_bool(macaba:propget(<<"offline">>, PD, false)),
   OfflineMsg = macaba:propget(<<"offline_message">>, PD,
                               Site0#mcb_site_config.offline_message),
   Site = Site0#mcb_site_config{
-           offline = macaba:as_bool(Offline),
-           offline_message = macaba:as_string(OfflineMsg)
+           offline = Offline,
+           offline_message = macaba:as_binary(OfflineMsg)
           },
   macaba_board:set_site_config(Site),
-  {ok, {Req0, State0}}.
+  lager:info("board offline mode set to: ~p", [Offline]),
+  macaba_app:change_offline_mode(Offline),
+  {ok, macaba_web:redirect("/admin", Req0, State0)}.
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site/boards - edit boards list

@@ -12,7 +12,12 @@
 -export([ start/0
         , start/2
         , stop/1
-        , start_web/0]).
+        , start_web/0
+        , change_offline_mode/1
+        ]).
+
+-include_lib("macaba/include/macaba_types.hrl").
+-define(MACABA_LISTENER, macaba_http_listener).
 
 %% ===================================================================
 %% Application callbacks
@@ -35,6 +40,25 @@ start_web() ->
   ok = macaba:ensure_started(ranch),
   ok = macaba:ensure_started(cowboy),
 
+  Site = macaba_board:get_site_config(),
+  Disp = cowboy_compile_dispatch(Site#mcb_site_config.offline),
+  cowboy_start_listener(Disp).
+
+cowboy_start_listener(Disp) ->
+  {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
+  {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
+  cowboy:start_http(?MACABA_LISTENER, Listeners,
+                    [{port, HttpPort}],
+                    [{env, [{dispatch, Disp}]}]
+                   ).
+
+change_offline_mode(Offline) ->
+  Disp = cowboy_compile_dispatch(Offline),
+  %% cowboy:stop_listener(?MACABA_LISTENER),
+  %% cowboy_start_listener(Disp).
+  cowboy:set_env(?MACABA_LISTENER, dispatch, Disp).
+
+cowboy_compile_dispatch(Offline) ->
   CurrentDir = filename:absname(""),
   CSSPath = filename:join([CurrentDir, "priv", "css"]),
   JSPath  = filename:join([CurrentDir, "priv", "js"]),
@@ -73,22 +97,27 @@ start_web() ->
   ALogin  = {"/admin/login", AMod, [admin_login]},
   ALanding= {"/admin", AMod, [admin]},
 
-  Disp = cowboy_router:compile(
-           [ {'_', [ St1, St2, St3
-                   , AttThumb, Attach
-                   , TNew, TManage, TShow, TRepl
-                   , BShow1, BShow2
-                   , ASiteB, ASiteO, ASite, ALogin, ALanding
-                   , UPvw
-                   , Index
-                   ]}
-           ]),
-  {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
-  {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
-  cowboy:start_http(macaba_http_listener, Listeners,
-                    [{port, HttpPort}],
-                    [{env, [{dispatch, Disp}]}]
-                   ).
+  %% if board is offline, attaches, boards, threads and preview is shutting down
+  %% TODO: make a good 404 page
+  case Offline of
+    false ->
+      BoardResources = [ AttThumb, Attach
+                       , TNew, TManage, TShow, TRepl
+                       , BShow1, BShow2
+                       , UPvw, Index
+                       ],
+      CatchAll = [];
+    true ->
+      BoardResources = [],
+      CatchAll = [{'_', AMod, [offline]}]
+  end,
+  cowboy_router:compile(
+    [ {'_',
+       [ St1, St2, St3 ]
+       ++ BoardResources
+       ++ [ ASiteB, ASiteO, ASite, ALogin, ALanding ]
+       ++ CatchAll
+      } ]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

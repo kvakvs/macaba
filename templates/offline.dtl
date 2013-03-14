@@ -1,0 +1,8 @@
+{% include "header.html" %}
+
+<h1>Board offline</h1>
+
+<p>Board has been brought offline by administrator. But wait, here's message:</p>
+<blockquote>{{offline_message}}</blockquote>
+
+{% include "footer.html" %}

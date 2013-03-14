@@ -47,6 +47,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Moderator/Administrator UI
     *   Login form and login handler located at /admin
     *   Sessions support
+    *   Admin: Site options, maintenance mode, boards list and board options
 *   Other features
     *   Simple plugins system. Extension modules and hooks are work-in-progress
     *   REST API design in progress http://docs.macaba.apiary.io/
@@ -60,8 +61,6 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Mod: Reviewing reported posts
 *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
 *   Mod: User blacklisting, bans, ban page with ban reason
-*   Admin: Configuring boards list and board options
-*   Admin: Site options, maintenance mode, read-only mode
 
 ### Tier 1 TODO: important
 

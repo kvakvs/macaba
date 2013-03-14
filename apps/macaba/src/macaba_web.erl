@@ -33,11 +33,11 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     {Method, Req1} = cowboy_req:method(Req0),
 
     %% parse request body as multipart, this will not work for POST urlencoded
-    {Req2, State1} = case macaba_web:is_POST_and_multipart(Req1) of
+    {Req2, State1} = case ?MODULE:is_POST_and_multipart(Req1) of
                        {true, true}  ->
-                         macaba_web:parse_multipart_form_data(Req1, State0);
+                         ?MODULE:parse_multipart_form_data(Req1, State0);
                        {true, false}  ->
-                         macaba_web:parse_body_qs(Req1, State0);
+                         ?MODULE:parse_body_qs(Req1, State0);
                        {false, _} ->
                          {Req1, State0}
                      end,
@@ -47,7 +47,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     %% TODO: cache site config in memory or in state
     #mcb_site_config{ offline=SiteOffline } = macaba_board:get_site_config(),
     State3 = State2#mcb_html_state{ site_offline = SiteOffline },
-    State4 = macaba_web:state_set_var(site_offline, SiteOffline, State3),
+    State4 = ?MODULE:state_set_var(site_offline, SiteOffline, State3),
 
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
     {Req4, State5} = apply(Module, FnName, [Method, {Req3, State4}]),
@@ -56,7 +56,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
                                          [E, erlang:get_stacktrace()])),
          lager:error(E),
-         {ReqE, StateE} = macaba_web:response_text(500, T, Req0, State0),
+         {ReqE, StateE} = ?MODULE:response_text(500, T, Req0, State0),
          {ok, ReqE, StateE}
   end.
 
@@ -149,7 +149,7 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user
-redirect(URL, Req0, State) ->
+redirect(URL, Req0, State=#mcb_html_state{}) when is_tuple(Req0) ->
   {ok, Req} = cowboy_req:reply(
                 301, [{<<"Location">>, macaba:as_binary(URL)}],
                 <<>>, Req0),
@@ -284,7 +284,7 @@ get_user(Req0, State0) ->
              gen_server:call(Pid, get_user)
          end,
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
-  lager:debug("get_user: coo=~s user=~p", [SesId, User]),
+  %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
   {Req, State#mcb_html_state{user=User}}.
 
 %% @doc Creates session process, sets response cookie, and sets user field

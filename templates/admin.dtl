@@ -25,10 +25,7 @@
       vestibulum vitae vel lorem.</p>
 </div>
   <div class="span5">
-    <h3>Rules for admins</h3>
-    <ol>
-      <li></li>
-    </ol>
+    {% include "rules.html" %}
   </div>
 </div> <!-- end row -->
 
