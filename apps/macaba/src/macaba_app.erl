@@ -66,14 +66,17 @@ start_web() ->
   UPvw     = {"/util/preview", HMod, [util_preview]},
 
   %%--- admin resources ---
-  ALogin   = {"/admin", AMod, [admin]},
+  ASite   = {"/admin/site", AMod, [admin_site]},
+  ALogin  = {"/admin/login", AMod, [admin_login]},
+  ALanding= {"/admin", AMod, [admin]},
 
   Disp = cowboy_router:compile(
            [ {'_', [ St1, St2, St3
                    , AttThumb, Attach
                    , TNew, TManage, TShow, TRepl
                    , BShow1, BShow2
-                   , ALogin, UPvw
+                   , ASite, ALogin, ALanding
+                   , UPvw
                    , Index
                    ]}
            ]),

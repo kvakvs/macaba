@@ -1,0 +1,42 @@
+{% comment %}-------------------------------------------------------------------
+| Admin: Manage site settings page
+|
+| Incoming parameters: boards - an indexable property list, see
+| macaba_server.config for options description
++---------------------------------------------------------------{% endcomment %}
+{% include "header.html" %}
+
+<h3>Admin</h3>
+
+<form method="post" class="form-inline framedform"
+      enctype="multipart/form-data" action="/admin/site/offline">
+  <fieldset>
+    <legend>Offline board mode</legend>
+
+    <label class="checkbox"><input name="offline" type="checkbox">
+      Bring board offline</label><br />
+
+    with message <input name="offline_message" type="text"
+                        placeholder="Type something…" />
+    <br />
+    <br/>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </fieldset>  
+</form>
+
+
+<form method="post" class="form-inline framedform"
+      enctype="multipart/form-data" action="/admin/site/offline">
+  <fieldset>
+    <legend>Board subforums editor</legend>
+
+    <textarea id="message" name="message" rows="8" cols="80"
+              class="postmsg">{{siteconfig.boards}}</textarea>
+    <br />
+    <br />
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </fieldset>  
+</form>
+
+
+{% include "footer.html" %}

@@ -243,11 +243,14 @@ acc_multipart({eof, Req}, Acc) ->
 get_user(Req0, State0) ->
   {SesId, Req} = cowboy_req:cookie(ses_cookie_name(), Req0),
   User = case macaba_ses:get(SesId) of
-           undefined -> #mcb_user{};
-           Pid -> gen_server:call(Pid, get_user)
+           {error, not_found} ->
+             lager:debug("web:get_user ses '~s' not found", [SesId]),
+             #mcb_user{};
+           {ok, Pid} ->
+             gen_server:call(Pid, get_user)
          end,
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
-  %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
+  lager:debug("get_user: coo=~s user=~p", [SesId, User]),
   {Req, State#mcb_html_state{user=User}}.
 
 %% @doc Creates session process, sets response cookie, and sets user field

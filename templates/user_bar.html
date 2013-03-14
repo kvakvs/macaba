@@ -5,21 +5,21 @@
 <div class="userbar">
   Authenticated as {{user.name}} (<strong>{{user.type}}</strong>)
   &bull;
-  <a href="/admin/reported" class="mod">Reported</a>
-  <a href="/admin/appeal" class="mod">Bans</a>
-  <a href="/admin/ban" class="mod">Appeals</a>
+  <a href="/admin/reported" class="btn btn-warning btn-small">Reported</a>
+  <a href="/admin/appeal" class="btn btn-warning btn-small">Bans</a>
+  <a href="/admin/ban" class="btn btn-warning btn-small">Appeals</a>
 {% endif %}
 
 {% if user.type == "mod" %}
 {% endif %}
 
 {% if user.type == "admin" %}
-  <a href="/admin/blacklist" class="admin">Blacklist content</a>
-  <a href="/admin/site" class="admin">Edit Site</a>
-  <a href="/admin/boards" class="admin">Edit Boards</a>
+  <a href="/admin/blacklist" class="btn btn-danger btn-small">Blacklist content</a>
+  <a href="/admin/site" class="btn btn-danger btn-small">Edit Site</a>
+  <a href="/admin/boards" class="btn btn-danger btn-small">Edit Boards</a>
 {% endif %}
 
 {% if user.type != "anon" %}
-  <a href="/admin/logout" class="mod">Logout</a>
+  <a href="/admin/logout" class="btn btn-warning btn-small">Logout</a>
 </div> <!-- end userbar -->
 {% endif %}

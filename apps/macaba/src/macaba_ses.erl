@@ -26,6 +26,7 @@
           user :: #mcb_user{}
          }).
 -define(SERVER, ?MODULE).
+-define(SESTIMEOUT_MSEC, 60 * 60 * 1000). %% 60 min session timeout
 
 %%====================================================================
 %% API
@@ -33,9 +34,14 @@
 
 %%%------------------------------------------------------------------------
 %% @doc Examines request for session cookie, and gets current user
--spec get(SesId :: undefined | binary()) -> pid() | undefined.
-get(undefined) -> undefined;
-get(SesId) -> gproc:lookup_local_name({macaba_session, SesId}).
+-spec get(SesId :: undefined | binary()) -> {ok, pid()} | {error, not_found}.
+get(undefined) ->
+  undefined;
+get(SesId) ->
+  case catch gproc:lookup_local_name({macaba_session, SesId}) of
+    X when is_pid(X) -> {ok, X};
+    Error -> {error, not_found}
+  end.
 
 %%%------------------------------------------------------------------------
 %% @doc Creates session process with given 'Params' returns SesId and Pid
@@ -43,9 +49,10 @@ get(SesId) -> gproc:lookup_local_name({macaba_session, SesId}).
 %% #mcb_user{} structure
 -spec new(Params :: orddict:orddict()) -> {binary(), pid()}.
 new(Params0) ->
-  SesId = make_random_sesid(32, []),
+  SesId = make_random_sesid(32),
   %%Pid = gen_server:start_link(macaba_ses, [Params], []),
   Params1 = [{sesid, SesId} | Params0],
+  lager:debug("ses:new id=~s", [SesId]),
   {ok, Pid} = supervisor:start_child(macaba_ses_sup, [Params1]),
   {SesId, Pid}.
 
@@ -54,7 +61,8 @@ new(Params0) ->
 -spec start_link([{atom(), any()}]) ->
                     {ok, pid()} | ignore | {error, Error :: any()}.
 start_link(Params) ->
-  gen_server:start_link( {local, ?SERVER}, ?MODULE, Params, []).
+  gen_server:start_link(%%{local, ?SERVER}, 
+    ?MODULE, Params, []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -85,11 +93,11 @@ init(Params) ->
                      {stop, Reason :: any(), Reply :: any(),
                       #mcb_session{}} | {stop, Reason :: any(), #mcb_session{}}.
 handle_call(get_user, _From, State) ->
-  {reply, State#mcb_session.user, State};
+  {reply, State#mcb_session.user, State, ?SESTIMEOUT_MSEC};
 
 handle_call(_Request, _From, State) ->
   Reply = ok,
-  {reply, Reply, State}.
+  {reply, Reply, State, ?SESTIMEOUT_MSEC}.
 
 %%--------------------------------------------------------------------
 %% @doc Handling cast messages
@@ -98,7 +106,7 @@ handle_call(_Request, _From, State) ->
                      {noreply, #mcb_session{}, Timeout :: non_neg_integer()} |
                      {stop, Reason :: any(), #mcb_session{}}.
 handle_cast(_Msg, State) ->
-  {noreply, State}.
+  {noreply, State, ?SESTIMEOUT_MSEC}.
 
 %%--------------------------------------------------------------------
 %% @doc Handling all non call/cast messages
@@ -107,7 +115,7 @@ handle_cast(_Msg, State) ->
                      {noreply, #mcb_session{}, Timeout :: non_neg_integer()} |
                      {stop, Reason :: any(), #mcb_session{}}.
 handle_info(_Info, State) ->
-  {noreply, State}.
+  {noreply, State, ?SESTIMEOUT_MSEC}.
 
 %%--------------------------------------------------------------------
 %% @doc This function is called by a gen_server when it is about to
@@ -130,14 +138,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 %% @private
-make_random_sesid(0, A) -> list_to_binary(A);
-make_random_sesid(X, A) ->
-  Ch = case random:uniform(62)-1 of
+%% @doc Creates random sesid, repeats until it doesn't exist
+make_random_sesid(Length) ->
+  SesId = make_random_sesid_internal(crypto:rand_bytes(Length*4), []),
+  case ?MODULE:get(SesId) of
+    {error, not_found} -> SesId;
+    {ok, _} -> make_random_sesid(Length) % loop here until ses is uniq
+  end.
+
+%% @private
+make_random_sesid_internal(<<>>, A) -> list_to_binary(A);
+make_random_sesid_internal(<< X:32, Rest/binary >>, A) ->
+  Ch = case X rem 62 of
          C when C < 10 -> $0 + C;
          C when C < 36 -> $A + C - 10;
          C -> $a + C - 36
        end,
-  make_random_sesid(X-1, [Ch|A]).
+  make_random_sesid_internal(Rest, [Ch|A]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

@@ -49,8 +49,9 @@
 -define(MCB_SITE_CONFIG_VER, 1).
 %% @doc Website configuration, and boards list
 -record(mcb_site_config, {
-          boards = []     :: [#mcb_board{}],
-          offline = false :: boolean()
+            boards = []            :: [#mcb_board{}]
+          , offline = false        :: boolean()
+          , offline_message = <<>> :: binary()
          }).
 
 -define(MCB_BOARD_DYNAMIC_VER, 1).

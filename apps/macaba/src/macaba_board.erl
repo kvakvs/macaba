@@ -10,6 +10,7 @@
         %% , detect_content_type/1
 
         , get/1
+        , get_site_config/0
         , get_boards/0
         , add_thread/2
         , thread_bump_if_no_sage/4
@@ -37,9 +38,15 @@ add_thread(BoardId, ThreadId) ->
 %% @doc Returns list of configured boards
 -spec get_boards() -> [#mcb_board{}].
 get_boards() ->
-  case macaba_db_riak:read(mcb_site_config, <<"default">>) of
-    {ok, #mcb_site_config{ boards=B }} -> B;
-    {error, not_found} -> fake_default_boards()
+  #mcb_site_config{ boards=B } = get_site_config(),
+  B.
+
+%%%-----------------------------------------------------------------------------
+get_site_config() ->
+  Site = <<"default">>,
+  case macaba_db_riak:read(mcb_site_config, Site) of
+    {ok, #mcb_site_config{} = Conf} -> Conf;
+    {error, not_found} -> fake_default_site_config()
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -52,6 +59,14 @@ get(BoardId) ->
   end.
 
 %%%-----------------------------------------------------------------------------
+%% @private
+fake_default_site_config() ->
+  #mcb_site_config{
+    boards = fake_default_boards(),
+    offline = false,
+    offline_message = <<"Site is temporarily offline, come back in 15 min">>
+  }.
+
 %% @private
 fake_default_boards() ->
   {ok, DefaultAnon} = macaba_conf:get([<<"board">>,

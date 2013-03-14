@@ -1,4 +1,4 @@
-<form method="post" class="form-inline newpost" enctype="multipart/form-data"
+<form method="post" class="form-inline framedform" enctype="multipart/form-data"
       name="postform"
       action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
   {% if thread_id == "new" %}

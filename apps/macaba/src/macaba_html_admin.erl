@@ -10,7 +10,12 @@
         , handle/2
         , terminate/3]).
 -export([ macaba_handle_admin/2
-%%        , macaba_handle_admin_logout/2
+        , macaba_handle_admin_site/2
+        , macaba_handle_admin_login/2
+        , macaba_handle_admin_logout/2
+        ]).
+-export([ chain_check_admin_login/1
+        , chain_check_mod_login/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -53,25 +58,36 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 %%%-----------------------------------------------------------------------------
-%% @doc GET/POST: /admin
+%% @doc GET: /admin/login - login form
 %%%-----------------------------------------------------------------------------
-macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
-  lager:debug("http GET admin"),
-  %% Boards = macaba_board_cli:get_boards(),
-  %% State1 = state_set_var(boards, Boards, State0),
+macaba_handle_admin_login(<<"GET">>, {Req0, State0}) ->
+  lager:debug("http GET admin/login"),
   {_, {Req, State}} = macaba_web:chain_run(
                         [ fun macaba_html_handler:chain_get_boards/1
-                        , fun(X) -> chain_fail_if_user(X, anon) end
                         ], {Req0, State0}),
-  macaba_web:render_page("admin", Req, State);
+  macaba_web:render_page("admin_login", Req, State);
 
-macaba_handle_admin(<<"POST">>, {Req0, State0}) ->
-  lager:debug("http POST admin"),
+%%%-----------------------------------------------------------------------------
+%% POST: /admin - login
+macaba_handle_admin_login(<<"POST">>, {Req0, State0}) ->
+  lager:debug("http POST admin/login"),
   {_, {Req, State}} = macaba_web:chain_run(
                         [ fun chain_check_admin_login/1
                         , fun chain_check_mod_login/1
                         ], {Req0, State0}),
-  macaba_web:redirect("/admin/", Req, State).
+  macaba_web:redirect("/", Req, State).
+
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET: /admin - landing page
+%%%-----------------------------------------------------------------------------
+macaba_handle_admin(<<"GET">>, {Req0, State0}) ->
+  lager:debug("http GET admin"),
+  {_, {Req, State}} = macaba_web:chain_run(
+                        [ fun macaba_html_handler:chain_get_boards/1
+                        , fun(X) -> chain_fail_if_user(X, anon) end
+                        ], {Req0, State0}),
+  macaba_web:render_page("admin", Req, State).
 
 %% @private
 %% @doc Checks admin login and password from macaba.config
@@ -99,16 +115,48 @@ chain_check_mod_login({Req0, State0}) ->
 %% @private
 %% @doc Gets user from ses cookie, checks if its type is Role, changes to login
 %% page if user.type=Role
-chain_fail_if_user({Req0, State0}, Role) ->
-  %% {Req, State} = get_user(Req0, State0),
-  #mcb_user{type=Type} = State0#mcb_html_state.user,
+chain_fail_if_user({Req0, State0}, FailIfRole) ->
+  %% #mcb_user{type=Type} = macaba_ses:get_user(Req0, State0),
+  User = State0#mcb_html_state.user,
+  #mcb_user{type=Type} = User,
   case Type of
-    Role ->
+    FailIfRole ->
       %% Login required if accessing this as anonymous
-      {error, macaba_web:render_page("admin_login", Req0, State0)};
+      %% TODO: remember old URL
+      %% lager:debug("fail if user=~p -- ~p", [FailIfRole, User]),
+      %%{error, macaba_web:redirect("/admin/login", Req0, State0)};
+      {error, macaba_web:render_error(<<"Not authenticated">>, Req0, State0)};
     _ ->
+      %% lager:debug("user role=~p -- ~p", [FailIfRole, User]),
       {ok, {Req0, State0}}
   end.
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET: /admin/logout - delete admin cookie
+%%%-----------------------------------------------------------------------------
+macaba_handle_admin_logout(Method, {Req0, State0}) ->
+  lager:debug("http ~s admin/logout", Method),
+  %% {_, {Req, State}} = macaba_web:chain_run(
+  %%                       [], {Req0, State0}),
+  Coo = macaba_web:ses_cookie_name(),
+  Req = cowboy_req:set_resp_cookie(Coo, <<>>, [{path, <<"/">>}], Req0),
+  macaba_web:redirect("/", Req, State0).
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET: /admin/site - site config page
+%%%-----------------------------------------------------------------------------
+macaba_handle_admin_site(<<"GET">>, {Req0, State0}) ->
+  lager:debug("http GET admin/site"),
+  {_, {Req, State1}} = macaba_web:chain_run(
+                        [ fun macaba_html_handler:chain_get_boards/1
+                        , fun(X) -> chain_fail_if_user(X, anon) end
+                        ], {Req0, State0}),
+  Site = macaba_board:get_site_config(),
+  Boards0 = lists:map(fun macaba:record_to_proplist/1,
+                      Site#mcb_site_config.boards),
+  Boards = jsx:encode(Boards0),
+  State = macaba_web:state_set_var(siteconfig, [ {boards, Boards} ], State1),
+  macaba_web:render_page("admin_site", Req, State).
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

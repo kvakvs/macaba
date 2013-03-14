@@ -1,7 +1,9 @@
-all: deps compile
 MRUNCMD=erl -sname macaba@localhost -config macaba_erlang_node.config \
 	-pa ebin apps/*/ebin deps/*/ebin \
 	-s macaba_app -mnesia dir '"database/"'
+
+.PHONY: all
+all: deps compile
 
 .PHONY: run
 run: deps compile database
@@ -22,6 +24,7 @@ compile: rebar
 compilef:
 	./rebar compile skip_deps=true
 
+.PHONY: deps
 deps: rebar
 	./rebar get-deps
 
