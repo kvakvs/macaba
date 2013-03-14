@@ -44,14 +44,14 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     {Req3, State2} = macaba_web:get_user(Req2, State1),
 
     %% site offline flag
-    Site = macaba_board:get_site_config(),
-    State3 = State2#mcb_html_state{
-               site_offline = Site#mcb_site_config.offline
-              },
+    %% TODO: cache site config in memory or in state
+    #mcb_site_config{ offline=SiteOffline } = macaba_board:get_site_config(),
+    State3 = State2#mcb_html_state{ site_offline = SiteOffline },
+    State4 = macaba_web:state_set_var(site_offline, SiteOffline, State3),
 
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
-    {Req4, State4} = apply(Module, FnName, [Method, {Req3, State3}]),
-    {ok, Req4, State4}
+    {Req4, State5} = apply(Module, FnName, [Method, {Req3, State4}]),
+    {ok, Req4, State5}
   catch
     E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
                                          [E, erlang:get_stacktrace()])),

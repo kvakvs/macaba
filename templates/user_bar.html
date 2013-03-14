@@ -3,6 +3,10 @@
 ----------------------------------------------------------------{% endcomment %}
 {% if user.type != "anon" %}
 <div class="userbar">
+  {% if site_offline %}
+  <span class="label label-important">Site is set to OFFLINE</span>
+  {% endif %}
+
   Authenticated as {{user.name}} <span class="label">{{user.type}}</span>
   <a href="/admin" class="btn btn-small">Home</a>
   <a href="/admin/reported" class="btn btn-warning btn-small">Reported</a>
@@ -16,7 +20,6 @@
 {% if user.type == "admin" %}
   <a href="/admin/blacklist" class="btn btn-danger btn-small">Blacklist content</a>
   <a href="/admin/site" class="btn btn-danger btn-small">Edit Site</a>
-  <a href="/admin/boards" class="btn btn-danger btn-small">Edit Boards</a>
 {% endif %}
 
 {% if user.type != "anon" %}

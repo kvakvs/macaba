@@ -46,7 +46,7 @@
           enctype="multipart/form-data" action="/admin/site/boards">
       <fieldset>
         <legend>Edit boards</legend>
-        <textarea id="message" name="message" rows="8" cols="80"
+        <textarea id="message" name="boards" rows="8" cols="80"
                   class="postmsg">{{site_boards}}</textarea>
         <br />
         <br />

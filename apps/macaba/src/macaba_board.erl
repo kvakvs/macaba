@@ -53,7 +53,19 @@ get_site_config() ->
 
 %%%-----------------------------------------------------------------------------
 set_site_config(Site = #mcb_site_config{}) ->
-  macaba_db_riak:write(mcb_site_config, Site).
+  macaba_db_riak:write(mcb_site_config, Site),
+  %% ensure board dynamics created for new boards
+  Boards = Site#mcb_site_config.boards,
+  [internal_create_dynamic(BId) || #mcb_board{board_id=BId} <- Boards].
+
+%% @private
+internal_create_dynamic(BoardId) when is_binary(BoardId) ->
+  BD = case macaba_db_riak:read(mcb_board_dynamic, BoardId) of
+         {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
+         {ok, Value} -> Value
+       end,
+  macaba_db_riak:write(mcb_board_dynamic, BD),
+  macaba_db_mnesia:write(mcb_board_dynamic, BD).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board by name
