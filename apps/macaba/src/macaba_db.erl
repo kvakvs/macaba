@@ -87,9 +87,10 @@ get_key_for_object(#mcb_post{ post_id=PId, board_id=BId }) ->
   key_for(mcb_post, {BId, PId});
 get_key_for_object(#mcb_thread_dynamic{ board_id=BId, thread_id=TId }) ->
   key_for(mcb_thread_dynamic, {BId, TId});
-get_key_for_object(#mcb_board_dynamic{   board_id  = Id }) -> Id;
-get_key_for_object(#mcb_attachment{      hash      = Id }) -> Id;
-get_key_for_object(#mcb_attachment_body{ key       = Id }) -> Id.
+get_key_for_object(#mcb_board_dynamic{ board_id = Id }) -> Id;
+get_key_for_object(#mcb_attachment{ hash = Id }) -> Id;
+get_key_for_object(#mcb_attachment_body{ key = Id }) -> Id;
+get_key_for_object(#mcb_site_config{ site_id = Id }) -> Id.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Creates complex key

@@ -37,8 +37,9 @@
           , max_thread_posts = 500 :: integer()
           %% hard limit: thread is locked at this point (mods can unlock)
           , max_thread_post_lock = 2500 :: integer()
-          %% display userid as "text"=text, "sage"=text but don't display if sage
-          , poster_id = sage :: none | text | sage
+         %% display userid as "text"=text, "sage"=text but don't display if
+         %%  sage was set, or "none" - don't display at all
+          , poster_id = <<"sage">> :: binary()
           %% text to display if board.poster_id=sage and post.email=sage
           , poster_id_sage_text = <<"Heaven">>
         %% , post_mod_only   :: boolean() % only mods can post and make threads
@@ -49,7 +50,8 @@
 -define(MCB_SITE_CONFIG_VER, 1).
 %% @doc Website configuration, and boards list
 -record(mcb_site_config, {
-            boards = []            :: [#mcb_board{}]
+            site_id                :: binary()
+          , boards = []            :: [#mcb_board{}]
           , offline = false        :: boolean()
           , offline_message = <<>> :: binary()
          }).
@@ -147,11 +149,12 @@
          }).
 
 -record(mcb_html_state, {
-          mode                     :: atom(),
-          page_vars = []           :: orddict:orddict(),
-          already_rendered = false :: boolean(),
-          post_data = []           :: orddict:orddict(),
-          user                     :: #mcb_user{}
+            mode                     :: atom()
+          , page_vars = []           :: orddict:orddict()
+          , already_rendered = false :: boolean()
+          , post_data = []           :: orddict:orddict()
+          , user                     :: #mcb_user{}
+          , site_offline = false     :: boolean()
          }).
 
 -endif. % MACABA_TYPES_HRL

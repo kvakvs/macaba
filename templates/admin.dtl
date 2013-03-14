@@ -6,10 +6,30 @@
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
 
-<h1>News for admins</h1>
+<div class="row">
+  <div class="span7">
+    <h3>News for admins</h3>
+    <p> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec id felis est.
+      Sed quis libero quis augue luctus pharetra. Etiam tempus odio vitae lectus
+      lobortis id hendrerit arcu fringilla. Sed quis molestie libero. Vivamus
+      lacinia blandit elementum. Vestibulum pulvinar auctor lectus non aliquet.
+      Curabitur sed magna felis, eget euismod urna. Maecenas condimentum dignissim
+      est eget elementum.</p>
 
-<p>Hello world</p>
-
-<p>Now get to banning, slacker</p>
+    <p>Nam varius viverra diam, at cursus urna scelerisque auctor. Mauris venenatis
+      nunc vitae augue condimentum lacinia. Suspendisse id dolor at nibh mattis
+      pulvinar vel eu orci. Nulla et dui dui, sed feugiat erat. Aliquam dapibus
+      cursus fermentum. Donec nibh tortor, elementum eget lacinia id, tristique
+      at metus. Donec lacinia, purus pretium lacinia tempor, tortor nisl egestas
+      turpis, non hendrerit eros neque non quam. Duis id augue non quam suscipit
+      vestibulum vitae vel lorem.</p>
+</div>
+  <div class="span5">
+    <h3>Rules for admins</h3>
+    <ol>
+      <li></li>
+    </ol>
+  </div>
+</div> <!-- end row -->
 
 {% include "footer.html" %}

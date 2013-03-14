@@ -54,6 +54,11 @@ record_to_proplist(#mcb_attachment_body{}=Rec) ->
 record_to_proplist(#mcb_user{}=Rec) ->
   lists:zip(record_info(fields, mcb_user), tl(tuple_to_list(Rec)));
 
+record_to_proplist(#mcb_site_config{}=Rec0) ->
+  %% B = lists:map(fun record_to_proplist/1, B0),
+  %% Rec = Rec0#mcb_site_config{ boards = B },
+  lists:zip(record_info(fields, mcb_site_config), tl(tuple_to_list(Rec0)));
+
 record_to_proplist(X) -> error({badarg, X}).
 
 %% unix_time_to_str(U) ->
@@ -126,8 +131,10 @@ as_bool(0) -> false;
 as_bool(X) when is_integer(X) -> true;
 as_bool(X) when is_binary(X) -> as_bool(binary_to_list(X));
 as_bool("1") -> true;
-as_bool("0") -> false;
+as_bool("on") -> true;
 as_bool("true") -> true;
+as_bool("0") -> false;
+as_bool("") -> false;
 as_bool("false") -> false.
 
 %%--------------------------------------------------------------------

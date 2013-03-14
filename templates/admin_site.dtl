@@ -8,35 +8,86 @@
 
 <h3>Admin</h3>
 
-<form method="post" class="form-inline framedform"
-      enctype="multipart/form-data" action="/admin/site/offline">
-  <fieldset>
-    <legend>Offline board mode</legend>
+<div class="row">
+  <div class="span7">
+    <form method="post" class="form-inline framedform"
+          enctype="multipart/form-data" action="/admin/site/offline">
+      <fieldset>
+        <legend>Disabling board temporarily</legend>
 
-    <label class="checkbox"><input name="offline" type="checkbox">
-      Bring board offline</label><br />
+        <label class="checkbox"><input name="offline" type="checkbox"
+          {% if site_offline %}checked="checked"{% endif %} />
+          Bring site offline with message:</label><br />
 
-    with message <input name="offline_message" type="text"
-                        placeholder="Type something…" />
-    <br />
-    <br/>
-    <button type="submit" class="btn btn-primary">Submit</button>
-  </fieldset>  
-</form>
+        <textarea name="offline_message" rows="3" cols="80"
+                  class="postmsg">{{site_offline_message}}</textarea>
+        <br />
+        <br />
+        <button type="submit" class="btn btn-primary">Go</button>
+      </fieldset>
+    </form>
+  </div> <!-- end form span -->
+  <div class="span5">
+    <strong>How offline mode works</strong><br />
+    <small>
+      <p>Temporarily disables heaviest parts of site: boards, threads,
+        posts, Websocket and REST API modules, and displays a message to
+        users.</p>
+      <p>Message is trusted HTML, no filtering is done when displaying to
+        user.</p>
+    </small>
+  </div> <!-- end help span -->
+</div> <!-- end row -->
 
 
-<form method="post" class="form-inline framedform"
-      enctype="multipart/form-data" action="/admin/site/offline">
-  <fieldset>
-    <legend>Board subforums editor</legend>
-
-    <textarea id="message" name="message" rows="8" cols="80"
-              class="postmsg">{{siteconfig.boards}}</textarea>
-    <br />
-    <br />
-    <button type="submit" class="btn btn-primary">Submit</button>
-  </fieldset>  
-</form>
+<div class="row">
+  <div class="span7">
+    <form method="post" class="form-inline framedform"
+          enctype="multipart/form-data" action="/admin/site/boards">
+      <fieldset>
+        <legend>Edit boards</legend>
+        <textarea id="message" name="message" rows="8" cols="80"
+                  class="postmsg">{{site_boards}}</textarea>
+        <br />
+        <br />
+        <button type="submit" class="btn btn-primary">Edit boards</button>
+      </fieldset>
+    </form>
+  </div> <!-- end form span -->
+  <div class="span5">
+    <strong>Board fields explanation</strong><br />
+    <small>
+      <ul>
+        <li><code>board_id</code> - short unique id like "b" or "1" or "board0",
+          used
+          as database key and as part of board URL, can NOT be changed without
+          breaking the board and losing posts. A special renaming procedure
+          is required to change this without losing posts (NYI);</li>
+        <li><code>category</code> - can be used for grouping;</li>
+        <li><code>title</code> - a longer board name, like "Random /b/";</li>
+        <li><code>short_name</code> - a shorter board name to be used in
+          menus/links, can be changed anytime, like "/b/";</li>
+        <li><code>anonymous_name</code> - what to display if user did not fill
+          Author Name in post;</li>
+        <li><code>max_threads</code> - will delete least active/sinking threads
+          over this limit;</li>
+        <li><code>max_thread_posts</code> - soft limit, will stop bumping after
+          this limit allowing thread to sink;</li>
+        <li><code>max_threads_posts_lock</code> - will attempt to lock thread
+          when reaching this limit. Thread can be unlocked by mod and keep
+          growing, but will stop bumping due to reaching soft limit as
+          well;</li>
+        <li><code>poster_id</code> - display mode for unique per-poster code to
+          identify same person posting. Can be one of: "text" - display as text,
+          "sage" - display as text but if sage was set - display value of
+          <code>poster_id_sage_text</code> instead, any other value - do not
+          display;</li>
+      </ul>
+      <p>P.S. All strings are trusted HTML, no filtering is done when displaying
+        to user.</p>
+    </small>
+  </div> <!-- end help span -->
+</div> <!-- end row -->
 
 
 {% include "footer.html" %}

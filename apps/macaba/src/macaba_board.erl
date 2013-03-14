@@ -11,6 +11,7 @@
 
         , get/1
         , get_site_config/0
+        , set_site_config/1
         , get_boards/0
         , add_thread/2
         , thread_bump_if_no_sage/4
@@ -19,6 +20,7 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+-define(DEFAULT_SITE, <<"default">>).
 
 %%%-----------------------------------------------------------------------------
 start() -> ok.
@@ -43,11 +45,15 @@ get_boards() ->
 
 %%%-----------------------------------------------------------------------------
 get_site_config() ->
-  Site = <<"default">>,
-  case macaba_db_riak:read(mcb_site_config, Site) of
+  SiteKey = ?DEFAULT_SITE,
+  case macaba_db_riak:read(mcb_site_config, SiteKey) of
     {ok, #mcb_site_config{} = Conf} -> Conf;
     {error, not_found} -> fake_default_site_config()
   end.
+
+%%%-----------------------------------------------------------------------------
+set_site_config(Site = #mcb_site_config{}) ->
+  macaba_db_riak:write(mcb_site_config, Site).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board by name
@@ -61,11 +67,13 @@ get(BoardId) ->
 %%%-----------------------------------------------------------------------------
 %% @private
 fake_default_site_config() ->
+  M = <<"Site is temporarily offline, come back in 15 min">>,
   #mcb_site_config{
-    boards = fake_default_boards(),
-    offline = false,
-    offline_message = <<"Site is temporarily offline, come back in 15 min">>
-  }.
+          site_id = ?DEFAULT_SITE,
+          boards = fake_default_boards(),
+          offline = false,
+          offline_message = M
+         }.
 
 %% @private
 fake_default_boards() ->

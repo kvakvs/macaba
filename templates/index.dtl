@@ -7,15 +7,60 @@
 +---------------------------------------------------------------{% endcomment %}
 {% include "header.html" %}
 
-<h1>Macaba</h1>
+<div class="row">
+  <div class="span5">
+    <h3>Boards list</h3>
 
-<h3>Boards list</h3>
+    <ul>
+      {% for b in boards %}
+      <li><a href="/board/{{ b.board_id }}">{{ b.board_id }}</a> - {{ b.title }}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
 
-<ul>
-  {% for b in boards %}
-  <li><a href="/board/{{ b.board_id }}">{{ b.board_id }}</a> - {{ b.title }}
-  </li>
-  {% endfor %}
-</ul>
+  <div class="span7">
+    <h3>General Rules</h3>
+    <ol>
+      <li>No posting, discussing, requesting, uploading any material which violates
+        <code>Hosting Country</code> law;</li>
+      <li>If you are under 18, go away;</li>
+      <li>Outside of /b/ forbidden: trolls, flames, racism, off-topic, macro image
+        replies, indecipherable text (leetspeak and leetkidspeak), furry, guro,
+        post numbers (GETs) and loli/shota porn;</li>
+      <li>Posting personal information or requesting cross-board raids (inside this
+        board) is forbidden;</li>
+      <li>Boards with <code>Insert Color</code> there are SAFE FOR WORK, posting
+        content unsafe for work is bannable;</li>
+      <li>Submitting false reports is bannable;</li>
+      <li>Complaining about <code>Site Name</code> publicly on boards is bannable,
+        but with notes and suggestions welcome to <code>Admin Email</code> and
+        <code>Feedback Board Name</code>;</li>
+      <li>Ban evasion results in much longer or permanent ban! No exceptions,
+        instead wait or appeal for it;</li>
+      <li>No spam/flood. No intentionally evading anti-flood filters;</li>
+      <li>Advertising is not welcome, this includes referral linking, "offers",
+        soliciting, begging, stream threads etc.;</li>
+      <li>No impersonating as board administration, moderators, janitors etc;</li>
+      <li>Do not use avatars or attach signatures to your posts. If you wish to
+        identify yourself - use use trip codes or boards with poster_id enabled
+        in them;</li>
+      <li>All pony/brony thread, images and avatars belong to <code>Pony Board
+          Name</code>;</li>
+      <li>All requests belong to <code>Request Board Name</code>;</li>
+      <li>Remember, use of <code>Site Name</code> is a privilege, not a right.
+        <code>Site Name</code> team reserves the right to revoke your access to it
+        and remove any content violating these rules without notice</li>
+    </ol>
+    <h3>Per-Board Rules</h3>
+
+    <h4>Random /b/</h4>
+    <ul>
+      <li>No rules!</li>
+      <li>Global rules enforced: <code>Rules Number List from above</code></li>
+    </ul>
+  </div>
+</div> <!-- end row -->
+
 
 {% include "footer.html" %}

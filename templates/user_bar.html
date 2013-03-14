@@ -3,8 +3,8 @@
 ----------------------------------------------------------------{% endcomment %}
 {% if user.type != "anon" %}
 <div class="userbar">
-  Authenticated as {{user.name}} (<strong>{{user.type}}</strong>)
-  &bull;
+  Authenticated as {{user.name}} <span class="label">{{user.type}}</span>
+  <a href="/admin" class="btn btn-small">Home</a>
   <a href="/admin/reported" class="btn btn-warning btn-small">Reported</a>
   <a href="/admin/appeal" class="btn btn-warning btn-small">Bans</a>
   <a href="/admin/ban" class="btn btn-warning btn-small">Appeals</a>
@@ -20,6 +20,6 @@
 {% endif %}
 
 {% if user.type != "anon" %}
-  <a href="/admin/logout" class="btn btn-warning btn-small">Logout</a>
+  <a href="/admin/logout" class="btn btn-small">Logout</a>
 </div> <!-- end userbar -->
 {% endif %}

@@ -40,7 +40,7 @@ get(undefined) ->
 get(SesId) ->
   case catch gproc:lookup_local_name({macaba_session, SesId}) of
     X when is_pid(X) -> {ok, X};
-    Error -> {error, not_found}
+    _Error -> {error, not_found}
   end.
 
 %%%------------------------------------------------------------------------

@@ -56,7 +56,8 @@ start_web() ->
   %%--- anonymous/public resources ---
   Index    = {"/", HMod, [index]},
   TNew     = {"/board/:mcb_board/thread/new", HMod, [thread_new]},
-  TManage  = {"/board/:mcb_board/thread/:mcb_thread/manage", HMod, [thread_manage]},
+  TManage  = {"/board/:mcb_board/thread/:mcb_thread/manage", HMod,
+              [thread_manage]},
   TShow    = {"/board/:mcb_board/thread/:mcb_thread", HMod, [thread]},
   TRepl    = {"/board/:mcb_board/post/new", HMod, [post_new]},
   BShow1   = {"/board/:mcb_board/:mcb_page", HMod, [board]},
@@ -66,6 +67,8 @@ start_web() ->
   UPvw     = {"/util/preview", HMod, [util_preview]},
 
   %%--- admin resources ---
+  ASiteB  = {"/admin/site/boards", AMod, [admin_site_boards]},
+  ASiteO  = {"/admin/site/offline", AMod, [admin_site_offline]},
   ASite   = {"/admin/site", AMod, [admin_site]},
   ALogin  = {"/admin/login", AMod, [admin_login]},
   ALanding= {"/admin", AMod, [admin]},
@@ -75,7 +78,7 @@ start_web() ->
                    , AttThumb, Attach
                    , TNew, TManage, TShow, TRepl
                    , BShow1, BShow2
-                   , ASite, ALogin, ALanding
+                   , ASiteB, ASiteO, ASite, ALogin, ALanding
                    , UPvw
                    , Index
                    ]}

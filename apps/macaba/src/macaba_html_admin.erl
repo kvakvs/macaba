@@ -11,6 +11,8 @@
         , terminate/3]).
 -export([ macaba_handle_admin/2
         , macaba_handle_admin_site/2
+        %% , macaba_handle_admin_site_boards/2
+        , macaba_handle_admin_site_offline/2
         , macaba_handle_admin_login/2
         , macaba_handle_admin_logout/2
         ]).
@@ -26,34 +28,9 @@ init({_Transport, http}, Req, [Mode]) ->
          mode = Mode
         }}.
 
-%%%-----------------------------------------------------------------------------
-%% TODO: merge this with macaba_html_handler
-handle(Req0, State0 = #mcb_html_state{ mode=Mode }) ->
-  try
-    {Method, Req1} = cowboy_req:method(Req0),
+handle(Req0, State0) ->
+  macaba_web:handle_helper(?MODULE, Req0, State0).
 
-    %% parse request body as multipart, this will not work for POST urlencoded
-    {Req2, State1} = case macaba_web:is_POST_and_multipart(Req1) of
-                       {true, true}  ->
-                         macaba_web:parse_multipart_form_data(Req1, State0);
-                       {true, false}  ->
-                         macaba_web:parse_body_qs(Req1, State0);
-                       {false, _} ->
-                         {Req1, State0}
-                     end,
-    {Req3, State2} = macaba_web:get_user(Req2, State1),
-    FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
-    {Req4, State3} = apply(?MODULE, FnName, [Method, {Req3, State2}]),
-    {ok, Req4, State3}
-  catch
-    E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
-                                         [E, erlang:get_stacktrace()])),
-         lager:error(E),
-         {ReqE, StateE} = macaba_web:response_text(500, T, Req0, State0),
-         {ok, ReqE, StateE}
-  end.
-
-%%%-----------------------------------------------------------------------------
 terminate(_Reason, _Req, _State) ->
   ok.
 
@@ -113,22 +90,28 @@ chain_check_mod_login({Req0, State0}) ->
   {ok, {Req0, State0}}.
 
 %% @private
-%% @doc Gets user from ses cookie, checks if its type is Role, changes to login
-%% page if user.type=Role
+%% @doc Gets user from ses cookie, fails if user type is Role
 chain_fail_if_user({Req0, State0}, FailIfRole) ->
-  %% #mcb_user{type=Type} = macaba_ses:get_user(Req0, State0),
   User = State0#mcb_html_state.user,
   #mcb_user{type=Type} = User,
   case Type of
     FailIfRole ->
-      %% Login required if accessing this as anonymous
-      %% TODO: remember old URL
-      %% lager:debug("fail if user=~p -- ~p", [FailIfRole, User]),
-      %%{error, macaba_web:redirect("/admin/login", Req0, State0)};
       {error, macaba_web:render_error(<<"Not authenticated">>, Req0, State0)};
     _ ->
-      %% lager:debug("user role=~p -- ~p", [FailIfRole, User]),
       {ok, {Req0, State0}}
+  end.
+
+%% @private
+%% @doc Gets user from ses cookie, fails if user type is NOT Role
+chain_fail_if_user_not({Req0, State0}, FailIfNotRole) ->
+  User = State0#mcb_html_state.user,
+  #mcb_user{type=Type} = User,
+  case Type of
+    X when X =/= FailIfNotRole ->
+      NotRole = atom_to_binary(FailIfNotRole, latin1),
+      {error, macaba_web:render_error(<<"User role is not ", NotRole/binary>>,
+                                      Req0, State0)};
+    _ -> {ok, {Req0, State0}}
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -151,12 +134,40 @@ macaba_handle_admin_site(<<"GET">>, {Req0, State0}) ->
                         [ fun macaba_html_handler:chain_get_boards/1
                         , fun(X) -> chain_fail_if_user(X, anon) end
                         ], {Req0, State0}),
-  Site = macaba_board:get_site_config(),
-  Boards0 = lists:map(fun macaba:record_to_proplist/1,
-                      Site#mcb_site_config.boards),
-  Boards = jsx:encode(Boards0),
-  State = macaba_web:state_set_var(siteconfig, [ {boards, Boards} ], State1),
+  #mcb_site_config{
+      boards = Boards0,
+      offline = Offline,
+      offline_message = OfflineMsg
+    } = macaba_board:get_site_config(),
+  Boards1 = lists:map(fun macaba:record_to_proplist/1, Boards0),
+  Boards = jsx:encode(Boards1, [{indent, 2}]),
+  State2 = macaba_web:state_set_var(site_boards, Boards, State1),
+  State3 = macaba_web:state_set_var(site_offline, Offline, State2),
+  State  = macaba_web:state_set_var(site_offline_message, OfflineMsg, State3),
   macaba_web:render_page("admin_site", Req, State).
+
+%%%-----------------------------------------------------------------------------
+%% @doc GET: /admin/logout - delete admin cookie
+%%%-----------------------------------------------------------------------------
+macaba_handle_admin_site_offline(<<"POST">>, {Req0, State0}) ->
+  lager:debug("http POST admin/site/offline"),
+  {_, {Req, State}} = macaba_web:chain_run(
+                        [ fun(X) -> chain_fail_if_user_not(X, admin) end
+                        , fun chain_edit_site_offline/1
+                        ], {Req0, State0}),
+  macaba_web:redirect("/", Req, State).
+
+chain_edit_site_offline({Req0, State0=#mcb_html_state{post_data=PD}}) ->
+  Site0 = macaba_board:get_site_config(),
+  Offline = macaba:propget(<<"offline">>, PD, false),
+  OfflineMsg = macaba:propget(<<"offline_message">>, PD,
+                              Site0#mcb_site_config.offline_message),
+  Site = Site0#mcb_site_config{
+           offline = macaba:as_bool(Offline),
+           offline_message = macaba:as_string(OfflineMsg)
+          },
+  macaba_board:set_site_config(Site),
+  {ok, {Req0, State0}}.
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS
