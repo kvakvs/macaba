@@ -29,6 +29,8 @@
 -include_lib("macaba/include/macaba_types.hrl").
 
 %%-----------------------------------------------------------------------------
+-spec record_to_proplist(Rec :: macaba_db_object()) -> [{atom(), any()}].
+
 record_to_proplist(#mcb_board{}=Rec) ->
   lists:zip(record_info(fields, mcb_board), tl(tuple_to_list(Rec)));
 
