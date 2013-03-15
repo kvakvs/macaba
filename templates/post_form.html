@@ -1,3 +1,9 @@
+{% comment %}---------------------------------------------------------
+| Displays new-post or new-thread form with help and preview
+------------------------------------------------------{% endcomment %}
+<div class="row">
+  <div class="span9">
+
 <form method="post" class="form-inline framedform" enctype="multipart/form-data"
       name="postform"
       action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
@@ -44,10 +50,25 @@ function preview_show() {
 }
 </script>
 
-  <textarea id="message" name="message" rows="4" cols="80" class="postmsg"></textarea><br/>
+  <textarea id="message" name="message" rows="4" cols="80" class="input-block-level"></textarea><br/>
 
   <label>Attach</label>
   <input type="file" name="attach" size="40" />
   <!--label>Captcha</label>
       <input type="text" name="captcha" size="20" /-->
 </form> <!-- end post form -->
+
+  </div>
+
+  <div class="span3">
+    <h4>Markup help</h4>
+    <p>Supported WakabaMark features: **<strong>bold</strong>**
+      __<strong>bold</strong>__ *<em>italic</em>* _<em>italic</em>_
+      `<code>inline code</code>`, insert `` for backquotes,
+      <span class="spoiler">[spoiler][/spoiler]</span>, URL
+      highlighting, ordered lists with <code>1.&nbsp;</code>, unordered lists
+      with <code>*&nbsp;</code> and <code>-&nbsp;</code>,
+      quoting text with <code>&gt;&nbsp;</code>, code blocks with 4+ spaces.</p>
+    <p>When not sure - use <span class="label label-info">preview</span>!</p>
+  </div> <!-- end help span -->
+</div><!-- end row -->

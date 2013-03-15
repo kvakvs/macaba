@@ -20,7 +20,7 @@
           Bring site offline with message:</label><br />
 
         <textarea name="offline_message" rows="3" cols="80"
-                  class="postmsg">{{site_offline_message}}</textarea>
+                  class="input-block-level">{{site_offline_message}}</textarea>
         <br />
         <br />
         <button type="submit" class="btn btn-primary">Go</button>

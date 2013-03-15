@@ -1,27 +1,22 @@
 {% comment %}-------------------------------------------------------------------
-| Userbar displays current user name, role, and toolbar with actions
+| Userbar appears on top of screen when user is logged in
+| displays current user name, role, and toolbar with actions
 ----------------------------------------------------------------{% endcomment %}
 {% if user.type != "anon" %}
 <div class="userbar">
   {% if site_offline %}
   <span class="label label-important">Site is set to OFFLINE</span>
   {% endif %}
-
   Authenticated as {{user.name}} <span class="label">{{user.type}}</span>
   <a href="/admin" class="btn btn-small">Admin Home</a>
   <a href="/admin/reported" class="btn btn-warning btn-small">Reported</a>
   <a href="/admin/appeal" class="btn btn-warning btn-small">Bans</a>
   <a href="/admin/ban" class="btn btn-warning btn-small">Appeals</a>
 {% endif %}
-
-{% if user.type == "mod" %}
-{% endif %}
-
 {% if user.type == "admin" %}
-  <a href="/admin/blacklist" class="btn btn-danger btn-small">Blacklist content</a>
-  <a href="/admin/site" class="btn btn-danger btn-small">Edit Site</a>
+  <a href="/admin/blacklist" class="btn btn-danger btn-small">Blacklist</a>
+  <a href="/admin/site" class="btn btn-danger btn-small">Edit site</a>
 {% endif %}
-
 {% if user.type != "anon" %}
   <a href="/admin/logout" class="btn btn-small">Logout</a>
 </div> <!-- end userbar -->

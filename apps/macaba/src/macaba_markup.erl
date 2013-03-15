@@ -71,6 +71,7 @@ wakabamark(T0) when is_list(T0) ->
   %% remove leading and trailing empty lines
   U.
 
+-define(SPACE, 32).
 %% @private
 %% @doc Wraps whole-line constructs into {something, Line}, then later we can
 %% merge them
@@ -81,12 +82,12 @@ process_line(L) ->
     %% quote block
     [$&, $g, $t, $; | _]  -> {blockquote, L};
     [X, $. | L1] when X >= $0 andalso X  =< $9 -> {ordered_list, L1};
-    [$*, $  | L1] -> {unordered_list, L1};
-    [$-, $  | L1] -> {unordered_list, L1};
+    [$*, ?SPACE | L1] -> {unordered_list, L1};
+    [$-, ?SPACE | L1] -> {unordered_list, L1};
     _ ->
       case L of
-        [$ , $ , $ , $  | L1] -> {code, L1};
-        [$\t | L1]            -> {code, L1};
+        [?SPACE, ?SPACE, ?SPACE, ?SPACE | L1] -> {code, L1};
+        [$\t | L1] -> {code, L1};
         _ -> L
       end
   end.
