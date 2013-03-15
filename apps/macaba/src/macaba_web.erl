@@ -372,8 +372,9 @@ get_user(Req0, State0) ->
              Req = clear_session_cookie(Req1),
              #mcb_user{};
            {ok, Pid} ->
-             gen_server:call(Pid, get_user),
-             Req = Req1
+             Req = Req1,
+             U = gen_server:call(Pid, get_user),
+             U
          end,
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
   %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
