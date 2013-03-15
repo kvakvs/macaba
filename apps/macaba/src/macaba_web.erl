@@ -110,9 +110,10 @@ render(TplName, TplOptions) ->
 %%%------------------------------------------------------------------------
 %% @doc Runs list of functions passing opaque state through them and stopping
 %% if any of functions returns error.
--type handler_fun_t() :: fun((handler_return()) -> chain_return()).
+-type handler_fun_t() :: fun((macaba_web:handler_return()) ->
+                                macaba_web:chain_return()).
 -spec chain_run([handler_fun_t()],
-                State :: any()) -> chain_return().
+                State :: any()) -> macaba_web:chain_return().
 
 chain_run([], State) -> {ok, State};
 chain_run([F | Tail], State) ->
@@ -148,7 +149,8 @@ get_poster_id_encode(X, A) ->
 %% @doc Renders HTML page for response
 -spec render_page(TemplateName :: string(),
                   Req0 :: cowboy_req:req(),
-                  State :: macaba_web:html_state()) -> handler_return().
+                  State :: macaba_web:html_state()) ->
+                     macaba_web:handler_return().
 
 render_page(TemplateName, Req0, State0) ->
   render_page(200, TemplateName, Req0, State0).
@@ -157,7 +159,8 @@ render_page(TemplateName, Req0, State0) ->
 -spec render_page(HttpStatus :: integer(),
                   TemplateName :: string(),
                   Req0 :: cowboy_req:req(),
-                  State :: macaba_web:html_state()) -> handler_return().
+                  State :: macaba_web:html_state()) ->
+                     macaba_web:handler_return().
 
 render_page(HttpStatus, TemplateName, Req0,
             State=#mcb_html_state{
@@ -180,7 +183,8 @@ render_page(_, _, Req, State=#mcb_html_state{already_rendered=true}) ->
 -spec response_text(HttpStatus :: integer(),
                     Body :: iolist() | binary(),
                     Req0 :: cowboy_req:req(),
-                    State :: macaba_web:html_state()) -> handler_return().
+                    State :: macaba_web:html_state()) ->
+                       macaba_web:handler_return().
 
 response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
   Headers = [ {<<"Content-Type">>, <<"text/plain">>}
@@ -191,9 +195,10 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user
--spec redirect(URL :: binary(),
+-spec redirect(URL :: binary()|string(),
                Req0 :: cowboy_req:req(),
-               State :: macaba_web:html_state()) -> handler_return().
+               State :: macaba_web:html_state()) ->
+                  macaba_web:handler_return().
 
 redirect(URL, Req0, State=#mcb_html_state{}) ->
   {ok, Req} = cowboy_req:reply(
@@ -208,7 +213,8 @@ redirect(URL, Req0, State=#mcb_html_state{}) ->
 -spec redirect_to_thread(BoardId :: binary(),
                          ThreadId :: binary(),
                          Req0 :: cowboy_req:req(),
-                         State :: macaba_web:html_state()) -> handler_return().
+                         State :: macaba_web:html_state()) ->
+                            macaba_web:handler_return().
 
 redirect_to_thread(BoardId, ThreadId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
@@ -221,7 +227,7 @@ redirect_to_thread(BoardId, ThreadId, Req, State) ->
         ThreadId :: binary(),
         PostId :: binary(),
         Req0 :: cowboy_req:req(),
-        State :: macaba_web:html_state()) -> handler_return().
+        State :: macaba_web:html_state()) -> macaba_web:handler_return().
 
 redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
@@ -230,11 +236,13 @@ redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders error page with custom message
--spec render_error(Msg :: iolist()|string()|binary(),
+-spec render_error(Msg0 :: any(),
                    Req0 :: cowboy_req:req(),
-                   State :: macaba_web:html_state()) -> handler_return().
+                   State :: macaba_web:html_state()) ->
+                      {error, macaba_web:handler_return()}.
 
-render_error(Msg, Req0, State0) ->
+render_error(Msg0, Req0, State0) ->
+  Msg = iolist_to_binary(io_lib:format("~p", [Msg0])),
   State1 = state_set_var(error, Msg, State0),
   {Req1, State2} = render_page(400, "error", Req0, State1),
   {error, {Req1, State2}}.
