@@ -1,7 +1,7 @@
 {% include "header.html" %}
 
-<h1>Macaba: 404</h1>
+<h3>Macaba: Thread 404</h3>
 
-<p>Thread not found</p>
+<div class="well">Thread not found</div>
 
 {% include "footer.html" %}
