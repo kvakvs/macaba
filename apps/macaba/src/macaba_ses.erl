@@ -35,7 +35,7 @@
 %%%------------------------------------------------------------------------
 %% @doc Examines request for session cookie, and gets current user
 -spec get(SesId :: undefined | binary()) -> {ok, pid()} | {error, not_found}.
-get(SesId) ->
+get(SesId) when is_binary(SesId) ->
   case catch gproc:lookup_local_name({macaba_session, SesId}) of
     X when is_pid(X) -> {ok, X};
     _Error -> {error, not_found}
