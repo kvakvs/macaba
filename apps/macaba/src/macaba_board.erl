@@ -179,10 +179,10 @@ next_post_id(BoardId) when is_binary(BoardId) ->
 
 %%%-----------------------------------------------------------------------------
 get_dynamic(BoardId) when is_binary(BoardId) ->
-  BD = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
-         {ok, Value} -> {ok, Value};
-         {error, not_found} -> get_dynamic_riak(BoardId)
-       end.
+  case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+    {ok, Value} -> {ok, Value};
+    {error, not_found} -> get_dynamic_riak(BoardId)
+  end.
 
 get_dynamic_riak(BoardId) when is_binary(BoardId) ->
   macaba_db_riak:read(mcb_board_dynamic, BoardId).

@@ -95,6 +95,7 @@ cowboy_compile_dispatch(Offline) ->
   ASiteO  = {"/admin/site/offline", AMod, [admin_site_offline]},
   ASite   = {"/admin/site", AMod, [admin_site]},
   ALogin  = {"/admin/login", AMod, [admin_login]},
+  ALogout = {"/admin/logout", AMod, [admin_logout]},
   ALanding= {"/admin", AMod, [admin]},
 
   %% if board is offline, attaches, boards, threads and preview is shutting down
@@ -115,7 +116,7 @@ cowboy_compile_dispatch(Offline) ->
     [ {'_',
        [ St1, St2, St3 ]
        ++ BoardResources
-       ++ [ ASiteB, ASiteO, ASite, ALogin, ALanding ]
+       ++ [ ASiteB, ASiteO, ASite, ALogin, ALogout, ALanding ]
        ++ CatchAll
       } ]).
 

@@ -7,7 +7,8 @@
 -export([ handle_helper/3
         , compile/1
         , render/2
-        , chain_run/2
+        , chain_run/3
+        , chain_success/1, chain_success/2, chain_fail/1, chain_fail/2
         , get_poster_id/1
         , render_page/3, render_page/4
         , response_text/4
@@ -34,7 +35,8 @@
 -type handler_return() :: {cowboy_req:req(), macaba_web:html_state()}.
 -export_type([handler_return/0]).
 
--type chain_return() :: {ok|error, {cowboy_req:req(), macaba_web:html_state()}}.
+-type chain_return() :: {chain_ok|chain_error
+                         , cowboy_req:req(), macaba_web:html_state()}.
 -export_type([chain_return/0]).
 
 %%%------------------------------------------------------------------------
@@ -65,7 +67,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     State4 = ?MODULE:state_set_var(site_offline, SiteOffline, State3),
 
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
-    {Req4, State5} = apply(Module, FnName, [Method, {Req3, State4}]),
+    {Req4, State5} = apply(Module, FnName, [Method, Req3, State4]),
     {ok, Req4, State5}
   catch
     E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
@@ -110,19 +112,26 @@ render(TplName, TplOptions) ->
 %%%------------------------------------------------------------------------
 %% @doc Runs list of functions passing opaque state through them and stopping
 %% if any of functions returns error.
--type handler_fun_t() :: fun((macaba_web:handler_return()) ->
+-type handler_fun_t() :: fun((cowboy_req:req(), macaba_web:html_state()) ->
                                 macaba_web:chain_return()).
--spec chain_run([handler_fun_t()],
-                State :: any()) -> macaba_web:chain_return().
+-spec chain_run(FunList :: [handler_fun_t()],
+                Req :: cowboy_req:req(),
+                State :: macaba_web:html_state()) ->
+                   {ok, cowboy_req:req(), macaba_web:html_state()} |
+                   {error, cowboy_req:req(), macaba_web:html_state()}.
 
-chain_run([], State) -> {ok, State};
-chain_run([F | Tail], State) ->
-  case F(State) of
-    {ok, State2} ->
-      chain_run(Tail, State2);
-    {error, State2} ->
-      {error, State2}
+chain_run([], Req, State) -> {ok, Req, State};
+chain_run([F | Tail], Req, State) ->
+  case F(Req, State) of
+    {chain_ok, Req2, State2}   -> chain_run(Tail, Req2, State2);
+    {chain_fail, Req3, State3} -> {error, Req3, State3}
   end.
+
+chain_success(Req, State = #mcb_html_state{}) -> {chain_ok, Req, State}.
+chain_success({Req, State = #mcb_html_state{}}) -> {chain_ok, Req, State}.
+
+chain_fail(Req, State = #mcb_html_state{}) -> {chain_fail, Req, State}.
+chain_fail({Req, State = #mcb_html_state{}}) -> {chain_fail, Req, State}.
 
 %%%------------------------------------------------------------------------
 %% @doc Using user IP and user-agent
@@ -236,20 +245,20 @@ redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders error page with custom message
--spec render_error(Msg0 :: any(),
+-spec render_error(Msg0 :: binary()|string(),
                    Req0 :: cowboy_req:req(),
                    State :: macaba_web:html_state()) ->
-                      {error, macaba_web:handler_return()}.
+                      macaba_web:handler_return().
 
-render_error(Msg0, Req0, State0) ->
-  Msg = iolist_to_binary(io_lib:format("~p", [Msg0])),
-  State1 = state_set_var(error, Msg, State0),
+render_error(Msg, Req0, State0) ->
+  State1 = state_set_var(error, macaba:as_binary(Msg), State0),
   {Req1, State2} = render_page(400, "error", Req0, State1),
-  {error, {Req1, State2}}.
+  {Req1, State2}.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Sets page_vars for rendering template
--spec state_set_var(K :: atom(), V :: any(), State :: macaba_web:html_state()) ->
+-spec state_set_var(K :: atom(), V :: any(),
+                    State :: macaba_web:html_state()) ->
                        macaba_web:html_state().
 
 state_set_var(K, V, State = #mcb_html_state{ page_vars=P0 }) ->
