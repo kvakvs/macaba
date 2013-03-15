@@ -62,23 +62,27 @@ get_thread(BoardId, ThreadId) ->
   end.
 
 %%%-----------------------------------------------------------------------------
-%% @doc Returns board contents paginated
+%% @doc Returns board contents paginated and list of page numbers
 -spec get_threads(BoardId :: binary(),
                   {Page :: integer(), PageSize :: integer()},
                   PreviewSize :: integer()) ->
-                         [proplist_t()].
+                     {ok, Threads :: [proplist_t()], PageNums :: [integer()]}.
+
 get_threads(BoardId, {undefined, PageSize}, PreviewSize) ->
   get_threads(BoardId, {1, PageSize}, PreviewSize);
 get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
   {ok, Threads0} = macaba_board:get_threads(BoardId),
-  Threads = macaba:pagination(Threads0, Page, PageSize),
-  Proplists = lists:map(fun macaba:record_to_proplist/1, Threads),
+  Threads1 = macaba:pagination(Threads0, Page, PageSize),
+  PageNums = lists:seq(1, (length(Threads0) + PageSize - 1) div PageSize),
+  Threads2 = lists:map(fun macaba:record_to_proplist/1, Threads1),
   case PreviewSize of
     X when X > 1 ->
-      [additional_fields_for_thread(T, PreviewSize) || T <- Proplists];
+      Threads = [additional_fields_for_thread(T, PreviewSize)
+                 || T <- Threads2];
     _ ->
-      Proplists
-  end.
+      Threads = Threads2
+  end,
+  {ok, Threads, PageNums}.
 
 %%%-----------------------------------------------------------------------------
 %% @private

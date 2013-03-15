@@ -29,6 +29,9 @@ init({_Transport, http}, Req, [Mode]) ->
          mode = Mode
         }}.
 
+-spec handle(cowboy_req:req(), macaba_web:html_state()) ->
+                {ok, cowboy_req:req(), macaba_web:html_state()}.
+
 handle(Req0, State0) ->
   macaba_web:handle_helper(?MODULE, Req0, State0).
 
@@ -38,6 +41,8 @@ terminate(_Reason, _Req, _State) ->
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /offline - board shut down by admin
 %%%-----------------------------------------------------------------------------
+-spec macaba_handle_offline(binary(), macaba_web:handler_return()) -> macaba_web:handler_return().
+
 macaba_handle_offline(_, {Req0, State0}) ->
   Site = macaba_board:get_site_config(),
   M = Site#mcb_site_config.offline_message,
@@ -47,6 +52,9 @@ macaba_handle_offline(_, {Req0, State0}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/login - login form
 %%%-----------------------------------------------------------------------------
+-spec macaba_handle_admin_login(binary(), macaba_web:handler_return()) ->
+                                   macaba_web:handler_return().
+
 macaba_handle_admin_login(<<"GET">>, {Req0, State0}) ->
   lager:debug("http GET admin/login"),
   {_, {Req, State}} = macaba_web:chain_run(
@@ -127,15 +135,20 @@ chain_fail_if_user_not({Req0, State0}, FailIfNotRole) ->
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/logout - delete admin cookie
 %%%-----------------------------------------------------------------------------
+-spec macaba_handle_admin_logout(binary(), macaba_web:handler_return()) ->
+                                    macaba_web:handler_return().
+
 macaba_handle_admin_logout(Method, {Req0, State0}) ->
   lager:debug("http ~s admin/logout", Method),
-  Coo = macaba_web:ses_cookie_name(),
-  Req = cowboy_req:set_resp_cookie(Coo, <<>>, [{path, <<"/">>}], Req0),
+  Req = macaba_web:clear_session_cookie(Req0),
   macaba_web:redirect("/", Req, State0).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site - site config page
 %%%-----------------------------------------------------------------------------
+-spec macaba_handle_admin_site(binary(), macaba_web:handler_return()) ->
+                                  macaba_web:handler_return().
+
 macaba_handle_admin_site(<<"GET">>, {Req0, State0}) ->
   lager:debug("http GET admin/site"),
   {_, {Req, State}} = macaba_web:chain_run(
@@ -162,12 +175,16 @@ chain_show_admin_site({Req0, State0}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site/offline - edit board offline settings
 %%%-----------------------------------------------------------------------------
+-spec macaba_handle_admin_site_offline(binary(), macaba_web:handler_return()) ->
+                                    macaba_web:handler_return().
+
 macaba_handle_admin_site_offline(<<"POST">>, {Req0, State0}) ->
   lager:debug("http POST admin/site/offline"),
   {_, {Req, State}} = macaba_web:chain_run(
                         [ fun(X) -> chain_fail_if_user_not(X, admin) end
                         , fun chain_edit_site_offline/1
-                        ], {Req0, State0}).
+                        ], {Req0, State0}),
+  {Req, State}.
 
 chain_edit_site_offline({Req0, State0=#mcb_html_state{post_data=PD}}) ->
   Site0 = macaba_board:get_site_config(),

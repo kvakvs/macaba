@@ -23,11 +23,26 @@
         , get_user/2
         , create_session_for/3
         , ses_cookie_name/0
+        , clear_session_cookie/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
 
+-type html_state() :: #mcb_html_state{}.
+-export_type([html_state/0]).
+
+-type handler_return() :: {cowboy_req:req(), macaba_web:html_state()}.
+-export_type([handler_return/0]).
+
+-type chain_return() :: {ok|error, {cowboy_req:req(), macaba_web:html_state()}}.
+-export_type([chain_return/0]).
+
 %%%------------------------------------------------------------------------
+-spec handle_helper(Module :: atom(),
+                    Req :: cowboy_req:req(),
+                    State :: macaba_web:html_state()) ->
+                       {ok, cowboy_req:req(), macaba_web:html_state()}.
+
 handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
   try
     {Method, Req1} = cowboy_req:method(Req0),
@@ -41,7 +56,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
                        {false, _} ->
                          {Req1, State0}
                      end,
-    {Req3, State2} = macaba_web:get_user(Req2, State1),
+    {Req3, State2} = ?MODULE:get_user(Req2, State1),
 
     %% site offline flag
     %% TODO: cache site config in memory or in state
@@ -74,6 +89,13 @@ compile(TplName) ->
   TplModule.
 
 %%%------------------------------------------------------------------------
+%% @doc Attempts to reset session cookie to empty value
+-spec clear_session_cookie(Req :: cowboy_req:req()) -> cowboy_req:req().
+clear_session_cookie(Req0) ->
+  Coo = ?MODULE:ses_cookie_name(),
+  cowboy_req:set_resp_cookie(Coo, <<>>, [{path, <<"/">>}, {max_age, 0}], Req0).
+
+%%%------------------------------------------------------------------------
 -spec render(string(), [{atom(), any()}]) -> iolist().
 render(TplName, TplOptions) ->
   TplModule = compile(TplName),
@@ -88,8 +110,10 @@ render(TplName, TplOptions) ->
 %%%------------------------------------------------------------------------
 %% @doc Runs list of functions passing opaque state through them and stopping
 %% if any of functions returns error.
--spec chain_run([fun()], State :: any()) ->
-                   {ok, any()} | {error, any(), any()}.
+-type handler_fun_t() :: fun((handler_return()) -> chain_return()).
+-spec chain_run([handler_fun_t()],
+                State :: any()) -> chain_return().
+
 chain_run([], State) -> {ok, State};
 chain_run([F | Tail], State) ->
   case F(State) of
@@ -122,17 +146,26 @@ get_poster_id_encode(X, A) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders HTML page for response
+-spec render_page(TemplateName :: string(),
+                  Req0 :: cowboy_req:req(),
+                  State :: macaba_web:html_state()) -> handler_return().
+
 render_page(TemplateName, Req0, State0) ->
   render_page(200, TemplateName, Req0, State0).
 
 %% @doc Renders HTML page for response
+-spec render_page(HttpStatus :: integer(),
+                  TemplateName :: string(),
+                  Req0 :: cowboy_req:req(),
+                  State :: macaba_web:html_state()) -> handler_return().
+
 render_page(HttpStatus, TemplateName, Req0,
             State=#mcb_html_state{
               page_vars=PageVars,
               already_rendered=false
              }) ->
   %% lager:debug("Before render: vars=~p", [PageVars]),
-  Body = macaba_web:render(TemplateName, PageVars),
+  Body = ?MODULE:render(TemplateName, PageVars),
   Headers = [ {<<"Content-Type">>, <<"text/html">>}
             , {<<"Expires">>, <<"0">>}
             ],
@@ -144,6 +177,11 @@ render_page(_, _, Req, State=#mcb_html_state{already_rendered=true}) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Does text/plain response
+-spec response_text(HttpStatus :: integer(),
+                    Body :: iolist() | binary(),
+                    Req0 :: cowboy_req:req(),
+                    State :: macaba_web:html_state()) -> handler_return().
+
 response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
   Headers = [ {<<"Content-Type">>, <<"text/plain">>}
             , {<<"Expires">>, <<"0">>}
@@ -153,7 +191,11 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user
-redirect(URL, Req0, State=#mcb_html_state{}) when is_tuple(Req0) ->
+-spec redirect(URL :: binary(),
+               Req0 :: cowboy_req:req(),
+               State :: macaba_web:html_state()) -> handler_return().
+
+redirect(URL, Req0, State=#mcb_html_state{}) ->
   {ok, Req} = cowboy_req:reply(
                 301, [ {<<"Location">>, macaba:as_binary(URL)}
                      , {<<"Expires">>, <<"0">>}
@@ -163,12 +205,24 @@ redirect(URL, Req0, State=#mcb_html_state{}) when is_tuple(Req0) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user to given thread
+-spec redirect_to_thread(BoardId :: binary(),
+                         ThreadId :: binary(),
+                         Req0 :: cowboy_req:req(),
+                         State :: macaba_web:html_state()) -> handler_return().
+
 redirect_to_thread(BoardId, ThreadId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
                 ++ macaba:as_string(ThreadId), Req, State).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user to thread and post in it
+-spec redirect_to_thread_and_post(
+        BoardId :: binary(),
+        ThreadId :: binary(),
+        PostId :: binary(),
+        Req0 :: cowboy_req:req(),
+        State :: macaba_web:html_state()) -> handler_return().
+
 redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
                 ++ macaba:as_string(ThreadId) ++ "#i"
@@ -176,6 +230,10 @@ redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders error page with custom message
+-spec render_error(Msg :: iolist()|string()|binary(),
+                   Req0 :: cowboy_req:req(),
+                   State :: macaba_web:html_state()) -> handler_return().
+
 render_error(Msg, Req0, State0) ->
   State1 = state_set_var(error, Msg, State0),
   {Req1, State2} = render_page(400, "error", Req0, State1),
@@ -183,16 +241,25 @@ render_error(Msg, Req0, State0) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Sets page_vars for rendering template
+-spec state_set_var(K :: atom(), V :: any(), State :: macaba_web:html_state()) ->
+                       macaba_web:html_state().
+
 state_set_var(K, V, State = #mcb_html_state{ page_vars=P0 }) ->
   P = orddict:store(K, V, P0),
   State#mcb_html_state{ page_vars = P }.
 
+%%%-----------------------------------------------------------------------------
 %% @doc Retrieves value of some page_vars element
+-spec state_get_var(K :: atom(), State :: macaba_web:html_state()) -> any().
+
 state_get_var(K, #mcb_html_state{ page_vars=PV }) ->
   orddict:fetch(K, PV).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns pair of boolean() for POST method and multipart/* content-type
+-spec is_POST_and_multipart(Req0 :: cowboy_req:req()) ->
+                               {boolean(), boolean()}.
+
 is_POST_and_multipart(Req0) ->
   {Method, Req1} = cowboy_req:method(Req0),
   {CT, _Req2} = cowboy_req:header(<<"content-type">>, Req1),
@@ -278,16 +345,18 @@ acc_multipart({eof, Req}, Acc) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Attempts to extract cookie and find session with that cookie, else
 %% returns anonymous user
--spec get_user(Req :: cowboy_req:req(), State :: #mcb_html_state{}) ->
-                  {cowboy_req:req(), #mcb_html_state{}}.
+-spec get_user(Req :: cowboy_req:req(), State :: macaba_web:html_state()) ->
+                  macaba_web:handler_return().
 get_user(Req0, State0) ->
-  {SesId, Req} = cowboy_req:cookie(ses_cookie_name(), Req0),
+  {SesId, Req1} = cowboy_req:cookie(ses_cookie_name(), Req0),
   User = case macaba_ses:get(SesId) of
            {error, not_found} ->
-             lager:debug("web:get_user ses '~s' not found", [SesId]),
+             %% lager:debug("web:get_user ses '~s' not found", [SesId]),
+             Req = clear_session_cookie(Req1),
              #mcb_user{};
            {ok, Pid} ->
-             gen_server:call(Pid, get_user)
+             gen_server:call(Pid, get_user),
+             Req = Req1
          end,
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
   %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),

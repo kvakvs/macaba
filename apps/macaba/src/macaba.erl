@@ -59,7 +59,9 @@ record_to_proplist(#mcb_site_config{}=Rec0) ->
   %% Rec = Rec0#mcb_site_config{ boards = B },
   lists:zip(record_info(fields, mcb_site_config), tl(tuple_to_list(Rec0)));
 
-record_to_proplist(X) -> error({badarg, X}).
+record_to_proplist(X) ->
+  lager:error("record_to_proplist err ~p", [X]),
+  error({badarg, X}).
 
 %% unix_time_to_str(U) ->
 %%   DT = calendar:gregorian_seconds_to_datetime(U + 1970*365*86400),
@@ -201,7 +203,7 @@ as_existing_atom(Str) when is_list(Str) ->
   catch error:badarg -> undefined end.
 
 %%--------------------------------------------------------------------
-%% @doc Pagination helper, cuts piece of list according to Page id
+%% @doc Pagination helper, cuts piece of list according to Page id.
 %% TODO: move out of this module
 -spec pagination(L :: list(), Page :: integer(),
                  PageSize :: integer()) -> list().

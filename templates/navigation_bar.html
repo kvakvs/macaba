@@ -4,8 +4,7 @@
 <div class="row">
   <div class="span12">
     <a href="/">Home</a> {% for b in boards %}
-    &bull;
-    <a href="/board/{{ b.board_id }}">/{{ b.board_id }}/</a>
+    &bull; <a href="/board/{{ b.board_id }}">{{b.short_name}}</a>
     {% endfor %}
   </div>
 </div>

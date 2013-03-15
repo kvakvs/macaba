@@ -95,7 +95,12 @@ get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
 
 get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  macaba_db_mnesia:read(mcb_thread_dynamic, TDKey).
+  case macaba_db_mnesia:read(mcb_thread_dynamic, TDKey) of
+    {ok, TD} -> {ok, TD};
+    {error, not_found} ->
+      %% FIXME: may cause additional load on RIAK
+      get_dynamic_riak(BoardId, ThreadId)
+  end.
 
 %%%-----------------------------------------------------------------------------
 -spec get_dynamic_riak(BoardId :: binary(),

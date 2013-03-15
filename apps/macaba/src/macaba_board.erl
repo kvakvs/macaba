@@ -10,6 +10,7 @@
         %% , detect_content_type/1
 
         , get/1
+        , get_dynamic/1, get_dynamic_riak/1
         , get_site_config/0
         , set_site_config/1
         , get_boards/0
@@ -60,7 +61,7 @@ set_site_config(Site = #mcb_site_config{}) ->
 
 %% @private
 internal_create_dynamic(BoardId) when is_binary(BoardId) ->
-  BD = case macaba_db_riak:read(mcb_board_dynamic, BoardId) of
+  BD = case ?MODULE:get_dynamic(BoardId) of
          {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
          {ok, Value} -> Value
        end,
@@ -177,6 +178,16 @@ next_post_id(BoardId) when is_binary(BoardId) ->
   Next.
 
 %%%-----------------------------------------------------------------------------
+get_dynamic(BoardId) when is_binary(BoardId) ->
+  BD = case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+         {ok, Value} -> {ok, Value};
+         {error, not_found} -> get_dynamic_riak(BoardId)
+       end.
+
+get_dynamic_riak(BoardId) when is_binary(BoardId) ->
+  macaba_db_riak:read(mcb_board_dynamic, BoardId).
+
+%%%-----------------------------------------------------------------------------
 %% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread
 %% lists for boards. Do this only on one node of the macaba cluster.
 %% This is called from macaba_masternode:handle_leader_call after startup been
@@ -192,7 +203,7 @@ load_board_dynamics() ->
 update_dynamics_for_board([]) -> ok;
 update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
   BoardId = B#mcb_board.board_id,
-  BD = case macaba_db_riak:read(mcb_board_dynamic, BoardId) of
+  BD = case ?MODULE:get_dynamic(BoardId) of
          {error, not_found} -> #mcb_board_dynamic{board_id = BoardId};
          {ok, Value} -> Value
        end,
