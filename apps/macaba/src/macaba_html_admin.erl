@@ -55,7 +55,7 @@ macaba_handle_admin_login(<<"GET">>, {Req0, State0}) ->
   macaba_web:render_page("admin_login", Req, State);
 
 %%%-----------------------------------------------------------------------------
-%% POST: /admin - login
+%% POST: /admin/login - login
 macaba_handle_admin_login(<<"POST">>, {Req0, State0}) ->
   lager:debug("http POST admin/login"),
   {_, {Req, State}} = macaba_web:chain_run(
@@ -138,10 +138,15 @@ macaba_handle_admin_logout(Method, {Req0, State0}) ->
 %%%-----------------------------------------------------------------------------
 macaba_handle_admin_site(<<"GET">>, {Req0, State0}) ->
   lager:debug("http GET admin/site"),
-  {_, {Req, State1}} = macaba_web:chain_run(
+  {_, {Req, State}} = macaba_web:chain_run(
                         [ fun macaba_html_handler:chain_get_boards/1
                         , fun(X) -> chain_fail_if_user(X, anon) end
+                        , fun chain_show_admin_site/1
                         ], {Req0, State0}),
+  {Req, State}.
+
+%% @private
+chain_show_admin_site({Req0, State0}) ->
   #mcb_site_config{
       boards = Boards0,
       offline = Offline,
@@ -149,10 +154,10 @@ macaba_handle_admin_site(<<"GET">>, {Req0, State0}) ->
     } = macaba_board:get_site_config(),
   Boards1 = lists:map(fun macaba:record_to_proplist/1, Boards0),
   Boards = jsx:encode(Boards1, [{indent, 2}]),
-  State2 = macaba_web:state_set_var(site_boards, Boards, State1),
-  State3 = macaba_web:state_set_var(site_offline, Offline, State2),
-  State  = macaba_web:state_set_var(site_offline_message, OfflineMsg, State3),
-  macaba_web:render_page("admin_site", Req, State).
+  State1 = macaba_web:state_set_var(site_boards, Boards, State0),
+  State2 = macaba_web:state_set_var(site_offline, Offline, State1),
+  State  = macaba_web:state_set_var(site_offline_message, OfflineMsg, State2),
+  {ok, macaba_web:render_page("admin_site", Req0, State)}.
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site/offline - edit board offline settings

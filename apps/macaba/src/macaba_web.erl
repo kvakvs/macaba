@@ -133,7 +133,9 @@ render_page(HttpStatus, TemplateName, Req0,
              }) ->
   %% lager:debug("Before render: vars=~p", [PageVars]),
   Body = macaba_web:render(TemplateName, PageVars),
-  Headers = [{<<"Content-Type">>, <<"text/html">>}],
+  Headers = [ {<<"Content-Type">>, <<"text/html">>}
+            , {<<"Expires">>, <<"0">>}
+            ],
   {ok, Req} = cowboy_req:reply(HttpStatus, Headers, Body, Req0),
   {Req, State#mcb_html_state{already_rendered=true}};
 
@@ -143,7 +145,9 @@ render_page(_, _, Req, State=#mcb_html_state{already_rendered=true}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Does text/plain response
 response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
-  Headers = [{<<"Content-Type">>, <<"text/plain">>}],
+  Headers = [ {<<"Content-Type">>, <<"text/plain">>}
+            , {<<"Expires">>, <<"0">>}
+            ],
   {ok, Req} = cowboy_req:reply(HttpStatus, Headers, Body, Req0),
   {Req, State}.
 
@@ -151,7 +155,9 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
 %% @doc Redirects user
 redirect(URL, Req0, State=#mcb_html_state{}) when is_tuple(Req0) ->
   {ok, Req} = cowboy_req:reply(
-                301, [{<<"Location">>, macaba:as_binary(URL)}],
+                301, [ {<<"Location">>, macaba:as_binary(URL)}
+                     , {<<"Expires">>, <<"0">>}
+                     ],
                 <<>>, Req0),
   {Req, State}.
 

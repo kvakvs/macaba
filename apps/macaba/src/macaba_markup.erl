@@ -30,6 +30,9 @@ wakabamark(T0) when is_list(T0) ->
           , {"([^`])`([^`].+?[^`])`([^`])",
              "\\1<code>\\2</code>\\3"}
           , {"``", "`"}
+          %% [spoiler][/spoiler]
+          , {"\\[spoiler\\](.+?)\\[/spoiler\\]",
+             "<span class=\"spoiler\">\\1</span>"}
           %% URL
           %% , {"((https?|ftp)://[-\\.a-zA-Z0-9]+?/?\\?"
           %%    "[-_.=/a-zA-z0-9;&\"]*?)",

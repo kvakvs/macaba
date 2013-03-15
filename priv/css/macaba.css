@@ -110,3 +110,18 @@ a.admin {
   padding-left: 6px;
   padding-right: 6px;
 }
+
+span.spoiler {
+  background: #bbb;
+  color: #bbb;
+}
+span.spoiler:hover {
+  color: #fff;
+}
+
+
+/*
+Local Variables:
+erlang-indent-level: 2
+End:
+*/

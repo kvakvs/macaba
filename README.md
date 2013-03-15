@@ -39,7 +39,9 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
         reply
     *   Basic plain HTML scriptless theme (later REST API, Websocket)
     *   File upload (1 per post)
-    *   WakabaMark (no ^H/spoiler support as of yet) optional Markdown support
+    *   WakabaMark (no ^H support as of yet) - bold, italic, inline code, code quotes,
+        spoilers using [spoiler][/spoiler], URL, ordered and unordered lists
+    *   Markdown support (can replace WakabaMark)
     *   Board limits, delete when thread is sinking
     *   Deleting posts by user, optional deletion of attachments only
     *   Preview function for markup in HTML mode (ajax inside inline div)
