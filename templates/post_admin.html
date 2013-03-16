@@ -1,0 +1,19 @@
+{% comment %}-------------------------------------------------------------------
+| Admin panel to include in every post, contains deleting, banning options
+| params: p - post, board_info
+----------------------------------------------------------------{% endcomment %}
+<div class="btn-group">
+  {% if forloop.counter == 1 %}
+  <button onclick="admin_delete_thread('{{board_info.board_id}}', '{{p.post_id}}');"
+     class="btn btn-mini"><i class="icon-remove"></i> Delete thread</button>
+  {% else %}
+  <button onclick="admin_delete_post('{{board_info.board_id}}', '{{p.post_id}}');"
+     class="btn btn-mini"><i class="icon-remove"></i> Delete post</button>
+  {% endif %}
+  {% if p.attach_info %}
+  <button onclick="admin_delete_file('{{board_info.board_id}}', '{{p.post_id}}');"
+     class="btn btn-mini"><i class="icon-picture"></i> Delete file</button>
+  {% endif %}
+  <button onclick="admin_ban_for_post('{{board_info.board_id}}', '{{p.post_id}}');"
+     class="btn btn-mini"><i class="icon-eye-close"></i> Ban</button>
+</div>

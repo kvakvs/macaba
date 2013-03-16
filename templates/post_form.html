@@ -2,7 +2,7 @@
 | Displays new-post or new-thread form with help and preview
 ------------------------------------------------------{% endcomment %}
 <div class="row">
-  <div class="span9">
+  <div class="span8">
 
 <form method="post" class="form-inline framedform" enctype="multipart/form-data"
       name="postform"
@@ -40,14 +40,6 @@ $(function() {
       $("div#preview-popup").hide();
       });
 });
-function preview_show() {
-  var M = $("textarea#message").val();
-  var AJ = { url: "/util/preview", type: "POST", context: document.body, data: { markup: M }};
-  $.ajax(AJ).done(function(Value) {
-    $("div#preview-popup").show();
-    $("div#preview-content").html(Value);
-  });
-}
 </script>
 
   <textarea id="message" name="message" rows="4" cols="80" class="input-block-level"></textarea><br/>
@@ -58,9 +50,9 @@ function preview_show() {
       <input type="text" name="captcha" size="20" /-->
 </form> <!-- end post form -->
 
-  </div>
+  </div> <!-- end post span -->
 
-  <div class="span3">
+  <div class="span4">
     <h4>Markup help</h4>
     <p>Supported WakabaMark features: **<strong>bold</strong>**
       __<strong>bold</strong>__ *<em>italic</em>* _<em>italic</em>_

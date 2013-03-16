@@ -10,6 +10,7 @@
         , erlmarkdown/1
         ]).
 
+%% @doc Calls erlang markdown library
 erlmarkdown(T) ->
   markdown:conv_utf8(T).
 
@@ -54,6 +55,7 @@ wakabamark_rules_bbcode(true) ->
   ].
 
 %%%-----------------------------------------------------------------------------
+%% @doc Calls wakabamark_process() with options from config
 wakabamark(T) ->
   {ok, MarkdownEnabled} = macaba_conf:get([<<"plugins">>, <<"wakabamark">>,
                                            <<"enable_markdown">>]),

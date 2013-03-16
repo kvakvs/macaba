@@ -4,7 +4,7 @@
 | Incoming parameters: boards - an indexable property list, see
 | macaba_server.config for options description
 +---------------------------------------------------------------{% endcomment %}
-{% include "header.html" %}
+{% with title="admin" %}{% include "header.html" %}{% endwith %}
 
 <div class="row">
   <div class="span7">

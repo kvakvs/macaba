@@ -140,9 +140,14 @@
           , password = <<>>  :: binary()
          }).
 
+%% @doc User levels, feel free to use any intermediate values to have better
+%% finegrained control over mods powers
+-define(USERLEVEL_ANON, 0).
+-define(USERLEVEL_MOD, 100).
+-define(USERLEVEL_ADMIN, 1000).
 %% @doc A user info structure, you can get this by calling macaba_web:get_user
 -record(mcb_user, {
-            type = 'anon' :: 'anon' | 'mod' | 'admin'
+            level = 0   :: integer()
           , session_key :: binary()
           , session_pid :: pid()
           , name = <<>> :: binary()

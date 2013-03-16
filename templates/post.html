@@ -59,8 +59,11 @@
  [<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]
         {% endif %}
       {% endif %}
+
+      {% if user.level > 100 %}{% include "post_admin.html" %}{% endif %}
     </td>
   </tr>
+
 {% comment %}-------------------------------
 | Attachment thumbnail and message row
 -----------------------------{% endcomment %}

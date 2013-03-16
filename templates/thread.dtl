@@ -9,7 +9,7 @@
 |                'posts')
 | 'posts' - a list of property lists #mcb_post{}
 +---------------------------------------------------------------{% endcomment %}
-{% include "header.html" %}
+{% with title="thread" %}{% include "header.html" %}{% endwith %}
 
 <div class="row">
   <div class="span12">
@@ -20,12 +20,9 @@
   </div> <!-- end span -->
 </div> <!-- end row -->
 
-<div class="row">
-  <div class="span12">
-    {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}
-    {% endwith %}
-  </div>
-</div>
+<div class="row"><div class="span12">
+  {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}{% endwith %}
+</div></div>
 
 <form method="post"  enctype="multipart/form-data"
   action="/board/{{ board_info.board_id }}/thread/{{ thread_info.thread_id }}/manage">
@@ -33,18 +30,16 @@
   <div class="span12">
     {% for p in posts %}{% with inside_thread = 1 %}
     {% include "post.html" %}{% endwith %}{% endfor %}
-    <hr />
   </div>
 </div>
-<div class="row">
-  <div class="span12 reportbar">
-    <input type="password" name="pass" class="input-small" />
-    <input type="checkbox" name="fileonly" value="true" /> File only
-    <input type="submit" value="Delete" class="btn btn-warning" />
-    <input type="text" disabled="disabled" name="report" class="input-small" />
-    <input type="submit" disabled="disabled" value="Report" class="btn btn-danger" />
-  </div>
-</div>
+
+<div class="row"><div class="span12 reportbar">
+  <input type="password" name="pass" class="input-small" />
+  <input type="checkbox" name="fileonly" value="true" /> File only
+  <input type="submit" value="Delete" class="btn btn-warning" />
+  <input type="text" disabled="disabled" name="report" class="input-small" />
+  <input type="submit" disabled="disabled" value="Report" class="btn btn-danger" />
+</div></div>
 </form>
 
 {% include "footer.html" %}

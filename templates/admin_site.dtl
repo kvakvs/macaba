@@ -4,7 +4,7 @@
 | Incoming parameters: boards - an indexable property list, see
 | macaba_server.config for options description
 +---------------------------------------------------------------{% endcomment %}
-{% include "header.html" %}
+{% with title="admin - site" %}{% include "header.html" %}{% endwith %}
 
 <h3>Admin</h3>
 

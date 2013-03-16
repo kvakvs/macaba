@@ -89,7 +89,8 @@ macaba_handle_admin(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin"),
   {_, Req, State} = macaba_web:chain_run(
                       [ fun macaba_html_handler:chain_get_boards/2
-                      , fun(R,S) -> chain_fail_if_user(R, S, anon) end
+                      , fun(R,S) -> chain_fail_if_level_below(
+                                      R, S, ?USERLEVEL_ANON+1) end
                       ], Req0, State0),
   macaba_web:render_page("admin", Req, State).
 
@@ -103,8 +104,9 @@ chain_check_admin_login(Req0, State0=#mcb_html_state{ post_data=PD }) ->
   %% lager:debug("L=~s:P=~s AL=~s:AP=~s", [Login, Password, ALogin, APassword]),
   case {ALogin =:= Login, APassword =:= Password} of
     {true, true} ->
-      {Req, State} = macaba_web:create_session_for(#mcb_user{type=admin},
-                                                   Req0, State0),
+      {Req, State} = macaba_web:create_session_for(
+                       #mcb_user{level=?USERLEVEL_ADMIN},
+                       Req0, State0),
       %% stop checking passwords right here
       macaba_web:chain_fail(Req, State);
     _ ->
@@ -117,32 +119,32 @@ chain_check_mod_login(Req0, State0) ->
   {ok, Req0, State0}.
 
 %% @private
-%% @doc Gets user from ses cookie, fails if user type is Role
-chain_fail_if_user(Req0, State0, FailIfRole) ->
+%% @doc Gets user from ses cookie, fails if user is below FailIfLevelBelow
+chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
   User = State0#mcb_html_state.user,
-  #mcb_user{type=Type} = User,
-  case Type of
-    FailIfRole ->
+  #mcb_user{level=Level} = User,
+  case Level < FailIfLevelBelow of
+    true ->
       macaba_web:chain_fail(
-        macaba_web:render_error(<<"Not authenticated">>, Req0, State0));
+        macaba_web:render_error(<<"User power is too low">>, Req0, State0));
     _ ->
       macaba_web:chain_success(Req0, State0)
   end.
 
-%% @private
-%% @doc Gets user from ses cookie, fails if user type is NOT Role
-chain_fail_if_user_not(Req0, State0, FailIfNotRole) ->
-  User = State0#mcb_html_state.user,
-  #mcb_user{type=Type} = User,
-  case Type of
-    X when X =/= FailIfNotRole ->
-      NotRole = atom_to_binary(FailIfNotRole, latin1),
-      macaba_web:chain_fail(
-        macaba_web:render_error(<<"User role is not ", NotRole/binary>>,
-                                Req0, State0));
-    _ ->
-      macaba_web:chain_success(Req0, State0)
-  end.
+%% %% @private
+%% %% @doc Gets user from ses cookie, fails if user type is NOT Role
+%% chain_fail_if_user_not(Req0, State0, FailIfNotRole) ->
+%%   User = State0#mcb_html_state.user,
+%%   #mcb_user{type=Type} = User,
+%%   case Type of
+%%     X when X =/= FailIfNotRole ->
+%%       NotRole = atom_to_binary(FailIfNotRole, latin1),
+%%       macaba_web:chain_fail(
+%%         macaba_web:render_error(<<"User role is not ", NotRole/binary>>,
+%%                                 Req0, State0));
+%%     _ ->
+%%       macaba_web:chain_success(Req0, State0)
+%%   end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/logout - delete admin cookie
@@ -169,7 +171,8 @@ macaba_handle_admin_site(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin/site"),
   {_, Req, State} = macaba_web:chain_run(
                         [ fun macaba_html_handler:chain_get_boards/2
-                        , fun(R, S) -> chain_fail_if_user(R, S, anon) end
+                        , fun(R, S) -> chain_fail_if_level_below(
+                                         R, S, ?USERLEVEL_ANON+1) end
                         , fun chain_show_admin_site/2
                         ], Req0, State0),
   {Req, State}.
@@ -199,7 +202,8 @@ chain_show_admin_site(Req0, State0) ->
 macaba_handle_admin_site_offline(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/offline"),
   {_, Req, State} = macaba_web:chain_run(
-                      [ fun(R, S) -> chain_fail_if_user_not(R, S, admin) end
+                      [ fun(R, S) -> chain_fail_if_level_below(
+                                       R, S, ?USERLEVEL_ADMIN) end
                       , fun chain_edit_site_offline/2
                       ], Req0, State0),
   {Req, State}.
@@ -229,7 +233,8 @@ chain_edit_site_offline(Req0, State0=#mcb_html_state{post_data=PD}) ->
 macaba_handle_admin_site_boards(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/boards"),
   {_, Req1, State1} = macaba_web:chain_run(
-                        [ fun(R, S) -> chain_fail_if_user_not(R, S, admin) end
+                        [ fun(R, S) -> chain_fail_if_level_below(
+                                         R, S, ?USERLEVEL_ADMIN) end
                         , fun chain_edit_site_boards/2
                         ], Req0, State0),
   macaba_web:redirect("/admin", Req1, State1).

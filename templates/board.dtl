@@ -12,7 +12,7 @@
 | 'previews' - map<ThreadId::string, [#mcb_post{}]> a preview is first post in
 |            thread plus few last posts (configurable)
 +---------------------------------------------------------------{% endcomment %}
-{% include "header.html" %}
+{% with title="board" %}{% include "header.html" %}{% endwith %}
 
 <div class="row">
   <div class="span12">
@@ -42,6 +42,7 @@
 <div class="row">
   <div class="span12">
     {% for t in threads %}
+      <hr />
       {% for p in t.preview %}
         {% include "post.html" %}
         {% if forloop.counter == 1 %}{% if t.skipped_posts > 0 %}
@@ -50,7 +51,6 @@
             here</a> to view
         {% endif %}{% endif %}
       {% endfor %}
-      <hr />
     {% endfor %}
   </div>
 </div>

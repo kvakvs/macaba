@@ -138,10 +138,10 @@ chain_get_threads(Req0, State0) ->
                                   macaba_web:handler_return().
 
 macaba_handle_thread_new(<<"POST">>, Req0, State0) ->
-  {_, {Req1, State1}} = macaba_web:chain_run(
+  {_, Req1, State1} = macaba_web:chain_run(
                         [ fun chain_check_post_attach/2
                         , fun chain_thread_new/2
-                        ], {Req0, State0}),
+                        ], Req0, State0),
   {BoardId, Req2} = cowboy_req:binding(mcb_board, Req1),
   macaba_web:redirect("/board/" ++ macaba:as_string(BoardId), Req2, State1).
 
