@@ -250,7 +250,10 @@ get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
   Message  = macaba:propget(<<"message">>,   PD, ""),
   Attach   = macaba:propget(<<"attach">>,    PD, ""),
   DeletePw = macaba:propget(<<"deletepw">>,  PD, ""),
-  PosterId = macaba_web:get_poster_id(Req0),
+
+  %% user identification and poster_id
+  UserId   = macaba_web:get_user_identification(Req0),
+  PosterId = macaba_web:get_poster_id(UserId),
 
   orddict:from_list([ {thread_id,  ThreadId}
                     , {author,     Author}
@@ -258,8 +261,8 @@ get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
                     , {subject,    Subject}
                     , {message,    Message}
                     , {attach,     Attach}
+                    , {ident,      UserId}
                     , {poster_id,  PosterId}
-                    %% , {attach_key, state_get_var(attach_key, State)}
                     , {deletepw,   DeletePw}
                     ]).
 

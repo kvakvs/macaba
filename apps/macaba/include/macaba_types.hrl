@@ -86,12 +86,23 @@
           , post_ids = [] :: [binary()]
          }).
 
+%% @doc User identification - bits of information to help with detecting same
+%% user posting and with banning
+-record(mcb_userid, {
+            ip = <<>>        :: binary() % $REMOTE_ADDR
+          , proxy_ip = <<>>  :: binary() % X-Forwarded-For
+          , ip_num = 0       :: integer() % $REMOTE_ADDR (int32 form)
+          , proxy_ip_num = 0 :: integer() % X-Forwarded-For (int32  form)
+          , user_agent = <<>>    :: binary() % User-Agent
+          , accept = <<>>        :: binary() % Accept headers
+          , tor_detected = false :: boolean() % if tor detection is enabled
+         }).
+
 -define(MCB_POST_VER, 1).
 -record(mcb_post, {
             thread_id          :: binary()
           , board_id           :: binary()
           , post_id            :: binary()
-          , poster_id = 0      :: integer()
           , subject = <<>>     :: binary()  % trusted HTML
           , author  = <<>>     :: binary()  % trusted HTML
           , email   = <<>>     :: binary()  % trusted HTML
@@ -101,6 +112,9 @@
           , attach_ids = []    :: [binary()]
           , attach_deleted = false :: boolean()
           , delete_pass = <<>> :: binary()
+          , ident              :: #mcb_userid{}
+          , user_banned = false:: boolean() % "user was banned for this post"
+          , poster_id = 0      :: integer() % long integer, hash of ip/useragent
          }).
 
 -define(MCB_ATTACHMENT_VER, 1).

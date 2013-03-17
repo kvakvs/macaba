@@ -9,7 +9,6 @@
         , render/2
         , chain_run/3
         , chain_success/1, chain_success/2, chain_fail/1, chain_fail/2
-        , get_poster_id/1
         , render_page/3, render_page/4
         , response_text/4
         , redirect/3
@@ -25,6 +24,8 @@
         , create_session_for/3
         , ses_cookie_name/0
         , clear_session_cookie/1
+        , get_poster_id/1
+        , get_user_identification/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -132,27 +133,6 @@ chain_success({Req, State = #mcb_html_state{}}) -> {chain_ok, Req, State}.
 
 chain_fail(Req, State = #mcb_html_state{}) -> {chain_fail, Req, State}.
 chain_fail({Req, State = #mcb_html_state{}}) -> {chain_fail, Req, State}.
-
-%%%------------------------------------------------------------------------
-%% @doc Using user IP and user-agent
-get_poster_id(Req0) ->
-  {{{IP1, IP2, IP3, _IP4}, _Port}, Req1} = cowboy_req:peer(Req0),
-  {UA, _Req2} = cowboy_req:header(<<"user-agent">>, Req1),
-  Id0 = erlang:term_to_binary({IP1, IP2, IP3, UA}),
-  %% split 160 bits of sha evenly and bxor together
-  <<Id1:53, Id2:53, Id3:53, _:1>> = crypto:sha(Id0),
-  Id = Id1 bxor Id2 bxor Id3,
-  get_poster_id_encode(Id, []).
-
-%% @doc Encode a long integer in base62
-get_poster_id_encode(0, A) -> iolist_to_binary(A);
-get_poster_id_encode(X, A) ->
-  Ch = case X rem 62 of
-        C when C < 10 -> $0 + C;
-        C when C < 36 -> $A + C - 10;
-        C -> $a + C - 36
-       end,
-  get_poster_id_encode(X div 62, [Ch | A]).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders HTML page for response
@@ -398,6 +378,63 @@ create_session_for(U=#mcb_user{}, Req0, State0) ->
 ses_cookie_name() ->
   {ok, CookieName} = macaba_conf:get([<<"board">>, <<"session_cookie_name">>]),
   CookieName.
+
+%%%------------------------------------------------------------------------
+%% @doc Extract user identification from Request, such as IP address, Accept
+%% and User-Agent fields
+get_user_identification(Req0) ->
+  {{{IP1, IP2, IP3, IP4}, _Port}, Req1} = cowboy_req:peer(Req0),
+  IP = iolist_to_binary([integer_to_list(IP1), $., integer_to_list(IP2), $.,
+                         integer_to_list(IP3), $., integer_to_list(IP4)]),
+  {XForw, Req2} = cowboy_req:header(<<"x-forwarded-for">>, Req1),
+  {UA, Req3} = cowboy_req:header(<<"user-agent">>, Req2),
+  {Accept, _Req4} = cowboy_req:header(<<"accept">>, Req3),
+  #mcb_userid{
+                 ip           = IP
+               , ip_num       = ip_to_integer({IP1, IP2, IP3, IP4})
+               , proxy_ip     = XForw
+               , proxy_ip_num = ip_to_integer(XForw)
+               , user_agent   = UA
+               , accept       = Accept
+               , tor_detected = is_tor_node(IP)
+             }.
+
+ip_to_integer(undefined) -> 0;
+ip_to_integer(<<>>) -> 0;
+ip_to_integer(X) when is_binary(X) ->
+  ip_to_integer(binary_to_list(X));
+ip_to_integer(X) when is_list(X) ->
+  {ok, X2} = inet_parse:address(X),
+  ip_to_integer(X2);
+ip_to_integer({A,B,C,D}) ->
+  A*16777216+B*65536+C*256+D.
+
+%%%------------------------------------------------------------------------
+%% @doc TODO: Detect if the IP belongs to one of TOR exit nodes
+%% https://www.dan.me.uk/torlist/
+is_tor_node(_IP) -> false.
+
+%%%------------------------------------------------------------------------
+%% @doc Using user IP and user-agent
+get_poster_id(#mcb_userid{ ip=IP, proxy_ip=ProxyIP,
+                           user_agent=UA, accept=Accept }) ->
+  %% NOTE: To reduce sensitivity of poster_id, remove some info from the
+  %% tuple below
+  Id0 = erlang:term_to_binary({IP, ProxyIP, UA, Accept}),
+  %% split 160 bits of sha evenly and bxor together
+  <<Id1:53, Id2:53, Id3:53, _:1>> = crypto:sha(Id0),
+  Id = Id1 bxor Id2 bxor Id3,
+  get_poster_id_encode(Id, []).
+
+%% @doc Encode a long integer in base62
+get_poster_id_encode(0, A) -> iolist_to_binary(A);
+get_poster_id_encode(X, A) ->
+  Ch = case X rem 62 of
+        C when C < 10 -> $0 + C;
+        C when C < 36 -> $A + C - 10;
+        C -> $a + C - 36
+       end,
+  get_poster_id_encode(X div 62, [Ch | A]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

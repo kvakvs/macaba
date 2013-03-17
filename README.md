@@ -91,16 +91,21 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 
 ### Tier 3 TODO: want, but in future
 
-*   Video embedding support (configurable)
 *   Multiple file upload (almost done!)
-*   Tripcodes support
 *   TOR/proxy detection
 *   Fighting Unicode quirks (reverse text direction)
 *   A torrent-tracker module (tourettes or peasy or something else?)
 *   Permanent authentication, VIP passwords
-*   International board mode (geoip flags)
-*   Oekaki drawing support
 *   Mobile-friendly template (entirely new mobile mode?)
+
+### Plugin ideas
+
+*   International board mode (geoip flags)
+*   Tripcodes support
+*   Video embedding support (configurable)
+*   Oekaki drawing support
+*   Masking post number last 2-3 digits to fight "get" hunting
+*   Masking last digits of user IP for mods
 
 ## Installing
 

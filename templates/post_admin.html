@@ -1,6 +1,11 @@
 {% comment %}-------------------------------------------------------------------
 | Admin panel to include in every post, contains deleting, banning options
-| params: p - post, board_info
+| params:
+|    p - post
+|    board_info
+|    p.ident - user identification for this post, contains ip (string and numeric
+|              in ip_num), proxy_ip (string and numeric in proxy_ip_num),
+|              user_agent, accept headers
 ----------------------------------------------------------------{% endcomment %}
 <div class="btn-group">
   {% if forloop.counter == 1 %}
@@ -17,3 +22,6 @@
   <button onclick="admin_ban_for_post('{{board_info.board_id}}', '{{p.post_id}}');"
      class="btn btn-mini"><i class="icon-eye-close"></i> Ban</button>
 </div>
+
+<span class="label">{{p.ident.ip}}{% if p.ident.proxy_ip %} proxy
+{{p.ident.proxy_ip}}{% endif %}</span>

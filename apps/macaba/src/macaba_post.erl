@@ -28,6 +28,7 @@ construct(BoardId, Opts) when is_binary(BoardId) ->
   Message   = macaba:propget(message,   Opts),
   DeletePw  = macaba:propget(deletepw,  Opts),
   PosterId  = macaba:propget(poster_id, Opts),
+  Ident     = macaba:propget(ident, Opts),
 
   case string:strip(binary_to_list(Message), both) of
     [] -> {error, body_empty};
@@ -40,7 +41,6 @@ construct(BoardId, Opts) when is_binary(BoardId) ->
         thread_id   = macaba:as_binary(ThreadId)
         , post_id     = PostId
         , board_id    = BoardId
-        , poster_id   = PosterId
         , subject     = Subject
         , author      = Author
         , email       = Email
@@ -48,6 +48,8 @@ construct(BoardId, Opts) when is_binary(BoardId) ->
         , message     = MessageProcessed
         , created     = get_now_utc()
         , delete_pass = DeletePw
+        , poster_id   = PosterId
+        , ident       = Ident
        },
       {ok, P}
   end.

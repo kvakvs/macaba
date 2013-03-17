@@ -31,18 +31,24 @@
 %%-----------------------------------------------------------------------------
 %% -spec record_to_proplist(Rec :: macaba_db_object()) -> [{atom(), any()}].
 
+record_to_proplist(#mcb_userid{}=Rec) ->
+  lists:zip(record_info(fields, mcb_userid), tl(tuple_to_list(Rec)));
+
+record_to_proplist(#mcb_post{}=Rec) ->
+  D1 = orddict:from_list(
+        lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec))) ),
+  UTC = calendar:gregorian_seconds_to_datetime(
+          Rec#mcb_post.created + 1970*365*86400),
+  Local = calendar:universal_time_to_local_time(UTC),
+  D2 = orddict:store(created_utc, UTC, D1),
+  D3 = orddict:store(created_local, Local, D2),
+  orddict:store(ident, record_to_proplist(Rec#mcb_post.ident), D3);
+
 record_to_proplist(#mcb_board{}=Rec) ->
   lists:zip(record_info(fields, mcb_board), tl(tuple_to_list(Rec)));
 
 record_to_proplist(#mcb_thread{}=Rec) ->
   lists:zip(record_info(fields, mcb_thread), tl(tuple_to_list(Rec)));
-
-record_to_proplist(#mcb_post{}=Rec) ->
-  UTC = calendar:gregorian_seconds_to_datetime(Rec#mcb_post.created
-                                               + 1970*365*86400),
-  Local = calendar:universal_time_to_local_time(UTC),
-  lists:zip(record_info(fields, mcb_post), tl(tuple_to_list(Rec)))
-    ++ [{created_local, Local}, {created_utc, UTC}];
 
 record_to_proplist(#mcb_attachment{}=Rec) ->
   HashHex = bin_to_hex:bin_to_hex(Rec#mcb_attachment.hash),
