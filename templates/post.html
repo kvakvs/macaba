@@ -69,7 +69,7 @@
 -----------------------------{% endcomment %}
   <tr>
     <td width="1">
-      <span id="exlink_{{ p.post_id }}">
+      <span id="img_{{ p.post_id }}">
         {% if p.attach_deleted %}<div class="filedeleted">File deleted</div>
         {% endif %}
 
@@ -79,6 +79,9 @@
         {% endfor %}
       </span>
     </td>
-    <td class="msg" id="m{{ p.post_id }}">{{ p.message }}</td>
+    <td class="msg" id="msg_{{ p.post_id }}">
+      {{ p.message }}
+      {% if p.user_banned %}<p class="was_banned">USER WAS BANNED FOR THIS POST</p>{% endif %}
+    </td>
   </tr>
 </table> <!-- end post -->

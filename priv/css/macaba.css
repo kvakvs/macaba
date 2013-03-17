@@ -23,9 +23,9 @@ textarea.postmsg {
 
 /* post display block */
 .msg blockquote {
-   color: #484;
-   margin-top: 0;
-   margin-bottom: 0;
+  color: #484;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .msg code {
     border: 1px solid silver;
@@ -118,9 +118,14 @@ span.spoiler:hover {
   color: #333;
 }
 
+p.was_banned {
+  font-weight: bold;
+  color: #b00;
+}
 
-/*
-Local Variables:
-erlang-indent-level: 2
-End:
-*/
+div.post_admin {
+  background: #ffe;
+  padding: 4px;
+  margin-left: 16px;
+  border: 1px solid gray;
+}

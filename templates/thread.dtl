@@ -16,7 +16,7 @@
     <h3>{% if first_post.subject %}{{ first_post.subject }}
       {% else %}Thread {{ first_post.post_id }}{% endif %}</h3>
 
-    <a href="/board/{{board_info.board_id}}">&larr; Back to {{board_info.short_name}}</a>
+    <a href="/board/{{board_info.board_id}}"><i class="icon-backward"></i> Back to {{board_info.short_name}}</a>
   </div> <!-- end span -->
 </div> <!-- end row -->
 
