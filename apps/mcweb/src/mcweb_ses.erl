@@ -4,7 +4,7 @@
 %%% for defined ses timeout time
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_ses).
+-module(mcweb_ses).
 -behaviour(gen_server).
 
 %% API
@@ -18,6 +18,7 @@
          terminate/2, code_change/3]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcweb/include/mcweb.hrl").
 
 -record(mcb_session, {
           %% this like, allows ipv6 too, but will we ever support that?
@@ -53,7 +54,7 @@ new(Params0) ->
   %%Pid = gen_server:start_link(macaba_ses, [Params], []),
   Params1 = [{sesid, SesId} | Params0],
   lager:debug("ses:new id=~s", [SesId]),
-  {ok, Pid} = supervisor:start_child(macaba_ses_sup, [Params1]),
+  {ok, Pid} = supervisor:start_child(mcweb_ses_sup, [Params1]),
   {SesId, Pid}.
 
 %%%------------------------------------------------------------------------

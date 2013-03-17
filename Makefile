@@ -49,7 +49,7 @@ COMBO_PLT = $(HOME)/.macaba_combo.plt
 PLT_LIBS0 = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
 PLT_LIBS  = $(subst deps/riak_pb/ebin,,$(PLT_LIBS0))
 
-DIALYZER_APPS = macaba
+DIALYZER_APPS = macaba mcweb
 DIALYZER_APPS_PATHS = $(addsuffix /ebin, $(addprefix apps/, $(DIALYZER_APPS)))
 
 .PHONY: check_plt

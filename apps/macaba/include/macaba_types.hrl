@@ -154,6 +154,7 @@
           , password = <<>>  :: binary()
          }).
 
+
 %% @doc User levels, feel free to use any intermediate values to have better
 %% finegrained control over mods powers
 -define(USERLEVEL_ANON, 0).
@@ -165,15 +166,6 @@
           , session_key :: binary()
           , session_pid :: pid()
           , name = <<>> :: binary()
-         }).
-
--record(mcb_html_state, {
-            mode                     :: atom()
-          , page_vars = []           :: orddict:orddict()
-          , already_rendered = false :: boolean()
-          , post_data = []           :: orddict:orddict()
-          , user                     :: #mcb_user{}
-          , site_offline = false     :: boolean()
          }).
 
 -endif. % MACABA_TYPES_HRL

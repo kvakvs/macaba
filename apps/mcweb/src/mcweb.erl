@@ -2,7 +2,7 @@
 %%% @doc Utility functions for web server and templates
 %%% Created: 2013-02-17 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_web).
+-module(mcweb).
 
 -export([ handle_helper/3
         , compile/1
@@ -29,6 +29,7 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcweb/include/mcweb.hrl").
 
 -type html_state() :: #mcb_html_state{}.
 -export_type([html_state/0]).
@@ -346,7 +347,7 @@ acc_multipart({eof, Req}, Acc) ->
                   macaba_web:handler_return().
 get_user(Req0, State0) ->
   {SesId, Req1} = cowboy_req:cookie(ses_cookie_name(), Req0),
-  User = case macaba_ses:get(SesId) of
+  User = case mcweb_ses:get(SesId) of
            {error, not_found} ->
              %% lager:debug("web:get_user ses '~s' not found", [SesId]),
              Req = clear_session_cookie(Req1),
@@ -367,7 +368,7 @@ create_session_for(U=#mcb_user{}, Req0, State0) ->
   Opts = [ {remote_addr, RemoteAddr}
          , {user, U}
          ],
-  {SesId, _SesPid} = macaba_ses:new(Opts),
+  {SesId, _SesPid} = mcweb_ses:new(Opts),
   %% lager:debug("set resp cookie ~p=~p", [ses_cookie_name(), SesId]),
   Req = cowboy_req:set_resp_cookie(
           ses_cookie_name(), SesId, [{path, <<"/">>}], Req0),

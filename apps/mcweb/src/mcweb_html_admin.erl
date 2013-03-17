@@ -4,7 +4,7 @@
 %%% Serves HTML templates, and provides basic HTTP access to the board.
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
--module(macaba_html_admin).
+-module(mcweb_html_admin).
 
 -export([ init/3
         , handle/2
@@ -22,6 +22,7 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcweb/include/mcweb.hrl").
 
 %%%-----------------------------------------------------------------------------
 init({_Transport, http}, Req, [Mode]) ->
@@ -29,11 +30,11 @@ init({_Transport, http}, Req, [Mode]) ->
          mode = Mode
         }}.
 
--spec handle(cowboy_req:req(), macaba_web:html_state()) ->
-                {ok, cowboy_req:req(), macaba_web:html_state()}.
+-spec handle(cowboy_req:req(), mcweb:html_state()) ->
+                {ok, cowboy_req:req(), mcweb:html_state()}.
 
 handle(Req0, State0) ->
-  macaba_web:handle_helper(?MODULE, Req0, State0).
+  mcweb:handle_helper(?MODULE, Req0, State0).
 
 terminate(_Reason, _Req, _State) ->
   ok.
@@ -43,38 +44,38 @@ terminate(_Reason, _Req, _State) ->
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_offline(Method :: binary(),
                             Req :: cowboy_req:req(),
-                            State :: macaba_web:html_state()) ->
-                               macaba_web:handler_return().
+                            State :: mcweb:html_state()) ->
+                               mcweb:handler_return().
 
 macaba_handle_offline(_, Req0, State0) ->
   Site = macaba_board:get_site_config(),
   M = Site#mcb_site_config.offline_message,
-  State = macaba_web:state_set_var(offline_message, M, State0),
-  macaba_web:render_page("offline", Req0, State).
+  State = mcweb:state_set_var(offline_message, M, State0),
+  mcweb:render_page("offline", Req0, State).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/login - login form
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin_login(Method :: binary(),
                                 Req :: cowboy_req:req(),
-                                State :: macaba_web:html_state()) ->
-                                   macaba_web:handler_return().
+                                State :: mcweb:html_state()) ->
+                                   mcweb:handler_return().
 
 macaba_handle_admin_login(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin/login"),
-  {_, Req, State} = macaba_web:chain_run(
-                        [ fun macaba_html_handler:chain_get_boards/2
+  {_, Req, State} = mcweb:chain_run(
+                        [ fun mcweb_html_public:chain_get_boards/2
                         ], Req0, State0),
-  macaba_web:render_page("admin_login", Req, State);
+  mcweb:render_page("admin_login", Req, State);
 
 %% POST: /admin/login - login
 macaba_handle_admin_login(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/login"),
-  {_, Req, State} = macaba_web:chain_run(
+  {_, Req, State} = mcweb:chain_run(
                         [ fun chain_check_admin_login/2
                         , fun chain_check_mod_login/2
                         ], Req0, State0),
-  macaba_web:redirect("/", Req, State).
+  mcweb:redirect("/", Req, State).
 
 
 %%%-----------------------------------------------------------------------------
@@ -82,17 +83,17 @@ macaba_handle_admin_login(<<"POST">>, Req0, State0) ->
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin(Method :: binary(),
                           Req :: cowboy_req:req(),
-                          State :: macaba_web:html_state()) ->
-                             macaba_web:handler_return().
+                          State :: mcweb:html_state()) ->
+                             mcweb:handler_return().
 
 macaba_handle_admin(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin"),
-  {_, Req, State} = macaba_web:chain_run(
-                      [ fun macaba_html_handler:chain_get_boards/2
+  {_, Req, State} = mcweb:chain_run(
+                      [ fun mcweb_html_public:chain_get_boards/2
                       , fun(R,S) -> chain_fail_if_level_below(
                                       R, S, ?USERLEVEL_ANON+1) end
                       ], Req0, State0),
-  macaba_web:render_page("admin", Req, State).
+  mcweb:render_page("admin", Req, State).
 
 %% @private
 %% @doc Checks admin login and password from macaba.config
@@ -104,13 +105,13 @@ chain_check_admin_login(Req0, State0=#mcb_html_state{ post_data=PD }) ->
   %% lager:debug("L=~s:P=~s AL=~s:AP=~s", [Login, Password, ALogin, APassword]),
   case {ALogin =:= Login, APassword =:= Password} of
     {true, true} ->
-      {Req, State} = macaba_web:create_session_for(
+      {Req, State} = mcweb:create_session_for(
                        #mcb_user{level=?USERLEVEL_ADMIN},
                        Req0, State0),
       %% stop checking passwords right here
-      macaba_web:chain_fail(Req, State);
+      mcweb:chain_fail(Req, State);
     _ ->
-      macaba_web:chain_success(Req0, State0)
+      mcweb:chain_success(Req0, State0)
   end.
 
 %% @private
@@ -125,10 +126,10 @@ chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
   #mcb_user{level=Level} = User,
   case Level < FailIfLevelBelow of
     true ->
-      macaba_web:chain_fail(
-        macaba_web:render_error(<<"User power is too low">>, Req0, State0));
+      mcweb:chain_fail(
+        mcweb:render_error(<<"User power is too low">>, Req0, State0));
     _ ->
-      macaba_web:chain_success(Req0, State0)
+      mcweb:chain_success(Req0, State0)
   end.
 
 %% %% @private
@@ -139,11 +140,11 @@ chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
 %%   case Type of
 %%     X when X =/= FailIfNotRole ->
 %%       NotRole = atom_to_binary(FailIfNotRole, latin1),
-%%       macaba_web:chain_fail(
-%%         macaba_web:render_error(<<"User role is not ", NotRole/binary>>,
+%%       mcweb:chain_fail(
+%%         mcweb:render_error(<<"User role is not ", NotRole/binary>>,
 %%                                 Req0, State0));
 %%     _ ->
-%%       macaba_web:chain_success(Req0, State0)
+%%       mcweb:chain_success(Req0, State0)
 %%   end.
 
 %%%-----------------------------------------------------------------------------
@@ -151,26 +152,26 @@ chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin_logout(Method :: binary(),
                                  Req :: cowboy_req:req(),
-                                 State :: macaba_web:html_state()) ->
-                                    macaba_web:handler_return().
+                                 State :: mcweb:html_state()) ->
+                                    mcweb:handler_return().
 
 macaba_handle_admin_logout(Method, Req0, State0) ->
   lager:debug("http ~s admin/logout", [Method]),
-  Req = macaba_web:clear_session_cookie(Req0),
-  macaba_web:redirect("/", Req, State0).
+  Req = mcweb:clear_session_cookie(Req0),
+  mcweb:redirect("/", Req, State0).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site - site config page
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin_site(Method :: binary(),
                                Req :: cowboy_req:req(),
-                               State :: macaba_web:html_state()) ->
-                                  macaba_web:handler_return().
+                               State :: mcweb:html_state()) ->
+                                  mcweb:handler_return().
 
 macaba_handle_admin_site(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin/site"),
-  {_, Req, State} = macaba_web:chain_run(
-                        [ fun macaba_html_handler:chain_get_boards/2
+  {_, Req, State} = mcweb:chain_run(
+                        [ fun mcweb_html_public:chain_get_boards/2
                         , fun(R, S) -> chain_fail_if_level_below(
                                          R, S, ?USERLEVEL_ANON+1) end
                         , fun chain_show_admin_site/2
@@ -186,22 +187,22 @@ chain_show_admin_site(Req0, State0) ->
     } = macaba_board:get_site_config(),
   Boards1 = lists:map(fun macaba:record_to_proplist/1, Boards0),
   Boards = jsx:encode(Boards1, [{indent, 2}]),
-  State1 = macaba_web:state_set_var(site_boards, Boards, State0),
-  State2 = macaba_web:state_set_var(site_offline, Offline, State1),
-  State3  = macaba_web:state_set_var(site_offline_message, OfflineMsg, State2),
-  macaba_web:chain_success(macaba_web:render_page("admin_site", Req0, State3)).
+  State1 = mcweb:state_set_var(site_boards, Boards, State0),
+  State2 = mcweb:state_set_var(site_offline, Offline, State1),
+  State3  = mcweb:state_set_var(site_offline_message, OfflineMsg, State2),
+  mcweb:chain_success(mcweb:render_page("admin_site", Req0, State3)).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site/offline - edit board offline settings
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin_site_offline(Method :: binary(),
                                        Req :: cowboy_req:req(),
-                                       State :: macaba_web:html_state()) ->
-                                          macaba_web:handler_return().
+                                       State :: mcweb:html_state()) ->
+                                          mcweb:handler_return().
 
 macaba_handle_admin_site_offline(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/offline"),
-  {_, Req, State} = macaba_web:chain_run(
+  {_, Req, State} = mcweb:chain_run(
                       [ fun(R, S) -> chain_fail_if_level_below(
                                        R, S, ?USERLEVEL_ADMIN) end
                       , fun chain_edit_site_offline/2
@@ -219,25 +220,25 @@ chain_edit_site_offline(Req0, State0=#mcb_html_state{post_data=PD}) ->
           },
   macaba_board:set_site_config(Site),
   lager:info("board offline mode set to: ~p", [Offline]),
-  macaba_app:change_offline_mode(Offline),
-  macaba_web:chain_success(macaba_web:redirect("/admin", Req0, State0)).
+  mcweb_app:change_offline_mode(Offline),
+  mcweb:chain_success(mcweb:redirect("/admin", Req0, State0)).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/site/boards - edit boards list
 %%%-----------------------------------------------------------------------------
 -spec macaba_handle_admin_site_boards(Method :: binary(),
                                       Req :: cowboy_req:req(),
-                                      State :: macaba_web:html_state()) ->
-                                         macaba_web:handler_return().
+                                      State :: mcweb:html_state()) ->
+                                         mcweb:handler_return().
 
 macaba_handle_admin_site_boards(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/boards"),
-  {_, Req1, State1} = macaba_web:chain_run(
+  {_, Req1, State1} = mcweb:chain_run(
                         [ fun(R, S) -> chain_fail_if_level_below(
                                          R, S, ?USERLEVEL_ADMIN) end
                         , fun chain_edit_site_boards/2
                         ], Req0, State0),
-  macaba_web:redirect("/admin", Req1, State1).
+  mcweb:redirect("/admin", Req1, State1).
 
 chain_edit_site_boards(Req0, State0=#mcb_html_state{post_data=PD}) ->
   Site0 = macaba_board:get_site_config(),
@@ -250,7 +251,7 @@ chain_edit_site_boards(Req0, State0=#mcb_html_state{post_data=PD}) ->
            boards = Boards
           },
   macaba_board:set_site_config(Site),
-  macaba_web:chain_success(Req0, State0).
+  mcweb:chain_success(Req0, State0).
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

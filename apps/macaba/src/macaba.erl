@@ -111,13 +111,11 @@ ensure_started(App) ->
 ensure_started_1(_, 0) -> erlang:error({macaba, ensure_started, retries_count});
 ensure_started_1(App, Retries) ->
   case application:start(App) of
-    ok ->
-      ok;
-    {error, {already_started, App}} ->
-      ok;
     {error, {not_started, Dependency}} ->
       ensure_started_1(Dependency, Retries-1),
-      ensure_started_1(App, Retries-1)
+      ensure_started_1(App, Retries-1);
+    _ -> %{error, {already_started, _App}} ->
+      ok
   end.
 
 %%-----------------------------------------------------------------------------

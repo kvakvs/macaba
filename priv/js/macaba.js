@@ -45,7 +45,6 @@ function rest_call(Selector, Url, PostData) {
   <input type="checkbox" id="admin_delete_file_{{p.post_id}}" /><i class="icon-picture"></i> Delete file
 */
 function admin_manage_post(Bid, Tid) {
-    
     if (confirm("Confirm delete thread or post? ")) {
         rest_call("div#admin_"+Tid, "/rest/board/" + Bid + "/post/" + Tid + "/manage",
                   {action: "delete"});

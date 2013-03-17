@@ -1,6 +1,6 @@
 %%% @doc Session supervisor, keeps track of active user sessions
 %%%
--module(macaba_ses_sup).
+-module(mcweb_ses_sup).
 
 -behaviour(supervisor).
 
@@ -27,7 +27,7 @@ start_link() ->
 
 init([]) ->
   {ok, { {simple_one_for_one, 5, 10},
-         [ child(macaba_ses, worker, transient) ]} }.
+         [ child(mcweb_ses, worker, transient) ]} }.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

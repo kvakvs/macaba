@@ -67,7 +67,8 @@ init([]) ->
   %% Mnesia writes and deletes to RIAK
   gen_leader:leader_call(macaba_masternode, start_resync),
 
-  macaba_app:start_web(),
+  %% macaba_app:start_web(),
+  macaba:ensure_started(mcweb),
 
   macaba_board:start(),
   {ok, #startup_state{
