@@ -84,12 +84,14 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
 compile(TplName) ->
   TplModule = list_to_atom(TplName ++ "_dtl"),
   %% recompile-debug
-  erlydtl:compile("templates/" ++ TplName ++ ".dtl", TplModule,
-                  [ verbose
-                  , {out_dir, "templates/ebin"}
-                  , {doc_root, "templates/"}
-                  , {custom_tags_dir, "templates/custom_tags"}
-                  ]),
+  Priv = code:priv_dir(mcweb),
+  erlydtl:compile(
+    Priv ++ "/tpl/" ++ TplName ++ ".dtl", TplModule,
+    [ verbose
+    , {out_dir, filename:join([Priv, "tpl", "ebin"])}
+    , {doc_root, filename:join([Priv, "tpl"])}
+    , {custom_tags_dir, filename:join([Priv, "tpl", "custom_tags"])}
+    ]),
   TplModule.
 
 %%%------------------------------------------------------------------------

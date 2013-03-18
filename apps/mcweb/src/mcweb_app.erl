@@ -61,10 +61,11 @@ change_offline_mode(Offline) ->
   cowboy:set_env(?MACABA_LISTENER, dispatch, Disp).
 
 cowboy_compile_dispatch(Offline) ->
-  CurrentDir = filename:absname(""),
-  CSSPath = filename:join([CurrentDir, "priv", "css"]),
-  JSPath  = filename:join([CurrentDir, "priv", "js"]),
-  ImgPath = filename:join([CurrentDir, "priv", "img"]),
+  Priv = code:priv_dir(mcweb),
+  %% CurrentDir = filename:absname(""),
+  CSSPath = filename:join([Priv, "css"]),
+  JSPath  = filename:join([Priv, "js"]),
+  ImgPath = filename:join([Priv, "img"]),
 
   Mime = {mimetypes, [ {<<".css">>, [<<"text/css">>]}
                      , {<<".js">>,  [<<"application/javascript">>]}
