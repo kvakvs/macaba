@@ -60,12 +60,11 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 ### In progress
 
 *   Mod: Thread management - locking, pinning, deleting, moving
-*   Mod: Reviewing reported posts
-*   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
-*   Mod: User blacklisting, bans, ban page with ban reason
 
 ### Tier 1 TODO: important
 
+*   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
+*   Mod: User blacklisting, bans, ban page with ban reason
 *   Timestamps, Etags, If-modified-since, Expires HTTP headers support:
     *   board_dynamic
     *   thread_dynamic
@@ -81,7 +80,7 @@ rewrite post count generation entierly with RIAK and/or existing Erlang tools.
 *   Captcha support, flood detection, basic DDOS resistance
 *   Thread viewing mode (pagination, last X posts), post as separate resource
 *   Mod-deleted posts should be visible in thread
-*   Users participation - reporting posts and threads
+*   Users participation - reporting posts and threads, Mod: Reviewing reported posts
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications -
     *   get/list/create board/thread/post
