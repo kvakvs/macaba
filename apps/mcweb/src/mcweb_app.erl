@@ -50,7 +50,7 @@ cowboy_start_listener(Disp) ->
   {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
   {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
   cowboy:start_http(?MACABA_LISTENER, Listeners,
-                    [{port, HttpPort}],
+                    [{port, HttpPort}, {ip, {0,0,0,0}}],
                     [{env, [{dispatch, Disp}]}]
                    ).
 
@@ -72,15 +72,15 @@ cowboy_compile_dispatch(Offline) ->
                      , {<<".jpg">>,  [<<"image/jpeg">>]}
                      , {<<".png">>,  [<<"image/png">>]}
                      ]},
-  SMod = cowboy_static,
-  HMod = mcweb_html_public,
-  AMod = mcweb_html_admin,
 
+  %%--- Static resources ---
+  SMod = cowboy_static,
   St1 = {"/css/[...]", SMod, [{directory, CSSPath}, Mime]},
   St2 = {"/js/[...]",  SMod, [{directory, JSPath},  Mime]},
   St3 = {"/img/[...]", SMod, [{directory, ImgPath}, Mime]},
 
   %%--- anonymous/public resources ---
+  HMod = mcweb_html_public,
   Index    = {"/", HMod, [index]},
   TNew     = {"/board/:mcb_board/thread/new", HMod, [thread_new]},
   TManage  = {"/board/:mcb_board/thread/:mcb_thread/manage", HMod,
@@ -94,6 +94,7 @@ cowboy_compile_dispatch(Offline) ->
   UPvw     = {"/util/preview", HMod, [util_preview]},
 
   %%--- admin resources ---
+  AMod = mcweb_html_admin,
   ASiteB  = {"/admin/site/boards", AMod, [admin_site_boards]},
   ASiteO  = {"/admin/site/offline", AMod, [admin_site_offline]},
   ASite   = {"/admin/site", AMod, [admin_site]},
@@ -101,22 +102,28 @@ cowboy_compile_dispatch(Offline) ->
   ALogout = {"/admin/logout", AMod, [admin_logout]},
   ALanding= {"/admin", AMod, [admin]},
 
-  %% if board is offline, attaches, boards, threads and preview is shutting down
-  %% TODO: make a good 404 page
+  %%--- REST root resource ---
+  RMod  = mcweb_rest_handler,
+  RRoot = {"/rest/[...]", RMod, [rest]},
+
   case Offline of
     false ->
+      %% board is online, bring everything up!
       BoardResources = [ AttThumb, Attach
+                       , RRoot
                        , TNew, TManage, TShow, TRepl
                        , BShow1, BShow2
                        , UPvw, Index
                        ],
       CatchAll = [];
     true ->
+      %% board is offline, shut everything down except admin pages!
       BoardResources = [],
       CatchAll = [{'_', AMod, [offline]}]
   end,
   cowboy_router:compile(
     [ {'_',
+       %% static always works in online and offline
        [ St1, St2, St3 ]
        ++ BoardResources
        ++ [ ASiteB, ASiteO, ASite, ALogin, ALogout, ALanding ]

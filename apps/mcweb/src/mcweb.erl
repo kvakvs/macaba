@@ -11,6 +11,7 @@
         , chain_success/1, chain_success/2, chain_fail/1, chain_fail/2
         , render_page/3, render_page/4
         , response_text/4
+        , response_json/4
         , redirect/3
         , redirect_to_thread/4
         , redirect_to_thread_and_post/5
@@ -47,6 +48,10 @@
                     State :: macaba_web:html_state()) ->
                        {ok, cowboy_req:req(), macaba_web:html_state()}.
 
+%% @doc A handler entry point for all web resources. Checks and parses POST
+%% fields, checks user cookie and extracts user from session storage, checks
+%% offline flag, calculates and calls handler for the resource being processed,
+%% catches errors
 handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
   try
     {Method, Req1} = cowboy_req:method(Req0),
@@ -72,11 +77,12 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     {Req4, State5} = apply(Module, FnName, [Method, Req3, State4]),
     {ok, Req4, State5}
   catch
-    E -> T = lists:flatten(io_lib:format("handle error: ~p ~p",
-                                         [E, erlang:get_stacktrace()])),
-         lager:error(E),
-         {ReqE, StateE} = ?MODULE:response_text(500, T, Req0, State0),
-         {ok, ReqE, StateE}
+    E ->
+      T = lists:flatten(io_lib:format("handle error: ~p ~p",
+                                      [E, erlang:get_stacktrace()])),
+      lager:error(E),
+      {ReqE, StateE} = ?MODULE:response_text(500, T, Req0, State0),
+      {ok, ReqE, StateE}
   end.
 
 %%%------------------------------------------------------------------------
@@ -182,6 +188,22 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
   Headers = [ {<<"Content-Type">>, <<"text/plain">>}
             , {<<"Expires">>, <<"0">>}
             ],
+  {ok, Req} = cowboy_req:reply(HttpStatus, Headers, Body, Req0),
+  {Req, State}.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Does application/json response
+-spec response_json(HttpStatus :: integer(),
+                    J :: jsx:json_term(),
+                    Req0 :: cowboy_req:req(),
+                    State :: macaba_web:html_state()) ->
+                       macaba_web:handler_return().
+
+response_json(HttpStatus, J, Req0, State=#mcb_html_state{}) ->
+  Headers = [ {<<"Content-Type">>, <<"application/json">>}
+            , {<<"Expires">>, <<"0">>}
+            ],
+  Body = jsx:encode(J),
   {ok, Req} = cowboy_req:reply(HttpStatus, Headers, Body, Req0),
   {Req, State}.
 
