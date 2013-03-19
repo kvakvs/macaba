@@ -1,12 +1,3 @@
-function preview_show() {
-    var M = $("textarea#message").val();
-    var AJ = { url: "/util/preview", type: "POST", context: document.body, data: { markup: M }};
-    $.ajax(AJ).done(function(Value) {
-        $("div#preview-popup").show();
-        $("div#preview-content").html(Value);
-    });
-}
-
 function rest_call(Selector, Url, PostData) {
     $.ajax({
         type:"POST",
@@ -22,7 +13,7 @@ function rest_call(Selector, Url, PostData) {
             $(Selector).show().html(textStatus+"<br/>"+errorThrown);
         }
     });
-}}
+}
 
 /*
   <input type="checkbox" id="admin_delete_{{p.post_id}}" />Delete post {% if forloop.counter == 1 %}and thread{% endif %}
@@ -44,9 +35,41 @@ function rest_call(Selector, Url, PostData) {
   {% if p.attach_info %}
   <input type="checkbox" id="admin_delete_file_{{p.post_id}}" /><i class="icon-picture"></i> Delete file
 */
+
 function admin_manage_post(Bid, Tid) {
     if (confirm("Confirm delete thread or post? ")) {
         rest_call("div#admin_"+Tid, "/rest/board/" + Bid + "/post/" + Tid + "/manage",
                   {action: "delete"});
     }
+}
+function admin_pin_thread(Bid, Tid) {
+    rest_call("div#admin_"+Tid, "/rest/board/" + Bid + "/post/" + Tid + "/manage",
+              {action: "delete"});
+}
+
+function preview_show() {
+    var M = $("textarea#message").val();
+    $.ajax({
+        type:"POST",
+        url: "/rest/util/preview",
+        accepts: "application/json",
+        dataType: "json",
+        contentType: "application/json",
+        data: { markup: M },
+        success: function(data, textStatus, jqXHR){
+            J = JSON.parse(data);
+            $("div#preview-popup").show();
+            $("div#preview-content").html(J.html);
+        },
+        error:function(jqXHR, textStatus, errorThrown){
+            $("div#preview-popup").show();
+            $("div#preview-content").html(textStatus+"<br/>"+errorThrown);
+        }
+    });
+//    var AJ = { url: "/rest/util/preview", type: "POST",
+//        context: document.body, data: { markup: M }};
+//    $.ajax(AJ).done(function(Value) {
+//        $("div#preview-popup").show();
+//        $("div#preview-content").html(Value);
+//    });
 }

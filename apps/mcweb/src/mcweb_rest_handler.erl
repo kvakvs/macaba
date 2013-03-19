@@ -58,7 +58,8 @@ macaba_handle_util_preview(<<"POST">>, Req0, State0) ->
   PD = State0#mcb_html_state.post_data,
   Message = macaba:propget(<<"markup">>, PD, <<>>),
   MessageProcessed = macaba_plugins:call(markup, [Message]),
-  mcweb:response_json(200, MessageProcessed, Req0, State0).
+  ReplyJson = jsx:encode([{html, iolist_to_binary(MessageProcessed)}]),
+  mcweb:response_json(200, ReplyJson, Req0, State0).
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

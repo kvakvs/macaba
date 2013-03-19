@@ -4,12 +4,13 @@
 
 *   General board features
     *   Designed for running as a single node or as multiple nodes
-    *   Basic board functions: board index, thread index, thread view, new thread,
-        reply
+    *   Basic board functions: board index, thread index, thread view, new
+        thread, reply
     *   Basic plain HTML scriptless theme (later REST API, Websocket)
     *   File upload (1 per post)
-    *   WakabaMark (no ^H support as of yet) - bold, italic, inline code, code quotes,
-        spoilers using [spoiler][/spoiler], URL, ordered and unordered lists
+    *   WakabaMark (no ^H support as of yet) - bold, italic, inline code, code
+        quotes, spoilers using [spoiler][/spoiler], URL, ordered and unordered
+        lists
     *   Markdown support (can replace WakabaMark)
     *   Board limits, delete when thread is sinking
     *   Deleting posts by user, optional deletion of attachments only
@@ -23,8 +24,8 @@
     *   Simple plugins system. Extension modules and hooks are work-in-progress
     *   REST API design in progress http://docs.macaba.apiary.io/
 *   Quality and testing
-    *   Board post/reply/upload tests (not perfect, but good to have!), WakabaMark
-        markup tests
+    *   Board post/reply/upload tests (not perfect, but good to have!),
+        WakabaMark markup tests
 
 ## In progress
 
@@ -49,7 +50,8 @@
 *   Captcha support, flood detection, basic DDOS resistance
 *   Thread viewing mode (pagination, last X posts), post as separate resource
 *   Mod-deleted posts should be visible in thread
-*   Users participation - reporting posts and threads, Mod: Reviewing reported posts
+*   Users participation - reporting posts and threads, Mod: Reviewing reported
+    posts
 *   Themes support, porting 1-2 popular themes from Wakaba
 *   REST API for custom UIs and user applications -
     *   get/list/create board/thread/post

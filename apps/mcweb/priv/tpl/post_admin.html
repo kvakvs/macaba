@@ -10,7 +10,7 @@
 <div class="post_admin">
   {% if user.level >= 1000 %}{% if forloop.counter == 1 %}
   <button onclick="admin_pin_thread('{{board_info.board_id}}', '{{p.post_id}}');"
-          class="btn btn-error">Pin thread</button>
+          class="btn btn-danger">Pin</button>
   {% endif %}{% endif %}
 
   <input type="checkbox" id="admin_delete_{{p.post_id}}" />Delete post

@@ -111,9 +111,9 @@ chain_get_threads(Req0, State0) ->
                                              BoardId,
                                              {Page, PageSize},
                                              PreviewSize),
-  State1 = mcweb:state_set_var(threads, Threads, State0),
-  State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
-  State  = mcweb:state_set_var(page_nums, PageNums, State2),
+  State1 = mcweb:state_set_var(threads, PinnedThreads ++ Threads, State0),
+  %% State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
+  State  = mcweb:state_set_var(page_nums, PageNums, State1),
   mcweb:chain_success(Req, State).
 
 %%%-----------------------------------------------------------------------------
