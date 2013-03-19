@@ -22,7 +22,9 @@
 
 -record(startup_state, {
           waiting_for = nothing :: nothing | leader_init | riak_init |
-                                   mnesia_init
+                                   mnesia_init,
+          %% data returned by storage module startup and used to shut it down
+          storage_module_state
          }).
 -define(SERVER, ?MODULE).
 
@@ -48,6 +50,7 @@ start_link() ->
 init([]) ->
   macaba_db_riak:start(),
   macaba_db_mnesia:start(),
+  StorageState = macaba_attach_riak:start_storage(),
 
   %% TODO: reorder start calls to db and board and leader (spawned under sup)
   ThisNode = node(),
@@ -72,6 +75,8 @@ init([]) ->
 
   macaba_board:start(),
   {ok, #startup_state{
+     %% use this to shut down storage cleanly
+     storage_module_state = StorageState
     }}.
 
 %%--------------------------------------------------------------------

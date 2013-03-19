@@ -10,8 +10,11 @@
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
 -module(macaba_attach_riak).
+-behaviour(gen_macaba_storage).
 
--export([ exists/1
+-export([ start_storage/0
+        , stop_storage/1
+        , exists/1
         , delete/1
         , read_header/1
         , read_body/1
@@ -20,6 +23,18 @@
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
+-record(attach_riak_storage_state, {}).
+
+%%%-----------------------------------------------------------------------------
+%% @doc Starts storage connection
+start_storage() ->
+  %% RIAK is already started as main database, so do nothing here
+  #attach_riak_storage_state{}.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Stops storage connection
+stop_storage(#attach_riak_storage_state{}) ->
+  ok.
 
 %%%-----------------------------------------------------------------------------
 write_header(A=#mcb_attachment{}) ->
