@@ -4,13 +4,15 @@
 | posts), also list of 'boards' for rendering top menu is available.
 |
 | A thread is represented by id, has subject, author and creation time
-| To get contents of thread preview, use \{\{ ???TODO??? }}
 |
 | Incoming parameters: 'board_info' #mcb_board{}
 | 'boards' - all configured boards, list of #mcb_board{}
-| 'threads' - a list of property lists #mcb_thread{}
+| 'threads' - a list of property lists #mcb_thread{} - paginated visible piece
+|     of board's threads
+| 'pinned_threads' - a list of property lists #mcb_thread{} for pinned threads,
+      template has to decide where and whether to render them
 | 'previews' - map<ThreadId::string, [#mcb_post{}]> a preview is first post in
-|            thread plus few last posts (configurable)
+|     thread plus few last posts (configurable)
 +---------------------------------------------------------------{% endcomment %}
 {% with title="board" %}{% include "header.html" %}{% endwith %}
 
@@ -47,8 +49,8 @@
         {% include "post.html" %}
         {% if forloop.counter == 1 %}{% if t.skipped_posts > 0 %}
           {{ t.skipped_posts }} posts and {{ t.skipped_images }} images omitted, click
-          <a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
-            here</a> to view
+<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}"
+here</a> to view
         {% endif %}{% endif %}
       {% endfor %}
     {% endfor %}

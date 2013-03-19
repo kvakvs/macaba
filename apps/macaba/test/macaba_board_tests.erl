@@ -113,7 +113,7 @@ try_new_thread() ->
   %% enum threads
   %%----------------------
   io:format(standard_error, "+++ try_new_thread-4~n", []),
-  {ok, Threads3} = macaba_board:get_threads(BoardId),
+  {ok, [], Threads3} = macaba_board:get_threads(BoardId),
   ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
 
   %% io:format(standard_error, "+++ try_new_thread-end~n", []),
@@ -131,7 +131,7 @@ try_post_with_sage() ->
   {ok, Post2} = macaba_post:new(BoardId, PostOpt2),
   ?assertMatch(#mcb_post{}, Post2),
 
-  {ok, Threads3} = macaba_board:get_threads(BoardId),
+  {ok, [], Threads3} = macaba_board:get_threads(BoardId),
   %% io:format(standard_error, "sage-threads3 ~p~n", [Threads3]),
   ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
   ok.
@@ -154,7 +154,7 @@ try_post_with_attach() ->
   ?assertMatch(#mcb_post{}, Post2),
 
   io:format(standard_error, "+++ try_post_with_attach-3~n", []),
-  {ok, Threads3} = macaba_board:get_threads(BoardId),
+  {ok, [], Threads3} = macaba_board:get_threads(BoardId),
   %% io:format(standard_error, "attach-threads3 ~p~n", [Threads3]),
   ?assert(lists:any(fun(X) -> X =:= Thread1 end, Threads3)),
 

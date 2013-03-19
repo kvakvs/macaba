@@ -17,43 +17,52 @@
 -include_lib("macaba/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
+-spec new(BoardId :: binary(),
+          ThreadOpts :: [{atom(), any()}],
+          PostOpts :: [{atom(), any()}]) ->
+             {ok, #mcb_thread{}, #mcb_post{}} | {error, any()}.
+
 %% @doc Creates a new thread with a single post, thread_id is set to the first
 %% post id. Writes both thread and post to database.
 new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
-  {ok, Post0} = macaba_post:construct(BoardId, PostOpts),
-  PostId   = Post0#mcb_post.post_id,
+  case macaba_post:construct(BoardId, PostOpts) of
+    {ok, Post0} ->
+      PostId   = Post0#mcb_post.post_id,
 
-  Hidden   = macaba:propget(hidden,    ThreadOpts, false),
-  Pinned   = macaba:propget(pinned,    ThreadOpts, false),
-  ReadOnly = macaba:propget(read_only, ThreadOpts, false),
-  ThreadId = PostId,
+      Hidden   = macaba:propget(hidden,    ThreadOpts, false),
+      Pinned   = macaba:propget(pinned,    ThreadOpts, false),
+      ReadOnly = macaba:propget(read_only, ThreadOpts, false),
+      ThreadId = PostId,
 
-  Thread = #mcb_thread{
-      thread_id = ThreadId
-    , board_id  = BoardId
-    , hidden    = Hidden
-    , pinned    = Pinned
-    , read_only = ReadOnly
-   },
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  ThreadDyn = #mcb_thread_dynamic{
-      internal_mnesia_key = TDKey
-    , thread_id = ThreadId
-    , board_id  = BoardId
-    , post_ids  = [PostId]
-   },
-  macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
-  io:format(standard_error, "!!! thread:new-2~n", []),
-  Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
-  %% io:format(standard_error, "!!! thread:new-3~n", []),
+      Thread = #mcb_thread{
+        thread_id = ThreadId
+        , board_id  = BoardId
+        , hidden    = Hidden
+        , pinned    = Pinned
+        , read_only = ReadOnly
+       },
+      TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+      ThreadDyn = #mcb_thread_dynamic{
+        internal_mnesia_key = TDKey
+        , thread_id = ThreadId
+        , board_id  = BoardId
+        , post_ids  = [PostId]
+       },
+      macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
+      io:format(standard_error, "!!! thread:new-2~n", []),
+      Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
+      %% io:format(standard_error, "!!! thread:new-3~n", []),
 
-  %% link post to thread
-  Post = Post1#mcb_post{ thread_id = PostId },
-  macaba_db_riak:write(mcb_post, Post),
-  macaba_db_riak:write(mcb_thread, Thread),
+      %% link post to thread
+      Post = Post1#mcb_post{ thread_id = PostId },
+      macaba_db_riak:write(mcb_post, Post),
+      macaba_db_riak:write(mcb_thread, Thread),
 
-  macaba_board:add_thread(BoardId, ThreadId),
-  {Thread, Post}.
+      macaba_board:add_thread(BoardId, ThreadId),
+      {Thread, Post};
+    {error, _} = E ->
+      E
+  end.
 
 %%%-----------------------------------------------------------------------------
 delete(BoardId, ThreadId) ->

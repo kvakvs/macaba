@@ -35,14 +35,15 @@ can be found here.
 *   RIAK database, get from http://docs.basho.com/riak/latest/downloads/ -
     requires no configuration just install and ensure its started by doing
     `sudo /etc/init.d/riak restart`
-*   Imagemagick for making thumbnails and image analysis, (`apt-get install libmagickwand-dev`
-    on Ubuntu)
+*   Imagemagick for making thumbnails and image analysis,
+    (`apt-get install libmagickwand-dev` on Ubuntu)
     *   NOTE: this step is **optional** if you choose to not
         install thumbnailer, disable it in the `macaba.config` file, option
         `board.thumbnailer` also you can comment out 'eim' dependency in
-        `apps/macaba/rebar.config` and `rm -rf deps/eim` to get rid of build errors
-*   A working C/C++ compiler to build dependencies (`apt-get install build-essential` on
-    Ubuntu)
+        `apps/macaba/rebar.config` and `rm -rf deps/eim` to get rid of build
+        errors
+*   A working C/C++ compiler to build dependencies
+    (`apt-get install build-essential` on Ubuntu)
 
 ### Building
 

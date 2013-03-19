@@ -17,8 +17,6 @@
         , macaba_handle_post_new/3
         , macaba_handle_attach/3
         , macaba_handle_attach_thumb/3
-        %% , macaba_handle_admin/3
-        , macaba_handle_util_preview/3
         ]).
 -export([ chain_get_boards/2
         , chain_get_board_info/2
@@ -48,21 +46,6 @@ handle(Req0, State0) ->
 
 terminate(_Reason, _Req, _State) ->
   ok.
-
-%%%-----------------------------------------------------------------------------
-%%% Utility: Preview markup
-%%%-----------------------------------------------------------------------------
--spec macaba_handle_util_preview(Method :: binary(),
-                                 Req :: cowboy_req:req(),
-                                 State :: mcweb:html_state()) ->
-                                    mcweb:handler_return().
-
-macaba_handle_util_preview(<<"POST">>, Req0, State0) ->
-  lager:debug("http POST util/preview"),
-  PD = State0#mcb_html_state.post_data,
-  Message = macaba:propget(<<"markup">>, PD, <<>>),
-  MessageProcessed = macaba_plugins:call(markup, [Message]),
-  mcweb:response_text(200, MessageProcessed, Req0, State0).
 
 %%%-----------------------------------------------------------------------------
 %% @doc GET /
@@ -124,10 +107,13 @@ chain_get_threads(Req0, State0) ->
   Page = macaba:as_integer(Page0, 1),
   PageSize = macaba:as_integer(PageSize0),
   PreviewSize = macaba:as_integer(PreviewSize0),
-  {ok, Threads, PageNums} = macaba_board_cli:get_threads(
-                              BoardId, {Page, PageSize}, PreviewSize),
+  {ok, PinnedThreads, Threads, PageNums} = macaba_board_cli:get_threads(
+                                             BoardId,
+                                             {Page, PageSize},
+                                             PreviewSize),
   State1 = mcweb:state_set_var(threads, Threads, State0),
-  State  = mcweb:state_set_var(page_nums, PageNums, State1),
+  State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
+  State  = mcweb:state_set_var(page_nums, PageNums, State2),
   mcweb:chain_success(Req, State).
 
 %%%-----------------------------------------------------------------------------
@@ -143,8 +129,7 @@ macaba_handle_thread_new(<<"POST">>, Req0, State0) ->
                         [ fun chain_check_post_attach/2
                         , fun chain_thread_new/2
                         ], Req0, State0),
-  {BoardId, Req2} = cowboy_req:binding(mcb_board, Req1),
-  mcweb:redirect("/board/" ++ macaba:as_string(BoardId), Req2, State1).
+  {Req1, State1}.
 
 %%%---------------------------------------------------
 %% @private
@@ -181,8 +166,15 @@ chain_thread_new(Req0, State0) ->
   %% lager:debug("http POST new thread, board=~s", [BoardId]),
   PostOpt = get_post_create_options(Req, State0),
   ThreadOpt = orddict:from_list([]),
-  macaba_thread:new(BoardId, ThreadOpt, PostOpt),
-  mcweb:chain_success(Req, State0).
+  case macaba_thread:new(BoardId, ThreadOpt, PostOpt) of
+    {ok, _Thread, _Post} ->
+      {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
+      mcweb:chain_success(
+        mcweb:redirect("/board/" ++ macaba:as_string(BoardId), Req1, State0));
+    {error, E} ->
+      EStr = iolist_to_binary(io_lib:format("~p", [E])),
+      mcweb:chain_fail(mcweb:render_error(EStr, Req, State0))
+  end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Create post in thread on board/b_id/thread/t_id/post/new

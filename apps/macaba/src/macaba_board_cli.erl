@@ -66,12 +66,13 @@ get_thread(BoardId, ThreadId) ->
 -spec get_threads(BoardId :: binary(),
                   {Page :: integer(), PageSize :: integer()},
                   PreviewSize :: integer()) ->
-                     {ok, Threads :: [proplist_t()], PageNums :: [integer()]}.
+                     {ok, PinnedThreads :: [proplist_t()],
+                      Threads :: [proplist_t()], PageNums :: [integer()]}.
 
 get_threads(BoardId, {undefined, PageSize}, PreviewSize) ->
   get_threads(BoardId, {1, PageSize}, PreviewSize);
 get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
-  {ok, Threads0} = macaba_board:get_threads(BoardId),
+  {ok, PinThreads0, Threads0} = macaba_board:get_threads(BoardId),
   Threads1 = macaba:pagination(Threads0, Page, PageSize),
   PageNums = lists:seq(1, (length(Threads0) + PageSize - 1) div PageSize),
   Threads2 = lists:map(fun macaba:record_to_proplist/1, Threads1),
@@ -82,7 +83,8 @@ get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
     _ ->
       Threads = Threads2
   end,
-  {ok, Threads, PageNums}.
+  PinnedThreads = lists:map(fun macaba:record_to_proplist/1, PinThreads0),
+  {ok, PinnedThreads, Threads, PageNums}.
 
 %%%-----------------------------------------------------------------------------
 %% @private

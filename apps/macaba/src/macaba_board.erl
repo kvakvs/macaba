@@ -105,16 +105,21 @@ fake_default_boards() ->
 %% @doc Returns list of threads in board (only info headers, no contents!), also
 %% a proplist with board contents (first post and X last posts - configurable)
 -spec get_threads(BoardId :: binary()) ->
-                     {ok, [#mcb_thread{}]} | {error, any()}.
+                     {ok, [#mcb_thread{}], [#mcb_thread{}]} | {error, any()}.
 
 get_threads(BoardId) when is_binary(BoardId) ->
   case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
     {error, not_found} ->
       {error, dynamic_not_found};
-    {ok, #mcb_board_dynamic{threads=BDThreads}} ->
+    {ok, #mcb_board_dynamic{
+       pinned_threads = PThreadIds,
+       threads        = ThreadIds
+      }} ->
+      PThreads = [begin {ok, T} = macaba_thread:get(BoardId, TId),
+                        T end || TId <- PThreadIds],
       Threads = [begin {ok, T} = macaba_thread:get(BoardId, TId),
-                       T end || TId <- BDThreads],
-      {ok, Threads}
+                       T end || TId <- ThreadIds],
+      {ok, PThreads, Threads}
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -146,23 +151,45 @@ check_board_threads_limit(BoardId) ->
                              SoftPostLimit :: integer(),
                              Post :: #mcb_post{}) -> boolean().
 
-thread_bump_if_no_sage(_BoardId, _ThreadId, _SoftPostLimit,
-                       #mcb_post{email = <<"sage">>}) -> false;
-
-thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit, _Post) ->
+thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit,
+                       Post=#mcb_post{email = Email}) ->
+  Sink = case Email of
+           <<"sage">> ->
+             {ok, Sink0} = macaba_conf:get([<<"board">>, <<"sage_sink">>], 3),
+             Sink0;
+           _ -> 0
+         end,
+  %% sage is not set - bump up
   {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
   case length(TD#mcb_thread_dynamic.post_ids) > SoftPostLimit of
     true ->
       false; % over soft limit, no bumping
     false ->
-      BumpF = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-                  BD#mcb_board_dynamic{
-                    threads = [ThreadId | lists:delete(ThreadId, T)]
-                   }
+      BumpF = fun(BD = #mcb_board_dynamic{ threads=T0 }) ->
+                  T = bump_or_sink(Sink, Email, ThreadId, T0),
+                  BD#mcb_board_dynamic{ threads = T }
               end,
       {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF),
       true
   end.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Bumps thread if Sage set to false, or sinks thread by Sink positions
+%% if Sage set to true. ThreadId is deleted from ThreadsList then inserted at
+%% first position or at new (sunken) position
+bump_or_sink(Sink, <<"sage">>, ThreadId, Threads0) ->
+  %% split thread list at the ThreadId value
+  {Head, Tail0} = lists:splitwith(fun(X) -> X =/= ThreadId end, Threads0),
+  Tail = erlang:tl(Tail0),
+  %% split tail Sink positions lower
+  {Tail1, Tail2} = lists:split(erlang:min(length(Tail), Sink), Tail),
+  %% insert value between parts of split tail
+  lists:flatten([Head, Tail1, ThreadId, Tail2]);
+
+bump_or_sink(_Sink, _Email, ThreadId, Threads0) ->
+  %% sage=false, insert at 1st position
+  [ThreadId | lists:delete(ThreadId, Threads0)].
 
 %%%-----------------------------------------------------------------------------
 %% @doc Generates new post_id for creating thread on the board

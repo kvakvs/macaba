@@ -61,6 +61,7 @@
 -record(mcb_board_dynamic, {
             board_id         :: binary()
           , last_post_id = 1 :: integer()
+          , pinned_threads = [] :: [binary()]
           , threads = []     :: [binary()]
          }).
 
@@ -166,6 +167,8 @@
           , session_key :: binary()
           , session_pid :: pid()
           , name = <<>> :: binary()
+          %% for mods, which boards mod power applies to
+          , mod_boards = [] :: [binary()]
          }).
 
 -endif. % MACABA_TYPES_HRL

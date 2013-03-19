@@ -25,33 +25,37 @@ write(Data) when is_binary(Data) ->
 
     {ok, ContentType} ->
       ThumbnailFun = get_thumbnail_fun(),
-      case ThumbnailFun(ContentType, Data) of
-        {ok, {ThumbKey, ThumbSize}} ->
-          Key = crypto:sha(Data),
-          A = #mcb_attachment{
-            size           = byte_size(Data),
-            hash           = Key,
-            content_type   = ContentType,
-            thumbnail_hash = ThumbKey,
-            thumbnail_size = ThumbSize
-           },
-          AttachMod = macaba_plugins:mod(attachments),
-          AttachMod:write_header(A),
-          B = #mcb_attachment_body{
-            key  = Key,
-            data = Data
-           },
-          AttachMod:write_body(B),
-          {ok, Key};
+      %%case ThumbnailFun(ContentType, Data) of
+        %% {ok, {ThumbKey, ThumbSize}} ->
+      {ok, {ThumbKey, ThumbSize}} = ThumbnailFun(ContentType, Data),
+      Key = crypto:sha(Data),
+      A = #mcb_attachment{
+        size           = byte_size(Data),
+        hash           = Key,
+        content_type   = ContentType,
+        thumbnail_hash = ThumbKey,
+        thumbnail_size = ThumbSize
+       },
+      AttachMod = macaba_plugins:mod(attachments),
+      AttachMod:write_header(A),
+      B = #mcb_attachment_body{
+        key  = Key,
+        data = Data
+       },
+      AttachMod:write_body(B),
+      {ok, Key}
 
-        {error, Err} -> {error, Err}
-      end
+      %%   {error, Err} -> {error, Err}
+      %% end
   end.
 
 %%%-----------------------------------------------------------------------------
 %% @private
 %% @doc Queries config for if thumbnailer was enabled or disabled, and returns
 %% wrapper fun for generating a real or fake thumbnail
+-type thumbnail_fun_t() :: fun((binary(), binary()) ->
+                                  {ok, {_, _}} | {error, _}).
+-spec get_thumbnail_fun() -> thumbnail_fun_t().
 get_thumbnail_fun() ->
   {ok, ThumbnailerEnabled} = macaba_conf:get(
                                [<<"board">>, <<"thumbnailer">>], true),

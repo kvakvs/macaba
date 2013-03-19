@@ -1,5 +1,6 @@
 # TODO technical debt list
 
+*   Sage sinks thread X positions down (default 3). Now it doesn't sink.
 *   Make thumbnail generation optional (to simplify building on MacOSX)
 *   Attach size limit per board
 *   ETag/If-mod-since support for attach and possibly thread/board serving
