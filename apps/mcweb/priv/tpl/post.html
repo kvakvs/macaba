@@ -75,7 +75,12 @@
 
         {% for att in p.attach_info %}
         <a href="/attach/{{ att.hash_hex|lower }}">
-          <img class="img" src="/attach/{{ att.hash_hex|lower }}/thumb"></a>
+          {% if att.thumbnail_hash %}
+          <img class="img" src="/attach/{{ att.hash_hex|lower }}/thumb">
+          {% else %}
+          <img class="img" src="/attach/{{ att.hash_hex|lower }}" width="150" height="150">
+          {% endif %}
+        </a>
         {% endfor %}
       </span>
     </td>

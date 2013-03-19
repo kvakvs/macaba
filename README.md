@@ -14,28 +14,35 @@ be familiar for wakaba users:
 
 REST API: http://docs.macaba.apiary.io/
 
-## Project status
+## Project status - Alpha
 
-> Alpha, you can try it
+You can download and run it. Production use is not recommended
+
+## Features
 
 [Features and TODO list](https://github.com/kvakvs/macaba/blob/master/FEATURES.md)
+can be found here.
 
 ## Installing
 
 ### Before you start
 
-*  Linux operating system (Ubuntu works, Debian and other should be easy),
-   MacOSX _may_ work, but you're on your own building dependencies!
-*  Erlang/OTP R15 or R16, get from
-   https://www.erlang-solutions.com/downloads/download-erlang-otp - requires no
-   additional configuration.
-*  RIAK database, get from http://docs.basho.com/riak/latest/downloads/ -
-   requires no configuration just install and ensure its started by doing
-   `sudo /etc/init.d/riak restart`
-*  Imagemagick for making thumbnails and image analysis, (install
-   libmagickwand-dev on Ubuntu)
-*  A working C/C++ compiler to build dependencies (install build-essential on
-   Ubuntu)
+*   Linux operating system (Ubuntu works, Debian and other should be easy),
+    MacOSX _may_ work, but you're on your own building dependencies!
+*   Erlang/OTP R15 or R16, get from
+    https://www.erlang-solutions.com/downloads/download-erlang-otp - requires no
+    additional configuration.
+*   RIAK database, get from http://docs.basho.com/riak/latest/downloads/ -
+    requires no configuration just install and ensure its started by doing
+    `sudo /etc/init.d/riak restart`
+*   Imagemagick for making thumbnails and image analysis, (install
+    libmagickwand-dev on Ubuntu)
+        * NOTE: this step is **optional** if you choose to not
+          install thumbnailer, disable it in the macaba.config file, option
+          board.thumbnailer also you can comment out 'eim' dependency in
+          apps/macaba/rebar.config and delete deps/eim to get rid of build errors
+*   A working C/C++ compiler to build dependencies (install build-essential on
+    Ubuntu)
 
 ### Building
 

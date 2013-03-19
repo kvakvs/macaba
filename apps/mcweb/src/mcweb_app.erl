@@ -46,6 +46,7 @@ start_web() ->
   Disp = cowboy_compile_dispatch(Site#mcb_site_config.offline),
   cowboy_start_listener(Disp).
 
+%%%-----------------------------------------------------------------------------
 cowboy_start_listener(Disp) ->
   {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
   {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
@@ -54,12 +55,14 @@ cowboy_start_listener(Disp) ->
                     [{env, [{dispatch, Disp}]}]
                    ).
 
+%%%-----------------------------------------------------------------------------
 change_offline_mode(Offline) ->
   Disp = cowboy_compile_dispatch(Offline),
   %% cowboy:stop_listener(?MACABA_LISTENER),
   %% cowboy_start_listener(Disp).
   cowboy:set_env(?MACABA_LISTENER, dispatch, Disp).
 
+%%%-----------------------------------------------------------------------------
 cowboy_compile_dispatch(Offline) ->
   Priv = code:priv_dir(mcweb),
   %% CurrentDir = filename:absname(""),
@@ -102,19 +105,15 @@ cowboy_compile_dispatch(Offline) ->
   ALogout = {"/admin/logout", AMod, [admin_logout]},
   ALanding= {"/admin", AMod, [admin]},
 
-  %%--- REST root resource ---
-  RMod  = mcweb_rest_handler,
-  RRoot = {"/rest/[...]", RMod, [rest]},
-
   case Offline of
     false ->
       %% board is online, bring everything up!
-      BoardResources = [ AttThumb, Attach
-                       , RRoot
-                       , TNew, TManage, TShow, TRepl
-                       , BShow1, BShow2
-                       , UPvw, Index
-                       ],
+      BoardResources = [ AttThumb, Attach ]
+        ++ rest_routing_table()
+        ++ [ TNew, TManage, TShow, TRepl
+           , BShow1, BShow2
+           , UPvw, Index
+           ],
       CatchAll = [];
     true ->
       %% board is offline, shut everything down except admin pages!
@@ -129,6 +128,16 @@ cowboy_compile_dispatch(Offline) ->
        ++ [ ASiteB, ASiteO, ASite, ALogin, ALogout, ALanding ]
        ++ CatchAll
       } ]).
+
+%%%-----------------------------------------------------------------------------
+%% @doc Build routing table piece for REST resources
+rest_routing_table() ->
+  %%--- REST root resource ---
+  RestMod  = mcweb_rest_handler,
+  Preview = {"/rest/util/preview", RestMod, [util_preview]},
+
+  [ Preview
+  ].
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

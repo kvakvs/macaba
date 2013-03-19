@@ -24,7 +24,8 @@ write(Data) when is_binary(Data) ->
       {error, {content_type, ContentTypeError}};
 
     {ok, ContentType} ->
-      case write_thumbnail(ContentType, Data) of
+      ThumbnailFun = get_thumbnail_fun(),
+      case ThumbnailFun(ContentType, Data) of
         {ok, {ThumbKey, ThumbSize}} ->
           Key = crypto:sha(Data),
           A = #mcb_attachment{
@@ -46,6 +47,21 @@ write(Data) when is_binary(Data) ->
         {error, Err} -> {error, Err}
       end
   end.
+
+%%%-----------------------------------------------------------------------------
+%% @private
+%% @doc Queries config for if thumbnailer was enabled or disabled, and returns
+%% wrapper fun for generating a real or fake thumbnail
+get_thumbnail_fun() ->
+  {ok, ThumbnailerEnabled} = macaba_conf:get(
+                               [<<"board">>, <<"thumbnailer">>], true),
+  case ThumbnailerEnabled of
+    true ->
+      fun(CT, D) -> write_thumbnail(CT, D) end;
+    false ->
+      fun(_, _) -> {ok, {<<>>, 0}} end
+  end.
+
 
 %%%-----------------------------------------------------------------------------
 %% @doc Detects content type by data first bytes, creates thumbnail with
