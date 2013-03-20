@@ -27,6 +27,9 @@
         , clear_session_cookie/1
         , get_poster_id/1
         , get_user_identification/1
+        , chain_fail_if_level_below/3
+        , chain_fail_if_below_mod/2
+        , chain_fail_if_below_mod/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -460,6 +463,31 @@ get_poster_id_encode(X, A) ->
         C -> $a + C - 36
        end,
   get_poster_id_encode(X div 62, [Ch | A]).
+
+
+%%%------------------------------------------------------------------------
+%% @doc Gets user from ses cookie, fails if user is below FailIfLevelBelow. To
+%% use in chain handlers for authenticated users
+%% To add in chain (example):
+%% {_, Req, State} = mcweb:chain_run(
+%% [fun(R, S) -> mcweb:chain_fail_if_level_below(R, S, ?USERLEVEL_ADMIN) end]
+%% );
+chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
+  User = State0#mcb_html_state.user,
+  #mcb_user{level=Level} = User,
+  case Level < FailIfLevelBelow of
+    true ->
+      mcweb:chain_fail(
+        mcweb:render_error(<<"User level is too low">>, Req0, State0));
+    _ ->
+      mcweb:chain_success(Req0, State0)
+  end.
+
+chain_fail_if_below_admin(Req0, State0) ->
+  mcweb:chain_fail_if_level_below(Req0, State0, ?USERLEVEL_ADMIN).
+
+chain_fail_if_below_mod(Req0, State0) ->
+  mcweb:chain_fail_if_level_below(Req0, State0, ?USERLEVEL_MOD).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

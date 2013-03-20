@@ -90,8 +90,7 @@ macaba_handle_admin(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin"),
   {_, Req, State} = mcweb:chain_run(
                       [ fun mcweb_html_public:chain_get_boards/2
-                      , fun(R,S) -> chain_fail_if_level_below(
-                                      R, S, ?USERLEVEL_ANON+1) end
+                      , fun mcweb:chain_fail_if_below_mod/2
                       ], Req0, State0),
   mcweb:render_page("admin", Req, State).
 
@@ -119,34 +118,6 @@ chain_check_admin_login(Req0, State0=#mcb_html_state{ post_data=PD }) ->
 chain_check_mod_login(Req0, State0) ->
   {ok, Req0, State0}.
 
-%% @private
-%% @doc Gets user from ses cookie, fails if user is below FailIfLevelBelow
-chain_fail_if_level_below(Req0, State0, FailIfLevelBelow) ->
-  User = State0#mcb_html_state.user,
-  #mcb_user{level=Level} = User,
-  case Level < FailIfLevelBelow of
-    true ->
-      mcweb:chain_fail(
-        mcweb:render_error(<<"User power is too low">>, Req0, State0));
-    _ ->
-      mcweb:chain_success(Req0, State0)
-  end.
-
-%% %% @private
-%% %% @doc Gets user from ses cookie, fails if user type is NOT Role
-%% chain_fail_if_user_not(Req0, State0, FailIfNotRole) ->
-%%   User = State0#mcb_html_state.user,
-%%   #mcb_user{type=Type} = User,
-%%   case Type of
-%%     X when X =/= FailIfNotRole ->
-%%       NotRole = atom_to_binary(FailIfNotRole, latin1),
-%%       mcweb:chain_fail(
-%%         mcweb:render_error(<<"User role is not ", NotRole/binary>>,
-%%                                 Req0, State0));
-%%     _ ->
-%%       mcweb:chain_success(Req0, State0)
-%%   end.
-
 %%%-----------------------------------------------------------------------------
 %% @doc GET: /admin/logout - delete admin cookie
 %%%-----------------------------------------------------------------------------
@@ -172,8 +143,7 @@ macaba_handle_admin_site(<<"GET">>, Req0, State0) ->
   lager:debug("http GET admin/site"),
   {_, Req, State} = mcweb:chain_run(
                         [ fun mcweb_html_public:chain_get_boards/2
-                        , fun(R, S) -> chain_fail_if_level_below(
-                                         R, S, ?USERLEVEL_ANON+1) end
+                        , fun mcweb:chain_fail_if_below_mod/2
                         , fun chain_show_admin_site/2
                         ], Req0, State0),
   {Req, State}.
@@ -203,8 +173,7 @@ chain_show_admin_site(Req0, State0) ->
 macaba_handle_admin_site_offline(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/offline"),
   {_, Req, State} = mcweb:chain_run(
-                      [ fun(R, S) -> chain_fail_if_level_below(
-                                       R, S, ?USERLEVEL_ADMIN) end
+                      [ fun mcweb:chain_fail_if_below_admin/2
                       , fun chain_edit_site_offline/2
                       ], Req0, State0),
   {Req, State}.
@@ -234,8 +203,7 @@ chain_edit_site_offline(Req0, State0=#mcb_html_state{post_data=PD}) ->
 macaba_handle_admin_site_boards(<<"POST">>, Req0, State0) ->
   lager:debug("http POST admin/site/boards"),
   {_, Req1, State1} = mcweb:chain_run(
-                        [ fun(R, S) -> chain_fail_if_level_below(
-                                         R, S, ?USERLEVEL_ADMIN) end
+                        [ fun mcweb:chain_fail_if_below_admin/2
                         , fun chain_edit_site_boards/2
                         ], Req0, State0),
   mcweb:redirect("/admin", Req1, State1).
