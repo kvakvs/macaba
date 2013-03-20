@@ -7,29 +7,32 @@
     *   Basic board functions: board index, thread index, thread view, new
         thread, reply
     *   Basic plain HTML scriptless theme (later REST API, Websocket)
-    *   File upload (1 per post)
+    *   File upload (1 per post). Image previews via Imagemagick (can be
+        disabled in config)
     *   WakabaMark (no ^H support as of yet) - bold, italic, inline code, code
         quotes, spoilers using [spoiler][/spoiler], URL, ordered and unordered
         lists
     *   Markdown support (can replace WakabaMark)
     *   Board limits, delete when thread is sinking
     *   Deleting posts by user, optional deletion of attachments only
-    *   Preview function for markup in HTML mode (ajax inside inline div)
     *   Optional per board poster_id, a base62 encoded hash of ip/user-agent
 *   Moderator/Administrator UI
     *   Login form and login handler located at /admin
     *   Sessions support
     *   Admin: Site options, maintenance mode, boards list and board options
+*   REST API
+    *   Preview function for post markup
 *   Other features
     *   Simple plugins system. Extension modules and hooks are work-in-progress
-    *   REST API design in progress http://docs.macaba.apiary.io/
+    *   REST API work in progress http://docs.macaba.apiary.io/
 *   Quality and testing
-    *   Board post/reply/upload tests (not perfect, but good to have!),
-        WakabaMark markup tests
+    *   Board post/reply/upload tests (not perfect, but good to have!)
+    *   WakabaMark markup tests and some other unit tests
 
 ## In progress
 
 *   Mod: Thread management - locking, pinning, deleting, moving
+*   REST: Thread and post manage REST calls
 
 ## Tier 1 TODO: important
 

@@ -59,9 +59,10 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
       macaba_db_riak:write(mcb_thread, Thread),
 
       macaba_board:add_thread(BoardId, ThreadId),
-      {Thread, Post};
-    {error, _} = E ->
-      E
+      {ok, Thread, Post};
+
+    {error, E} ->
+      {error, E}
   end.
 
 %%%-----------------------------------------------------------------------------
