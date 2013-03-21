@@ -24,10 +24,8 @@ POST /login
 
 
 --
-Board Resources
-Resources in this section relate to board access and board management. Most of the resources are available
-for anonymous client. If you authenticate as mod or admin before posting, client software SHOULD provide
-an option to enable or disable sending session token (for authenticated or anonymous operation).
+Board Resource
+Represents board resource, allows listing boards on site, listing board contents, managing boards
 --
 
 List available boards, returns list of board structures.
@@ -52,6 +50,21 @@ GET /board/{board_id}{?timestamp,page,pagesize}
     "read_only": false, "url": "board/b/thread/10012381" }
     ]}
 
+Post a new thread
+POST /board/{board_id}
+> Content-Type: application/json
+{ "subject": "Hello", "author": "", "email": "sage", "message": "I **pooped**", "attach": "base64encoded",
+    "delete_password": "fgsfds" }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "url": "/board/b/thread/10012500" }
+
+--
+Thread resource
+Represents thread of posts on the specific board. Allows listing thread contents, posting new threads,
+replies, attaching files.
+--
+
 Get posts in thread (full or diff). If `timestamp` is provided, you only receive changes in
 thread happened from this time. Thread contents is not designed to be paginated at the moment.
 GET /board/{board_id}/thread/{thread_id}{?timestamp}
@@ -64,15 +77,6 @@ GET /board/{board_id}/thread/{thread_id}{?timestamp}
     ],
     "timestamp": "integer unixtime"
 }
-
-Post a new thread
-POST /board/{board_id}
-> Content-Type: application/json
-{ "subject": "Hello", "author": "", "email": "sage", "message": "I **pooped**", "attach": "base64encoded",
-    "delete_password": "fgsfds" }
-< 200
-< Content-Type: application/json
-{ "result": "ok", "url": "/board/b/thread/10012500" }
 
 Post a new post in thread
 POST /board/{board_id}/thread/{thread_id}
