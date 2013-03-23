@@ -139,7 +139,7 @@ rest_routing_table() ->
              [thread_manage]},
 
   [ Preview
-  , ThreadM
+%%  , ThreadM
   ].
 
 %%% Local Variables:
