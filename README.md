@@ -55,3 +55,16 @@ can be found here.
 This will download 'rebar', check out dependencies to 'deps/' subdirectory,
 compile dependencies, compile macaba, and run locally on port 12000
 (configurable in `macaba.config`).
+
+### Configuration tips & tricks
+
+TODO: move this to a new file
+
+#### Running on port 80 as a non-root
+
+Run as root or under sudo:
+`setcap 'cap_net_bind_service=+ep' /path/to/program`
+
+And then anytime program is executed thereafter it will have the
+CAP_NET_BIND_SERVICE capability. setcap is in the debian and ubuntu package
+`libcap2-bin`

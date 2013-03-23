@@ -58,7 +58,7 @@ create_path(Req, State) ->
   {<<$/, (new_paste_id())/binary>>, Req, State}.
 
 
-%% %%%-----------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %% init({_Transport, http}, Req, [Mode]) ->
 %%   {ok, Req, #mcb_html_state{
 %%          mode = Mode
@@ -73,9 +73,9 @@ create_path(Req, State) ->
 %% terminate(_Reason, _Req, _State) ->
 %%   ok.
 
-%% %%%-----------------------------------------------------------------------------
-%% %% @doc /rest - entry point for REST calls
-%% %%%-----------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
+%% @doc /rest - entry point for REST calls
+%%%-----------------------------------------------------------------------------
 %% -spec macaba_handle_rest(Method :: binary(),
 %%                          Req :: cowboy_req:req(),
 %%                          State :: mcweb:html_state()) ->
@@ -84,9 +84,9 @@ create_path(Req, State) ->
 %% macaba_handle_rest(_Method, Req0, State0) ->
 %%   mcweb:response_json(200, "{\"result\":\"ok\"}", Req0, State0).
 
-%% %%%-----------------------------------------------------------------------------
-%% %%% Utility: Preview markup
-%% %%%-----------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
+%%% Utility: Preview markup
+%%%-----------------------------------------------------------------------------
 %% -spec macaba_handle_util_preview(Method :: binary(),
 %%                                  Req :: cowboy_req:req(),
 %%                                  State :: mcweb:html_state()) ->
@@ -100,9 +100,9 @@ create_path(Req, State) ->
 %%   ReplyJson = [{html, iolist_to_binary(MessageProcessed)}],
 %%   mcweb:response_json(200, ReplyJson, Req0, State0).
 
-%% %%%-----------------------------------------------------------------------------
-%% %%% Thread manage
-%% %%%-----------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
+%%% Thread manage
+%%%-----------------------------------------------------------------------------
 %% -spec macaba_handle_thread_manage(Method :: binary(),
 %%                                   Req :: cowboy_req:req(),
 %%                                   State :: mcweb:html_state()) ->
