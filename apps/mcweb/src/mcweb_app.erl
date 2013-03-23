@@ -31,6 +31,7 @@ start() ->
 
 start(_StartType, _StartArgs) ->
   start_web(),
+  timer:apply_interval(15*60*1000, macaba_db, reset_all_data, []),
   mcweb_sup:start_link().
 
 stop(_State) ->

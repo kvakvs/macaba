@@ -21,6 +21,10 @@
   </head>
 
   <body>
+    <div style="background:#ffd;color:red;border:1px solid black">
+      The board is in demo mode and resets database fully every 15 minutes
+    </div>
+
     <div class="container">
 {% if user %}{% include "user_bar.html" %}{% endif %}
 {% if boards %}{% include "navigation_bar.html" %}{% endif %}
