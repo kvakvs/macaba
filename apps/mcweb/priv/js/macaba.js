@@ -48,14 +48,14 @@ function admin_pin_thread(Bid, Tid) {
 }
 
 function preview_show() {
-    var M = $("textarea#message").val();
+    var Req = { markup: $("textarea#message").val() };
     $.ajax({
         type:"POST",
-        url: "/rest/util/preview",
-        accepts: "application/json",
-        dataType: "json",
+        url: "/rest/post/preview",
+        headers: { Accept : "application/json" },
+        dataType: "text",
         contentType: "application/json",
-        data: { markup: M },
+        data: JSON.stringify(Req),
         success: function(data, textStatus, jqXHR){
             J = JSON.parse(data);
             $("div#preview-popup").show();
@@ -66,10 +66,4 @@ function preview_show() {
             $("div#preview-content").html(textStatus+"<br/>"+errorThrown);
         }
     });
-//    var AJ = { url: "/rest/util/preview", type: "POST",
-//        context: document.body, data: { markup: M }};
-//    $.ajax(AJ).done(function(Value) {
-//        $("div#preview-popup").show();
-//        $("div#preview-content").html(Value);
-//    });
 }

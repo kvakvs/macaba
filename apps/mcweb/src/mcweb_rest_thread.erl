@@ -15,6 +15,7 @@
 %%         ]).
 %% REST Callbacks
 -export([ init/3
+        , rest_init/2
         , allowed_methods/2
         , content_types_provided/2
         , content_types_accepted/2
@@ -28,14 +29,17 @@
 init(_Transport, _Req, []) ->
   {upgrade, protocol, cowboy_rest}.
 
+rest_init(Req, HandlerOpts) ->
+  mcweb_rest:rest_init_helper(Req, HandlerOpts).
+
 content_types_provided(Req, State) ->
   {[
-    {{<<"application">>, <<"json">>, []}, get_json_fun}
+    {{<<"application">>, <<"json">>, []}, thread_get}
    ], Req, State}.
 
 content_types_accepted(Req, State) ->
   {[
-    {{<<"application">>, <<"x-www-form-urlencoded">>, []}, post_fun}
+    {{<<"application">>, <<"x-www-form-urlencoded">>, []}, thread_post}
    ], Req, State}.
 
 allowed_methods(Req, State) ->
@@ -45,7 +49,7 @@ resource_exists(Req0, State0) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
   case macaba_thread:get_dynamic(BoardId, ThreadId) of
-    {error, _} -> {false, Req2, index};
+    {error, _} -> {false, Req2, State0};
     {ok, _TD} ->
       {ok, _T} = macaba_thread:get(BoardId, ThreadId),
       {false, Req2, State0}

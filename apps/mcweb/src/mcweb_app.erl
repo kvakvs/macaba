@@ -132,13 +132,9 @@ cowboy_compile_dispatch(Offline) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Build routing table piece for REST resources
 rest_routing_table() ->
-  [
-   {"/rest/util/preview",
-    mcweb_rest_util, [util_preview]},
-   {"/rest/board/:mcb_board/",
-    mcweb_rest_board, []},
-   {"/rest/board/:mcb_board/thread/:mcb_thread",
-    mcweb_rest_thread, []}
+  [ {"/rest/board/:mcb_board/thread/:mcb_thread", mcweb_rest_thread, []}
+  , {"/rest/board/:mcb_board/post/:mcb_post", mcweb_rest_post, []}
+  , {"/rest/post/preview", mcweb_rest_post, []}
   ].
 
 %%% Local Variables:
