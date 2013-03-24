@@ -56,7 +56,7 @@ terminate(_Reason, _Req, _State) ->
                              mcweb:handler_return().
 
 macaba_handle_index(<<"GET">>, Req0, State0) ->
-  lager:debug("http GET /"),
+%%  lager:debug("http GET /"),
   Boards = macaba_board_cli:get_boards(),
   State1 = mcweb:state_set_var(boards, Boards, State0),
   mcweb:render_page("index", Req0, State1).
