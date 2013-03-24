@@ -1,0 +1,85 @@
+#===============================================================================
+### Webserver configuration (serves HTML and static files)
+#===============================================================================
+[html]
+listen_port = 12000
+
+# Number of threads listening for incoming connections. Keep this
+# value high for production server (50-100), 5-10 for debug
+listeners = 10
+
+#===============================================================================
+### Clustering configuration, change how board runs on multiple servers
+#===============================================================================
+[cluster]
+# Cluster config contains a list of nodes, each node is Erlang atom
+# 'nodename@host' in 'single quotes'. First node in list is MASTER,
+# and is REQUIRED at cluster start time as it does preparations and
+# caching, master can go crash later without degrading board.
+nodes = [ "macaba@localhost" ]
+
+#===============================================================================
+### Board general configuration and defaults
+#===============================================================================
+[board]
+
+# Thread previews per board page
+page_size = 10
+
+# How much does "saged" thread sink in thread list (value >= 0)
+sage_sink = 3
+
+# Name to display when user did not fill Author field
+default_anonymous_name = "Anonymous"
+
+session_cookie_name = "mcbsesid"
+
+# Change this to good long login and password! Access credentials for board
+# admin. Moderators are configured via web interface
+admin_login = "1"
+admin_password = "1"
+
+# Module name and function to generate markup from raw text posted by user
+# This is pair of strings which points at erlang module and erlang function
+# which takes 1 parameter, and which would process the new post. You can
+# change this to your own preprocessing module (or add new function to
+# macaba_markup module), and call macaba_markup:process(Text) in the end 
+markup_plugin = [ "macaba_markup", "wakabamark" ]
+#markup_plugin = [ "macaba_markup", "erlmarkdown" ]
+
+# Allows generating thumbnails for the attached images. This should always be on
+# UNLESS you fail to install libmagickwand-dev (woe to you!)
+thumbnailer = true
+
+[plugins]
+
+# Backend module for handling attachments, can be one of: macaba_attach_riak,
+# macaba_attach_file [TODO], macaba_attach_s3 [TODO].
+# When not sure - use macaba_attach_file
+attachments = "macaba_attach_riak"
+
+#-------------------------------------------
+## options for wakaba markup module, valid if markup plugin
+## is set to ["macaba_markup", "wakabamark"]
+#-------------------------------------------
+[plugins.wakabamark]
+
+# set this to true to activate markdown codes **bold** *italic* etc
+enable_markdown = true
+
+# set this to true to activate bbcode codes [b]bold[/b] [i]italic[/i] etc
+enable_bbcode = true
+enable_spoiler = true
+enable_url = true
+
+#===============================================================================
+### Thread display configuration
+### TODO: Make this per-board dynamic data, not in config
+#===============================================================================
+[board.thread]
+
+# Count of posts to preview in thread index (always displays first
+# post and this many last posts)
+preview_last_posts = 5
+thumbnail_width = 150
+thumbnail_height = 150

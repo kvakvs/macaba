@@ -10,18 +10,24 @@ be familiar for wakaba users:
     discovering the user's identity
 *   post body uses special markup which is processed to HTML
 
-## Documentation
+### Documentation
 
 REST API: http://docs.macaba.apiary.io/
 
-## Project status - Alpha
+### Project status - Alpha
 
 You can download and run it. Production use is not recommended
 
-## Features
+### Features
 
 [Features and TODO list](https://github.com/kvakvs/macaba/blob/master/FEATURES.md)
 can be found here.
+
+### Demo
+
+I have configured minimal free instance on Amazon EC2 and started a running copy of
+the board there. Board is in demo mode, i.e. resets database fully every 15 minutes.
+You can try it here: http://macaba.longcat.info admin login and password are "1"
 
 ## Installing
 

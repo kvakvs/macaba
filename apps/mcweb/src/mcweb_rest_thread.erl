@@ -30,7 +30,7 @@ init(_Transport, _Req, []) ->
 
 content_types_provided(Req, State) ->
   {[
-    {{<<"application">>, <<"json">>, []}, get_json_fun},
+    {{<<"application">>, <<"json">>, []}, get_json_fun}
    ], Req, State}.
 
 content_types_accepted(Req, State) ->
@@ -46,16 +46,17 @@ resource_exists(Req0, State0) ->
   {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
   case macaba_thread:get_dynamic(BoardId, ThreadId) of
     {error, _} -> {false, Req2, index};
-    {ok, TD} ->
-      {ok, T} = macaba_thread:get(BoardId, ThreadId),
-      
+    {ok, _TD} ->
+      {ok, _T} = macaba_thread:get(BoardId, ThreadId),
+      {false, Req2, State0}
   end.
 
 post_is_create(Req, State) ->
   {true, Req, State}.
 
-create_path(Req, State) ->
-  {<<$/, (new_paste_id())/binary>>, Req, State}.
+create_path(_Req, _State) ->
+  error.
+%%  {<<$/, (new_paste_id())/binary>>, Req, State}.
 
 
 %%%-----------------------------------------------------------------------------
