@@ -133,14 +133,9 @@ cowboy_compile_dispatch(Offline) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Build routing table piece for REST resources
 rest_routing_table() ->
-  %%--- REST root resource ---
-  RestMod  = mcweb_rest_handler,
-  Preview = {"/rest/util/preview", RestMod, [util_preview]},
-  ThreadM = {"/rest/board/:mcb_board/thread/:mcb_thread/manage", RestMod,
-             [thread_manage]},
-
-  [ Preview
-%%  , ThreadM
+  [ {"/rest/board/:mcb_board/thread/:mcb_thread", mcweb_rest_thread, []}
+  , {"/rest/board/:mcb_board/post/:mcb_post", mcweb_rest_post, []}
+  , {"/rest/post/preview", mcweb_rest_post, []}
   ].
 
 %%% Local Variables:

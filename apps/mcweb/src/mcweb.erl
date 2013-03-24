@@ -21,14 +21,15 @@
         , is_POST_and_multipart/1
         , parse_body_qs/2
         , parse_multipart_form_data/2
-        , get_user/2
+        , get_user/1
+        , get_user_save_to_state/2
         , create_session_for/3
         , ses_cookie_name/0
         , clear_session_cookie/1
         , get_poster_id/1
         , get_user_identification/1
         , chain_fail_if_level_below/3
-        , chain_fail_if_below_mod/2
+        , chain_fail_if_below_admin/2
         , chain_fail_if_below_mod/2
         ]).
 
@@ -36,14 +37,14 @@
 -include_lib("mcweb/include/mcweb.hrl").
 
 -type html_state() :: #mcb_html_state{}.
--export_type([html_state/0]).
-
 -type handler_return() :: {cowboy_req:req(), macaba_web:html_state()}.
--export_type([handler_return/0]).
-
 -type chain_return() :: {chain_ok|chain_error
                          , cowboy_req:req(), macaba_web:html_state()}.
--export_type([chain_return/0]).
+
+-export_type([ handler_return/0
+             , html_state/0
+             , chain_return/0
+             ]).
 
 %%%------------------------------------------------------------------------
 -spec handle_helper(Module :: atom(),
@@ -68,7 +69,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
                        {false, _} ->
                          {Req1, State0}
                      end,
-    {Req3, State2} = ?MODULE:get_user(Req2, State1),
+    {Req3, State2} = ?MODULE:get_user_save_to_state(Req2, State1),
 
     %% site offline flag
     %% TODO: cache site config in memory or in state
@@ -368,25 +369,32 @@ acc_multipart({eof, Req}, Acc) ->
   {lists:reverse(Acc), Req}.
 
 %%%-----------------------------------------------------------------------------
+-spec get_user_save_to_state(Req :: cowboy_req:req(),
+                             State :: macaba_web:html_state()) ->
+                                macaba_web:handler_return().
 %% @doc Attempts to extract cookie and find session with that cookie, else
-%% returns anonymous user
--spec get_user(Req :: cowboy_req:req(), State :: macaba_web:html_state()) ->
-                  macaba_web:handler_return().
-get_user(Req0, State0) ->
-  {SesId, Req1} = cowboy_req:cookie(ses_cookie_name(), Req0),
-  User = case mcweb_ses:get(SesId) of
-           {error, not_found} ->
-             %% lager:debug("web:get_user ses '~s' not found", [SesId]),
-             Req = clear_session_cookie(Req1),
-             #mcb_user{};
-           {ok, Pid} ->
-             Req = Req1,
-             U = gen_server:call(Pid, get_user),
-             U
-         end,
+%% returns anonymous user. Saves result state or clears cookie in request
+get_user_save_to_state(Req0, State0) ->
+  {User, Req} = get_user(Req0),
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
   %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
   {Req, State#mcb_html_state{user=User}}.
+
+%%%-----------------------------------------------------------------------------
+-spec get_user(Req :: cowboy_req:req()) -> {#mcb_user{}, cowboy_req:req()}.
+%% @doc Extracts cookie from request, find user and return user and slightly
+%% modified request
+get_user(Req0) ->
+  {SesId, Req1} = cowboy_req:cookie(ses_cookie_name(), Req0),
+  case mcweb_ses:get(SesId) of
+    {error, not_found} ->
+      %% lager:debug("web:get_user ses '~s' not found", [SesId]),
+      Req = clear_session_cookie(Req1),
+      {#mcb_user{}, Req};
+    {ok, Pid} ->
+      U = gen_server:call(Pid, get_user),
+      {U, Req1}
+  end.
 
 %% @doc Creates session process, sets response cookie, and sets user field
 %% in state
