@@ -28,6 +28,10 @@
 
 -include_lib("macaba/include/macaba_types.hrl").
 
+-type user_t() :: #mcb_user{}.
+-export_type([ user_t/0
+             ]).
+
 %%-----------------------------------------------------------------------------
 %% -spec record_to_proplist(Rec :: macaba_db_object()) -> [{atom(), any()}].
 
