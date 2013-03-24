@@ -49,7 +49,7 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
         , post_ids  = [PostId]
        },
       macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
-      io:format(standard_error, "!!! thread:new-2~n", []),
+      %%io:format(standard_error, "!!! thread:new-2~n", []),
       Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
       %% io:format(standard_error, "!!! thread:new-3~n", []),
 
