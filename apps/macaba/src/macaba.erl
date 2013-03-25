@@ -67,6 +67,7 @@ record_to_proplist(#mcb_site_config{}=Rec0) ->
   %% Rec = Rec0#mcb_site_config{ boards = B },
   lists:zip(record_info(fields, mcb_site_config), tl(tuple_to_list(Rec0)));
 
+record_to_proplist(undefined) -> <<"undefined">>;
 record_to_proplist(X) ->
   lager:error("record_to_proplist err ~p", [X]),
   error({badarg, X}).
