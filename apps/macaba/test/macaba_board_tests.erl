@@ -91,7 +91,7 @@ try_new_thread() ->
   %% post a new thread
   %%----------------------
   PostOpt1 = make_post_opts([{thread_id, <<"new">>}]),
-  {Thread1, Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  {ok, Thread1, Post1} = macaba_thread:new(BoardId, [], PostOpt1),
   ?assertMatch(#mcb_post{}, Post1),
   ?assertMatch(#mcb_thread{}, Thread1),
   ThreadId1 = Thread1#mcb_thread.thread_id,
@@ -124,7 +124,7 @@ try_post_with_sage() ->
   %% io:format(standard_error, "+++ try_post_with_sage~n", []),
   BoardId = <<"unconfigured">>,
   PostOpt1 = make_post_opts([{thread_id, <<"new">>}]),
-  {Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  {ok, Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
   ThreadId1 = Thread1#mcb_thread.thread_id,
 
   PostOpt2 = make_post_opts([{thread_id, ThreadId1}, {email, <<"sage">>}]),
