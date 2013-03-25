@@ -14,6 +14,7 @@
         , stop/1
         , start_web/0
         , change_offline_mode/1
+        , reset_demo_db/0
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -31,8 +32,26 @@ start() ->
 
 start(_StartType, _StartArgs) ->
   start_web(),
-  timer:apply_interval(60*60*1000, macaba_db, reset_all_data, []),
+  timer:apply_interval(60*60*1000, mcweb_app, reset_demo_db, []),
   mcweb_sup:start_link().
+
+reset_demo_db() ->
+  BoardId = <<"unconfigured">>,
+  macaba_db:reset_all_data(),
+
+  FPath = filename:join([code:priv_dir(mcweb), "img", "demo.jpeg"]),
+  {ok, File} = file:read_file(FPath),
+  PostOpt1 = orddict:from_list(
+               [ {thread_id, <<"new">>}
+               , {subject, <<"welcome to Macaba demo">>}
+               , {message, <<"admin login 1, pass 1, not everything is working yet!">>}
+               , {attach, File}
+               , {author, <<>>}
+               , {email,  <<"sage">>}
+               %%, {attach_key, crypto:sha(File)}
+               , {deletepw, <<>>}
+               ]),
+  macaba_thread:new(BoardId, [], PostOpt1).
 
 stop(_State) ->
   ok.
