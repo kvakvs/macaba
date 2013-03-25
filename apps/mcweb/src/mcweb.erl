@@ -31,6 +31,7 @@
         , chain_fail_if_level_below/3
         , chain_fail_if_below_admin/2
         , chain_fail_if_below_mod/2
+        , safe/2, safe_length/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -496,6 +497,29 @@ chain_fail_if_below_admin(Req0, State0) ->
 
 chain_fail_if_below_mod(Req0, State0) ->
   mcweb:chain_fail_if_level_below(Req0, State0, ?USERLEVEL_MOD).
+
+%%%------------------------------------------------------------------------
+%% @doc Ensures safe contents for HTML and max length
+safe(T, Size) ->
+  safe_length(safe_htmlencode(T, []), Size).
+
+%% @doc Ensures max length, cuts extra
+safe_length(T, Size) when is_binary(T), byte_size(T) < Size -> T;
+safe_length(T, Size) when is_binary(T) -> binary:part(T, {0, Size}).
+
+safe_htmlencode(<<>>, Accum) -> iolist_to_binary(lists:reverse(Accum));
+safe_htmlencode(<<$<, Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, ["&lt;" | Accum]);
+safe_htmlencode(<<$&, Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, ["&amt;" | Accum]);
+safe_htmlencode(<<$", Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, ["&quot;" | Accum]);
+safe_htmlencode(<<$', Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, ["&apos;" | Accum]);
+safe_htmlencode(<<$>, Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, ["&gt;" | Accum]);
+safe_htmlencode(<<X:8, Tail/binary>>, Accum) ->
+  safe_htmlencode(Tail, [X | Accum]).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

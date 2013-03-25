@@ -41,10 +41,10 @@ construct(BoardId, Opts) when is_binary(BoardId) ->
         thread_id   = macaba:as_binary(ThreadId)
         , post_id     = PostId
         , board_id    = BoardId
-        , subject     = Subject
-        , author      = Author
-        , email       = Email
-        , message_raw = Message
+        , subject     = mcweb:safe(Subject, 128)
+        , author      = mcweb:safe(Author, 64)
+        , email       = mcweb:safe(Email, 64)
+        , message_raw = mcweb:safe_length(Message, 8192)
         , message     = MessageProcessed
         , created     = get_now_utc()
         , delete_pass = DeletePw
