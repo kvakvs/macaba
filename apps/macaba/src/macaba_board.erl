@@ -197,7 +197,7 @@ next_post_id(BoardId) when is_binary(BoardId) ->
   F = fun(BD = #mcb_board_dynamic{ last_post_id=L }) ->
           BD#mcb_board_dynamic{ last_post_id = L+1 };
          ({error, not_found}) ->
-          #mcb_board_dynamic{ last_post_id = 1 }
+          #mcb_board_dynamic{ last_post_id = 0 }
       end,
   {atomic, NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   Next = macaba:as_binary(NewD#mcb_board_dynamic.last_post_id),
