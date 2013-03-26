@@ -6,13 +6,6 @@
 %%%-----------------------------------------------------------------------------
 -module(mcweb_rest_thread).
 
-%% -export([ init/3
-%%         , handle/2
-%%         , terminate/3]).
-%% -export([ macaba_handle_rest/3
-%%         , macaba_handle_util_preview/3
-%%         , macaba_handle_thread_manage/3
-%%         ]).
 %% REST Callbacks
 -export([ init/3
         , rest_init/2

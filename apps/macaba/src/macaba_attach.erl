@@ -84,6 +84,7 @@ write_thumbnail(<<"image/jpeg">>, Data) -> write_thumbnail_1(jpg, Data).
                            {ok, {RiakKey :: binary(), Sz :: integer()}}.
 write_thumbnail_1(TypeAtom, Data) ->
   {ok, Image} = eim:load(Data),
+  %% Image = case TypeAtom of gif -> convert_to_jpeg(Image0); _ -> Image0 end,
   {ok, FitH} = macaba_conf:get([<<"board">>, <<"thread">>,
                                 <<"thumbnail_height">>]),
   {ok, FitW} = macaba_conf:get([<<"board">>, <<"thread">>,
@@ -97,6 +98,22 @@ write_thumbnail_1(TypeAtom, Data) ->
   AttachMod = macaba_plugins:mod(attachments),
   AttachMod:write_body(TBody),
   {ok, {TDigest, byte_size(TData)}}.
+
+%% %%%-----------------------------------------------------------------------------
+%% convert_to_jpeg(Pixels) ->
+%%   Path = os:find_executable("convert.im6"),
+%%   Args = ["-flatten", "gif:-", "jpg:-"],
+%%   Port = open_port({spawn_executable, Path}, [{args, Args}, binary]),
+%%   port_command(Port, Pixels),
+%%   convert_to_jpeg_wait(Port, 10).
+
+%% convert_to_jpeg_wait(_, 0) -> <<>>; % waiting 500x10 msec = too long
+%% convert_to_jpeg_wait(Port, X) ->
+%%   receive
+%%     {Port,{data,NewPixels}} -> NewPixels;
+%%     _       -> convert_to_jpeg_wait(Port, X)
+%%   after 500 -> convert_to_jpeg_wait(Port, X-1)
+%%   end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Attempts to figure out file type by first bytes of data
