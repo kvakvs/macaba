@@ -78,9 +78,12 @@ wakabamark_process(T0, Opt) when is_list(T0) ->
   Rules = wakabamark_rules_markdown(MarkdownEnabled)
     ++ wakabamark_rules_bbcode(BBEnabled)
     ++ [ %% URL
-       {"(https?://[^\\s<>\"]*?)((?:\\s|<|>|\"|\\.|\\)|\\]|!"
-          "|\\?|,|&#44;|&quot;)*(?:[\\s<>\"]|$))"
+       {"((http|ftp|https):\\/\\/[\\w\\-_]+(\\.[\\w\\-_]+)+"
+        "([\\w\\-\\.,@?^=%&amp;:/~\\+#]*[\\w\\-\\@?^=%&amp;/~\\+#])?)"
           , "<a href=\"\\1\">\\1</a>"}
+       %% {"(https?://[^\\s<>\"]*?)((?:\\s|<|>|\"|\\.|\\)|\\]|!"
+       %%    "|\\?|,|&#44;|&quot;)*(?:[\\s<>\"]|$))"
+       %%    , "<a href=\"\\1\">\\1</a>"}
        %% line breaks for ordered/unordered list items
        %% , {"- .*?\\R\s+.*?\\R", ""}
        ],

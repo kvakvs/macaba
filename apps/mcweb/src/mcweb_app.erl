@@ -44,7 +44,10 @@ reset_demo_db() ->
   PostOpt1 = orddict:from_list(
                [ {thread_id, <<"new">>}
                , {subject, <<"welcome to Macaba demo">>}
-               , {message, <<"admin login 1, pass 1, not everything is working yet!">>}
+               , {message, <<"admin login 1, pass 1, not everything is working yet!\n",
+ "fork and watch github repo at http://github.com/macaba/\n",
+ "Features and TODO: https://github.com/kvakvs/macaba/blob/master/FEATURES.md  <-\n"
+ "[spoiler]board will reset fully 1 hour after this post was created[/spoiler]">>}
                , {attach, File}
                , {author, <<>>}
                , {email,  <<"sage">>}
