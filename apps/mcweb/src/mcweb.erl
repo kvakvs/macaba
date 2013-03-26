@@ -435,15 +435,17 @@ get_user_identification(Req0) ->
                , tor_detected = is_tor_node(IP)
              }.
 
-ip_to_integer(undefined) -> 0;
-ip_to_integer(<<>>) -> 0;
 ip_to_integer(X) when is_binary(X) ->
   ip_to_integer(binary_to_list(X));
 ip_to_integer(X) when is_list(X) ->
-  {ok, X2} = inet_parse:address(X),
-  ip_to_integer(X2);
+  X1 = lists:takewhile(fun(C) -> C =/= $, end, X),
+  case inet_parse:address(X1) of
+    {ok, X2} -> ip_to_integer(X2);
+    _ -> 0
+  end;
 ip_to_integer({A,B,C,D}) ->
-  A*16777216+B*65536+C*256+D.
+  A*16777216+B*65536+C*256+D;
+ip_to_integer(_) -> 0.
 
 %%%------------------------------------------------------------------------
 %% @doc TODO: Detect if the IP belongs to one of TOR exit nodes
