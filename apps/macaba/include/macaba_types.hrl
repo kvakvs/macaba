@@ -60,7 +60,7 @@
 %% @doc Concurrently changed part of board stored in memory
 -record(mcb_board_dynamic, {
             board_id         :: binary()
-          , last_post_id = 1 :: integer()
+          , last_post_id = 0 :: integer()
           , pinned_threads = [] :: [binary()]
           , threads = []     :: [binary()]
          }).
