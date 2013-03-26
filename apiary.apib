@@ -38,6 +38,16 @@ GET /board
     "max_thread_post_lock": 2500, "url": "/board/b/" }
     ]}
 
+[admin] Create or edit board
+POST /board
+> Content-Type: application/json
+{ "id": "b", "category": "General", "title": "Random /b/", "short_name": "b",
+    "anonymous_name": "Anonymous", "max_threads": 200, "max_thread_posts": 500,
+    "max_thread_post_lock": 2500 }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "url": "/board/b/" }
+
 List threads in the board (full or paginated). Returns list of thread structures. "hidden" is
 only visible to mods and admins. If `timestamp` is provided you get empty output if board not changed,
 or full board contents if it did change. If `page` and `pagesize` are provided, you get paginated output at
@@ -78,6 +88,15 @@ GET /board/{board_id}/thread/{thread_id}{?timestamp}
     "timestamp": "integer unixtime"
 }
 
+[mod] Modify thread flags or delete thread
+POST /board/{board_id}/thread/{thread_id}/manage
+> Content-Type: application/json
+{ "action": "delete|update", "update": { "locked": true, "pinned": true, "hidden": "true" },
+    "ban": { "reason": "board rules", "expires": "unix time" } }
+< 200
+< Content-Type: application/json
+{ "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
+
 Post a new post in thread
 POST /board/{board_id}/thread/{thread_id}
 > Content-Type: application/json
@@ -88,28 +107,9 @@ POST /board/{board_id}/thread/{thread_id}
 { "result": "ok", "url": "/board/b/thread/10012500#i10012550" }
 
 --
-Administration and moderation
-Functions only available to authenticated mods and admins
+Board post resource
+Represents a single post, with functions to get, modify, delete, moderate/ban.
 --
-
-[admin] Create or edit board
-POST /board
-> Content-Type: application/json
-{ "id": "b", "category": "General", "title": "Random /b/", "short_name": "b",
-    "anonymous_name": "Anonymous", "max_threads": 200, "max_thread_posts": 500,
-    "max_thread_post_lock": 2500 }
-< 200
-< Content-Type: application/json
-{ "result": "ok", "url": "/board/b/" }
-
-[mod] Modify thread flags or delete thread
-POST /board/{board_id}/thread/{thread_id}/manage
-> Content-Type: application/json
-{ "action": "delete|update", "update": { "locked": true, "pinned": true, "hidden": "true" },
-    "ban": { "reason": "board rules", "expires": "unix time" } }
-< 200
-< Content-Type: application/json
-{ "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
 
 [mod] Modify post or delete post
 POST /board/{board_id}/post/{post_id}/manage
@@ -118,6 +118,19 @@ POST /board/{board_id}/post/{post_id}/manage
 < 200
 < Content-Type: application/json
 { "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
+
+Runs markup processing over given piece of text, to help user preview his post.
+POST /post/preview
+> Content-Type: application/json
+{ "markup": "Hello _world_ **derp**" }
+< 200
+< Content-Type: application/json
+{ "html": "Hello <em>world</em> <strong>derp</strong>" }
+
+--
+Administration and moderation
+Functions only available to authenticated mods and admins
+--
 
 [mod] Get list of bans
 GET /ban/
@@ -154,15 +167,3 @@ POST /appeal/{ban_id}
 < Content-Type: application/json
 { "result": "ok" }
 
---
-Helpers
-Random utility tools
---
-
-Runs markup processing over given piece of text, to help user preview his post.
-POST /util/preview
-> Content-Type: application/json
-{ "markup": "Hello _world_ **derp**" }
-< 200
-< Content-Type: application/json
-{ "html": "Hello <em>world</em> <strong>derp</strong>" }
