@@ -53,6 +53,7 @@ reset_demo_db() ->
                , {email,  <<"sage">>}
                %%, {attach_key, crypto:sha(File)}
                , {deletepw, <<>>}
+               , {ident, #mcb_userid{}}
                ]),
   macaba_thread:new(BoardId, [], PostOpt1).
 
