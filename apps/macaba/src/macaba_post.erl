@@ -85,11 +85,12 @@ new(BoardId, Opts) when is_binary(BoardId) ->
 %% @doc Writes attachments from Opts to database and updates post rec
 write_attach_set_ids(P = #mcb_post{}, Opts) ->
   %% TODO: Multiple attachments
-  Attach = macaba:propget(attach, Opts),
+  AttachList = macaba:propget(attach, Opts),
   %% AttachKey = macaba:propget(attach_key, Opts),
-  case Attach of
-    <<>> -> P;
-    _ ->
+  case AttachList of
+    [] -> P;
+    [Attach | _] ->
+      %% FIXME: Only attaching first in list or nothing
       case macaba_attach:write(Attach) of
         {error, _}=Err ->
           lager:error("post: write attach: ~p", [Err]),
