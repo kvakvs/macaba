@@ -236,24 +236,25 @@ chain_check_thread_exists(Req0, State0=#mcb_html_state{post_data=PD}) ->
 %% @private
 get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
-  ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
-  Author   = macaba:propget(<<"author">>,    PD, ""),
-  Email    = macaba:propget(<<"email">>,     PD, ""),
-  Subject  = macaba:propget(<<"subject">>,   PD, ""),
-  Message  = macaba:propget(<<"message">>,   PD, ""),
-  Attach   = macaba:propget(<<"attach">>,    PD, ""),
-  DeletePw = macaba:propget(<<"deletepw">>,  PD, ""),
+  ThreadId = macaba:propget(<<"thread_id">>, PD, <<>>),
+  Author   = macaba:propget(<<"author">>,    PD, <<>>),
+  Email    = macaba:propget(<<"email">>,     PD, <<>>),
+  Subject  = macaba:propget(<<"subject">>,   PD, <<>>),
+  Message  = macaba:propget(<<"message">>,   PD, <<>>),
+  Attach1  = macaba:propget(<<"attach">>,    PD, <<>>),
+  DeletePw = macaba:propget(<<"deletepw">>,  PD, <<>>),
 
   %% user identification and poster_id
   UserId   = mcweb:get_user_identification(Req0),
   PosterId = mcweb:get_poster_id(UserId),
+  Attaches = case Attach1 of <<>> -> []; _ -> [Attach1] end,
 
   orddict:from_list([ {thread_id,  ThreadId}
                     , {author,     Author}
                     , {email,      Email}
                     , {subject,    Subject}
                     , {message,    Message}
-                    , {attach,     Attach}
+                    , {attach,     Attaches}
                     , {ident,      UserId}
                     , {poster_id,  PosterId}
                     , {deletepw,   DeletePw}
