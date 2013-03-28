@@ -84,21 +84,25 @@ new(BoardId, Opts) when is_binary(BoardId) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Writes attachments from Opts to database and updates post rec
 write_attach_set_ids(P = #mcb_post{}, Opts) ->
-  %% TODO: Multiple attachments
+  %% Multiple attachments
   AttachList = macaba:propget(attach, Opts),
-  %% AttachKey = macaba:propget(attach_key, Opts),
-  case AttachList of
-    [] -> P;
-    [Attach | _] ->
-      %% FIXME: Only attaching first in list or nothing
-      case macaba_attach:write(Attach) of
-        {error, _}=Err ->
-          lager:error("post: write attach: ~p", [Err]),
-          P;
-        {ok, AttachId} ->
-          P#mcb_post{ attach_ids = [AttachId] }
-      end
-  end.
+  AttachIds0 = [macaba_attach:write(A) || A <- AttachList],
+  AttachIds = [A || {ok, A} <- AttachIds0],
+  P#mcb_post{ attach_ids = AttachIds }.
+  %% AttachList = macaba:propget(attach, Opts),
+  %% %% AttachKey = macaba:propget(attach_key, Opts),
+  %% case AttachList of
+  %%   [] -> P;
+  %%   [Attach | _] ->
+  %%     %% FIXME: Only attaching first in list or nothing
+  %%     case macaba_attach:write(Attach) of
+  %%       {error, _}=Err ->
+  %%         lager:error("post: write attach: ~p", [Err]),
+  %%         P;
+  %%       {ok, AttachId} ->
+  %%         P#mcb_post{ attach_ids = [AttachId] }
+  %%     end
+  %% end.
 
 %%%-----------------------------------------------------------------------------
 -spec delete_attach(BoardId :: binary(),
