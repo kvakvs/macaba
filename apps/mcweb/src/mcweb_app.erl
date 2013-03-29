@@ -90,7 +90,7 @@ cowboy_compile_dispatch(Offline) ->
               [thread_manage]},
   TShow    = {"/board/:mcb_board/thread/:mcb_thread", HMod, [thread]},
   TRepl    = {"/board/:mcb_board/post/new", HMod, [post_new]},
-  BShow1   = {"/board/:mcb_board/:mcb_page", HMod, [board]},
+  BShow1   = {"/board/:mcb_board/page/:mcb_page", HMod, [board]},
   BShow2   = {"/board/:mcb_board", HMod, [board]},
   AttThumb = {"/attach/:mcb_attach/thumb", HMod, [attach_thumb]},
   Attach   = {"/attach/:mcb_attach", HMod, [attach]},

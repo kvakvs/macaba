@@ -21,15 +21,15 @@
 </div> <!-- end row -->
 
 <div class="row"><div class="span12">
-  {% with thread_id = thread_info.thread_id %}{% include "post_form.html" %}{% endwith %}
+  {% with thread_id = thread.thread_id %}{% include "post_form.html" %}{% endwith %}
 </div></div>
 
 <form method="post"  enctype="multipart/form-data"
-  action="/board/{{ board_info.board_id }}/thread/{{ thread_info.thread_id }}/manage">
+  action="/board/{{ board_info.board_id }}/thread/{{ thread.thread_id }}/manage">
 <div class="row">
   <div class="span12">
-    {% for p in posts %}{% with inside_thread = 1 %}
-    {% include "post.html" %}{% endwith %}{% endfor %}
+    {% for post in posts %}{% with inside_thread = 1 %}
+{% include "post.html" %}{% endwith %}{% endfor %}
   </div>
 </div>
 

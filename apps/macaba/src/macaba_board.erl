@@ -12,7 +12,7 @@
         , get_site_config/0
         , set_site_config/1
         , get_boards/0
-        , add_thread/2
+        , add_thread/3
         , thread_bump_if_no_sage/4
         , next_post_id/1
         , get_threads/1
@@ -26,12 +26,24 @@
 start() -> ok.
 
 %%%-----------------------------------------------------------------------------
-add_thread(BoardId, ThreadId) ->
+%% @doc Modifies board dynamic and registers new thread in it, based on Pinned
+%% parameter, thread is stored in either pinned_threads or threads
+add_thread(BoardId, ThreadId, Pinned) ->
   %% add thread to board
-  F = fun(BD = #mcb_board_dynamic{ threads=T }) ->
-          T2 = [ThreadId | T],
-          lager:debug("add_thread ~p", [T2]),
-          touch_board_dynamic(BD#mcb_board_dynamic{ threads = T2 })
+  F = fun(BD = #mcb_board_dynamic{ pinned_threads=PThreads, threads=Threads }) ->
+          case Pinned of
+            true ->
+              PThreads2 = [ThreadId | PThreads],
+              Threads2 = Threads;
+            false ->
+              PThreads2 = PThreads,
+              Threads2 = [ThreadId | Threads]
+          end,
+          BD2 = BD#mcb_board_dynamic{
+                  threads = Threads2,
+                  pinned_threads=PThreads2
+                 },
+          touch_board_dynamic(BD2)
       end,
   {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   check_board_threads_limit(BoardId).
@@ -279,7 +291,7 @@ touch_board_dynamic(BD = #mcb_board_dynamic{ pinned_threads=PThreads
                              , last_post_id=LastPost }) ->
   MTime = calendar:local_time(),
   Modified = erlang:localtime_to_universaltime(MTime),
-  ETag = mcweb:create_and_format_etag({PThreads, Threads, LastPost}),
+  ETag = mcweb:create_and_format_etag({Modified, PThreads, Threads, LastPost}),
   BD#mcb_board_dynamic{
       last_modified = Modified
     , etag          = ETag
