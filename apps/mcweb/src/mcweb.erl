@@ -71,7 +71,9 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
                        {false, _} ->
                          {Req1, State0}
                      end,
-    {Req3, State2} = ?MODULE:get_user_save_to_state(Req2, State1),
+
+    {Req3a, State2} = ?MODULE:get_user_save_to_state(Req2, State1),
+    Req3 = log_access(Method, Req3a, State2),
 
     %% site offline flag
     %% TODO: cache site config in memory or in state
@@ -90,6 +92,15 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
       {ReqE, StateE} = ?MODULE:response_text(500, T, Req0, State0),
       {ok, ReqE, StateE}
   end.
+
+%%%------------------------------------------------------------------------
+log_access(Method, Req0, State0=#mcb_html_state{ user=U }) ->
+  {{IP1, IP2, IP3, IP4}, Req1} = cowboy_req:peer_addr(Req0),
+  IP = iolist_to_binary([integer_to_list(IP1), $., integer_to_list(IP2), $.,
+                         integer_to_list(IP3), $., integer_to_list(IP4)]),
+  {Path, Req2} = cowboy_req:path(Req1),
+  lager:info("[~s] L=~p ~s ~s", [IP, U#mcb_user.level, Method, Path]),
+  Req2.
 
 %%%------------------------------------------------------------------------
 -spec compile(string()) -> atom().

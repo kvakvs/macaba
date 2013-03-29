@@ -56,11 +56,11 @@ read_internal(Type, B, K) ->
   %% versioning on read for all other objects
   case riak_pool_auto:get(B, K) of
     {error, notfound} ->
-      lager:error("riak read_i not found ~p key=~p", [Type, K]),
+      %%lager:error("riak read_i not found ~p key=~p", [Type, K]),
       {error, not_found};
     {ok, O} ->
       X1 = riakc_obj:get_value(O),
-      lager:debug("riak read_i found ~p key=~p", [Type, K]),
+      %%lager:debug("riak read_i found ~p key=~p", [Type, K]),
       {Version, Value} = binary_to_term(X1, [safe]),
       X2 = macaba_db:upgrade(Type, Version, Value),
       {ok, X2}
@@ -118,7 +118,8 @@ write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   Bin = macaba_db:encode(Type, Value),
   Obj = riakc_obj:new(B, K, Bin),
   R = riak_pool_auto:put(Obj),
-  lager:debug("riak write_i ~p key=~p result=~p value ~p", [Type, K, R, Value]).
+  %%lager:debug("riak write_i ~p key=~p result=~p value ~p", [Type, K, R, Value]).
+  R.
 
 %%--------------------------------------------------------------------
 delete(Type, Value) when is_tuple(Value) ->

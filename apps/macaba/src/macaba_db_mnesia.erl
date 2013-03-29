@@ -28,18 +28,23 @@ start() ->
          mcb_board_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_board_dynamic)}
-         %% , {index, [#mcb_board_dynamic.board_id]}
          , {type, set}
          ]),
-  lager:debug("creating board dynamics table: ~p", [BD]),
+  lager:info("creating board-dynamics table: ~p", [BD]),
   TD = mnesia:create_table(
          mcb_thread_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_thread_dynamic)}
-         %% , {index, [#mcb_thread_dynamic.thread_id]}
          , {type, set}
          ]),
-  lager:debug("creating thread dynamics table: ~p", [TD]).
+  lager:info("creating thread-dynamics table: ~p", [TD]),
+  SC = mnesia:create_table(
+         mcb_site_config,
+         [ {ram_copies, [node()]}
+         , {attributes, record_info(fields, mcb_site_config)}
+         , {type, set}
+         ]),
+  lager:info("creating site-config table: ~p", [SC]).
 
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),

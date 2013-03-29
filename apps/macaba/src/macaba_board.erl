@@ -48,9 +48,20 @@ get_boards() ->
 %%%-----------------------------------------------------------------------------
 get_site_config() ->
   SiteKey = ?DEFAULT_SITE,
-  case macaba_db_riak:read(mcb_site_config, SiteKey) of
-    {ok, #mcb_site_config{} = Conf} -> Conf;
-    {error, not_found} -> fake_default_site_config()
+  case macaba_db_mnesia:read(mcb_site_config, SiteKey) of
+    {ok, #mcb_site_config{} = Conf1} ->
+      Conf1;
+    {error, not_found} ->
+      case macaba_db_riak:read(mcb_site_config, SiteKey) of
+        {ok, #mcb_site_config{} = Conf2} ->
+          macaba_db_mnesia:write(mcb_site_config, Conf2),
+          Conf2;
+        {error, not_found} ->
+          Default = fake_default_site_config(),
+          macaba_db_mnesia:write(mcb_site_config, Default),
+          macaba_db_riak:write(mcb_site_config, Default),
+          Default
+      end
   end.
 
 %%%-----------------------------------------------------------------------------
