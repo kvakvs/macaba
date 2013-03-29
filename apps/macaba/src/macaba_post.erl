@@ -115,7 +115,9 @@ delete(BoardId, PostId) ->
                       BoardId, P#mcb_post.thread_id);
               _ -> ok
             end,
-            macaba_thread:touch(TD#mcb_thread_dynamic{ post_ids=L2 })
+            macaba_thread:touch_thread_dynamic(
+              TD#mcb_thread_dynamic{ post_ids=L2 }
+             )
         end,
   case macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, Upd) of
     {atomic, _} ->

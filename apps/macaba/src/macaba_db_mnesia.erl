@@ -55,11 +55,8 @@ read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
   case mnesia:transaction(RFun) of
     {atomic, [Row]} ->
-      %% lager:debug("mnesia read K=~p Value=~p", [Key, Row]),
       {ok, Row};
     _ ->
-      %% lager:debug("mnesia read K=~p not found", [Key]),
-      %% lager:debug("~p", [erlang:get_stacktrace()]),
       {error, not_found}
   end.
 
@@ -72,7 +69,6 @@ write(Tab, Value) ->
   case mnesia:transaction(WF) of
     {atomic, _} = X ->
       Key = macaba_db:get_key_for_object(Value),
-      %% lager:debug("mnesia write_i ~p key=~p value=~p", [Tab, Key, Value]),
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->

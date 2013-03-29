@@ -144,15 +144,17 @@
          }).
 
 %% @doc Mnesia objects are stored in memory only and built on node start
--type macaba_mnesia_object() :: mcb_board_dynamic | mcb_thread_dynamic.
--type macaba_mnesia_record() :: #mcb_board_dynamic{} | #mcb_thread_dynamic{}.
+-type macaba_mnesia_object() :: mcb_site_config | mcb_board_dynamic
+                              | mcb_thread_dynamic.
+-type macaba_mnesia_record() :: #mcb_site_config{} | #mcb_board_dynamic{}
+                              | #mcb_thread_dynamic{}.
 %% @doc RIAK objects are written once and changed rarely, and persist on disk
 %% RIAK also stores all Mnesia objects, they are updated regularly by leader
 %% node, and reloaded on cluster1 restart
--type macaba_riak_object()   :: mcb_site_config | mcb_thread | mcb_post
+-type macaba_riak_object()   :: mcb_thread | mcb_post
                               | mcb_attachment | mcb_attachment_body
                               | macaba_mnesia_object().
--type macaba_riak_record()   :: #mcb_site_config{} | #mcb_thread{} | #mcb_post{}
+-type macaba_riak_record()   :: #mcb_thread{} | #mcb_post{}
                               | #mcb_attachment{} | #mcb_attachment_body{}
                               | macaba_mnesia_record().
 -type macaba_db_object()     :: macaba_riak_object().
