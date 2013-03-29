@@ -29,12 +29,17 @@ write(Data) when is_binary(Data) ->
         %% {ok, {ThumbKey, ThumbSize}} ->
       {ok, {ThumbKey, ThumbSize}} = ThumbnailFun(ContentType, Data),
       Key = crypto:sha(Data),
+      MTime = calendar:local_time(),
+      Created = erlang:localtime_to_universaltime(MTime),
+      ETag = create_and_format_etag({Key, MTime, byte_size(Data)}),
       A = #mcb_attachment{
-        size           = byte_size(Data),
-        hash           = Key,
-        content_type   = ContentType,
-        thumbnail_hash = ThumbKey,
-        thumbnail_size = ThumbSize
+          size           = byte_size(Data)
+        , hash           = Key
+        , content_type   = ContentType
+        , thumbnail_hash = ThumbKey
+        , thumbnail_size = ThumbSize
+        , created        = Created
+        , etag           = ETag
        },
       AttachMod = macaba_plugins:mod(attachments),
       AttachMod:write_header(A),
@@ -48,6 +53,15 @@ write(Data) when is_binary(Data) ->
       %%   {error, Err} -> {error, Err}
       %% end
   end.
+
+%% @private
+-spec create_and_format_etag(Term :: tuple()) -> binary().
+
+create_and_format_etag(Term) ->
+  Bin = erlang:term_to_binary(Term),
+  Hash = crypto:sha(Bin),
+  HashHex = bin_to_hex:bin_to_hex(Hash),
+  <<$", HashHex/binary, $">>.
 
 %%%-----------------------------------------------------------------------------
 %% @private
@@ -98,22 +112,6 @@ write_thumbnail_1(TypeAtom, Data) ->
   AttachMod = macaba_plugins:mod(attachments),
   AttachMod:write_body(TBody),
   {ok, {TDigest, byte_size(TData)}}.
-
-%% %%%-----------------------------------------------------------------------------
-%% convert_to_jpeg(Pixels) ->
-%%   Path = os:find_executable("convert.im6"),
-%%   Args = ["-flatten", "gif:-", "jpg:-"],
-%%   Port = open_port({spawn_executable, Path}, [{args, Args}, binary]),
-%%   port_command(Port, Pixels),
-%%   convert_to_jpeg_wait(Port, 10).
-
-%% convert_to_jpeg_wait(_, 0) -> <<>>; % waiting 500x10 msec = too long
-%% convert_to_jpeg_wait(Port, X) ->
-%%   receive
-%%     {Port,{data,NewPixels}} -> NewPixels;
-%%     _       -> convert_to_jpeg_wait(Port, X)
-%%   after 500 -> convert_to_jpeg_wait(Port, X-1)
-%%   end.
 
 %%%-----------------------------------------------------------------------------
 %% @doc Attempts to figure out file type by first bytes of data

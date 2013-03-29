@@ -126,6 +126,9 @@
           , thumbnail_size  :: integer()
           , content_type    :: binary()
           , references = [] :: [binary()] % list of posts referring to file
+          , created         :: calendar:datetime()
+          %% formatted for HTTP headers, in form of <<"\"" hex, "\"">>
+          , etag = <<>>     :: binary()
          }).
 
 -define(MCB_ATTACHMENT_BODY_VER, 1).

@@ -348,6 +348,8 @@ macaba_handle_attach(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, false, State0),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
+                      , fun chain_attach_if_cached/2
+                      , fun chain_attach_send_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -362,8 +364,11 @@ macaba_handle_attach(<<"GET">>, Req0, State0) ->
 
 macaba_handle_attach_thumb(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, true, State0),
+  %% lager:debug("get attach Req=~p", [Req0]),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
+                      , fun chain_attach_if_cached/2
+                      , fun chain_attach_send_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -404,7 +409,6 @@ chain_get_attach(Req0, State0) ->
 %%%---------------------------------------------------
 %% @private
 chain_attach_send(Req0, State0) ->
-  %% TODO: Etag/if modified since support
   case State0#mcb_html_state.already_rendered of
     true ->
       mcweb:chain_success(Req0, State0);
@@ -420,6 +424,33 @@ chain_attach_send(Req0, State0) ->
       State = State0#mcb_html_state{already_rendered=true},
       mcweb:chain_success(Req, State)
   end.
+
+%%%---------------------------------------------------
+%% @private
+chain_attach_if_cached(Req0, State0) ->
+  Att = mcweb:state_get_var(attach, State0),
+  {IfNoneMatch, Req1} = cowboy_req:header(<<"if-none-match">>, Req0),
+  %% lager:debug("chain attach ifnonematch ~p att.etag ~p",
+  %%             [IfNoneMatch, Att#mcb_attachment.etag]),
+  case Att#mcb_attachment.etag of
+    undefined ->
+      mcweb:chain_success(Req1, State0); % continue chain, no cache
+    IfNoneMatch ->
+      {ok, Req} = cowboy_req:reply(304, [], <<>>, Req1),
+      mcweb:chain_fail(Req, State0);
+    _ ->
+      mcweb:chain_success(Req1, State0) % continue chain, no cache
+  end.
+
+%%%---------------------------------------------------
+%% @private
+chain_attach_send_headers(Req0, State0) ->
+  Att = mcweb:state_get_var(attach, State0),
+  MTime = Att#mcb_attachment.created,
+  Req1 = cowboy_req:set_resp_header(<<"Last-Modified">>,
+                                    cowboy_clock:rfc1123(MTime), Req0),
+  Req = cowboy_req:set_resp_header(<<"ETag">>, Att#mcb_attachment.etag, Req1),
+  mcweb:chain_success(Req, State0).
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

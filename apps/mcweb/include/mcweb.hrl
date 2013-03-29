@@ -3,6 +3,8 @@
 
  -compile([{parse_transform, lager_transform}]).
 
+-define(ATTACH_EXPIRES_SEC, 86400*7).
+
 -record(mcb_html_state, {
             mode                     :: atom()
           , page_vars = []           :: orddict:orddict()

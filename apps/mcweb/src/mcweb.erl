@@ -387,14 +387,19 @@ get_user_save_to_state(Req0, State0) ->
 %% modified request
 get_user(Req0) ->
   {SesId, Req1} = cowboy_req:cookie(ses_cookie_name(), Req0),
-  case mcweb_ses:get(SesId) of
-    {error, not_found} ->
-      %% lager:debug("web:get_user ses '~s' not found", [SesId]),
-      Req = clear_session_cookie(Req1),
-      {#mcb_user{}, Req};
-    {ok, Pid} ->
-      U = gen_server:call(Pid, get_user),
-      {U, Req1}
+  case SesId of
+    undefined ->
+      {#mcb_user{}, Req1};
+    _ ->
+      case mcweb_ses:get(SesId) of
+        {error, not_found} ->
+          %% lager:debug("web:get_user ses '~s' not found", [SesId]),
+          Req = clear_session_cookie(Req1),
+          {#mcb_user{}, Req};
+        {ok, Pid} ->
+          U = gen_server:call(Pid, get_user),
+          {U, Req1}
+      end
   end.
 
 %% @doc Creates session process, sets response cookie, and sets user field
