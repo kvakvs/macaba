@@ -77,7 +77,7 @@ replies, attaching files.
 
 Get posts in thread (full or diff). If `timestamp` is provided, you only receive changes in
 thread happened from this time. Thread contents is not designed to be paginated at the moment.
-GET /board/{board_id}/thread/{thread_id}{?timestamp}
+GET /board/{board_id}/thread/{thread_id}?t=timestamp
 < 200
 < Content-Type: application/json
 { "posts": [
@@ -88,10 +88,10 @@ GET /board/{board_id}/thread/{thread_id}{?timestamp}
     "timestamp": "integer unixtime"
 }
 
-[mod] Modify thread flags or delete thread
-POST /board/{board_id}/thread/{thread_id}/manage
+[mod] Modify thread flags. $action is manage or delete, 'ban' and 'update' fields in request are optional.
+POST /board/{board_id}/thread/{thread_id}?do={action}
 > Content-Type: application/json
-{ "action": "delete|update", "update": { "locked": true, "pinned": true, "hidden": "true" },
+{ "update": { "locked": true, "pinned": true, "hidden": true },
     "ban": { "reason": "board rules", "expires": "unix time" } }
 < 200
 < Content-Type: application/json
