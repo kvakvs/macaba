@@ -151,7 +151,7 @@ try_post_with_attach() ->
            "R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="),
   PostOpt1 = make_post_opts([{thread_id, <<"new">>}, {attach, [Gif1]}]),
   io:format(standard_error, "+++ try_post_with_attach-1~n", []),
-  {Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  {ok, Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
   io:format(standard_error, "+++ try_post_with_attach-1.1~n", []),
   ThreadId1 = Thread1#mcb_thread.thread_id,
 
