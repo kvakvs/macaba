@@ -28,18 +28,23 @@ start() ->
          mcb_board_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_board_dynamic)}
-         %% , {index, [#mcb_board_dynamic.board_id]}
          , {type, set}
          ]),
-  lager:debug("creating board dynamics table: ~p", [BD]),
+  lager:info("creating board-dynamics table: ~p", [BD]),
   TD = mnesia:create_table(
          mcb_thread_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_thread_dynamic)}
-         %% , {index, [#mcb_thread_dynamic.thread_id]}
          , {type, set}
          ]),
-  lager:debug("creating thread dynamics table: ~p", [TD]).
+  lager:info("creating thread-dynamics table: ~p", [TD]),
+  SC = mnesia:create_table(
+         mcb_site_config,
+         [ {ram_copies, [node()]}
+         , {attributes, record_info(fields, mcb_site_config)}
+         , {type, set}
+         ]),
+  lager:info("creating site-config table: ~p", [SC]).
 
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
@@ -67,10 +72,11 @@ write(Tab, Value) ->
   case mnesia:transaction(WF) of
     {atomic, _} = X ->
       Key = macaba_db:get_key_for_object(Value),
+      %% lager:debug("mnesia write_i ~p key=~p value=~p", [Tab, Key, Value]),
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
-      lager:error("macaba_db_mnesia: write ~p:", [Y]),
+      lager:error("mnesia: write ~p:", [Y]),
       Y
   end.
 

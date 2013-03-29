@@ -62,7 +62,6 @@ macaba_handle_offline(_, Req0, State0) ->
                                    mcweb:handler_return().
 
 macaba_handle_admin_login(<<"GET">>, Req0, State0) ->
-  lager:debug("http GET admin/login"),
   {_, Req, State} = mcweb:chain_run(
                         [ fun mcweb_html_public:chain_get_boards/2
                         ], Req0, State0),
@@ -70,7 +69,6 @@ macaba_handle_admin_login(<<"GET">>, Req0, State0) ->
 
 %% POST: /admin/login - login
 macaba_handle_admin_login(<<"POST">>, Req0, State0) ->
-  lager:debug("http POST admin/login"),
   {_, Req, State} = mcweb:chain_run(
                         [ fun chain_check_admin_login/2
                         , fun chain_check_mod_login/2
@@ -87,7 +85,6 @@ macaba_handle_admin_login(<<"POST">>, Req0, State0) ->
                              mcweb:handler_return().
 
 macaba_handle_admin(<<"GET">>, Req0, State0) ->
-  lager:debug("http GET admin"),
   {_, Req, State} = mcweb:chain_run(
                       [ fun mcweb_html_public:chain_get_boards/2
                       , fun mcweb:chain_fail_if_below_mod/2
@@ -101,7 +98,6 @@ chain_check_admin_login(Req0, State0=#mcb_html_state{ post_data=PD }) ->
   {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
   Login = macaba:propget(<<"login">>, PD),
   Password = macaba:propget(<<"password">>, PD),
-  %% lager:debug("L=~s:P=~s AL=~s:AP=~s", [Login, Password, ALogin, APassword]),
   case {ALogin =:= Login, APassword =:= Password} of
     {true, true} ->
       {Req, State} = mcweb:create_session_for(
@@ -127,7 +123,6 @@ chain_check_mod_login(Req0, State0) ->
                                     mcweb:handler_return().
 
 macaba_handle_admin_logout(Method, Req0, State0) ->
-  lager:debug("http ~s admin/logout", [Method]),
   Req = mcweb:clear_session_cookie(Req0),
   mcweb:redirect("/", Req, State0).
 
@@ -140,7 +135,6 @@ macaba_handle_admin_logout(Method, Req0, State0) ->
                                   mcweb:handler_return().
 
 macaba_handle_admin_site(<<"GET">>, Req0, State0) ->
-  lager:debug("http GET admin/site"),
   {_, Req, State} = mcweb:chain_run(
                         [ fun mcweb_html_public:chain_get_boards/2
                         , fun mcweb:chain_fail_if_below_mod/2
@@ -171,7 +165,6 @@ chain_show_admin_site(Req0, State0) ->
                                           mcweb:handler_return().
 
 macaba_handle_admin_site_offline(<<"POST">>, Req0, State0) ->
-  lager:debug("http POST admin/site/offline"),
   {_, Req, State} = mcweb:chain_run(
                       [ fun mcweb:chain_fail_if_below_admin/2
                       , fun chain_edit_site_offline/2
@@ -201,7 +194,6 @@ chain_edit_site_offline(Req0, State0=#mcb_html_state{post_data=PD}) ->
                                          mcweb:handler_return().
 
 macaba_handle_admin_site_boards(<<"POST">>, Req0, State0) ->
-  lager:debug("http POST admin/site/boards"),
   {_, Req1, State1} = mcweb:chain_run(
                         [ fun mcweb:chain_fail_if_below_admin/2
                         , fun chain_edit_site_boards/2
@@ -211,7 +203,6 @@ macaba_handle_admin_site_boards(<<"POST">>, Req0, State0) ->
 chain_edit_site_boards(Req0, State0=#mcb_html_state{post_data=PD}) ->
   Site0 = macaba_board:get_site_config(),
   BoardsJson = macaba:propget(<<"boards">>, PD),
-  %% lager:debug("Boards: ~p", [BoardsJson]),
   Boards = lists:map(fun(ErlJson) ->
                          macaba_json:from_json(mcb_board, ErlJson)
                      end, jsx:decode(BoardsJson)),

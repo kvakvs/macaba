@@ -12,6 +12,7 @@
         , new/3
         , delete/2
         , set_read_only/3
+        , touch/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -35,12 +36,14 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
       ThreadId = PostId,
 
       Thread = #mcb_thread{
-        thread_id = ThreadId
+          thread_id = ThreadId
         , board_id  = BoardId
         , hidden    = Hidden
         , pinned    = Pinned
         , read_only = ReadOnly
        },
+      macaba_db_riak:write(mcb_thread, Thread),
+
       TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
       ThreadDyn = #mcb_thread_dynamic{
         internal_mnesia_key = TDKey
@@ -48,16 +51,12 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
         , board_id  = BoardId
         , post_ids  = [PostId]
        },
-      macaba_db_mnesia:write(mcb_thread_dynamic, ThreadDyn),
-      %%io:format(standard_error, "!!! thread:new-2~n", []),
+      macaba_db_mnesia:write(mcb_thread_dynamic, touch(ThreadDyn)),
       Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
-      %% io:format(standard_error, "!!! thread:new-3~n", []),
 
       %% link post to thread
       Post = Post1#mcb_post{ thread_id = PostId },
       macaba_db_riak:write(mcb_post, Post),
-      macaba_db_riak:write(mcb_thread, Thread),
-
       macaba_board:add_thread(BoardId, ThreadId),
       {ok, Thread, Post};
 
@@ -212,7 +211,7 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
                      BoardId, ThreadId, true);
                  _ -> ok
                end,
-               TD#mcb_thread_dynamic{ post_ids=L2 }
+               touch(TD#mcb_thread_dynamic{ post_ids=L2 })
            end,
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
   {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
@@ -220,6 +219,26 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
   %% update board thread list (bump thread)
   macaba_board:thread_bump_if_no_sage(BoardId, ThreadId, ThreadSoftLimit, Post),
   ok.
+
+%%%-----------------------------------------------------------------------------
+%% @doc Updates last_modified and etag for Thread Dynamic
+%% You have to update thread dynamic if thread is changed
+-spec touch(#mcb_thread_dynamic{}) -> #mcb_thread_dynamic{}.
+
+touch(TD = #mcb_thread_dynamic{ post_ids = PostIds }) ->
+  try
+    MTime = calendar:local_time(),
+    Modified = erlang:localtime_to_universaltime(MTime),
+    ETag = mcweb:create_and_format_etag(PostIds),
+    TD#mcb_thread_dynamic{
+      last_modified = Modified
+      , etag          = ETag
+     }
+  catch X ->
+      lager:error("thread: touch ~p", [X]),
+      error
+  end.
+
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

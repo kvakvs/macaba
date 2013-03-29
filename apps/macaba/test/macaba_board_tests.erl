@@ -16,6 +16,7 @@ board_engine_test_() ->
    {foreach, fun foreach_setup/0, fun foreach_teardown/1,
     [ {"Basic Mnesia: Thread dynamic", fun try_mnesia_thread_dynamic/0}
     , {"Basic Mnesia: Board dynamic", fun try_mnesia_board_dynamic/0}
+    , {"Basic Riak: Thread", fun try_riak_thread/0}
     , {"Post to a new thread", fun try_new_thread/0}
     , {"Post with sage", fun try_post_with_sage/0}
     , {"Post with attach", fun try_post_with_attach/0}
@@ -60,6 +61,13 @@ foreach_teardown(ok) ->
 %%%------------------------------------------------------------------------
 %%% Tests
 %%%------------------------------------------------------------------------
+
+try_riak_thread() ->
+  BoardId = <<"testboard0">>,
+  ThreadId = <<"12345">>,
+  T = #mcb_thread{ thread_id = ThreadId, board_id = BoardId },
+  macaba_db_riak:write(mcb_thread, T),
+  ?assertMatch({ok, T}, macaba_thread:get(BoardId, ThreadId)).
 
 %% @doc Basic check that Mnesia is reading and writing fine
 try_mnesia_board_dynamic() ->
@@ -141,15 +149,15 @@ try_post_with_attach() ->
   BoardId = <<"unconfigured">>,
   Gif1 = base64:decode(
            "R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="),
-  PostOpt1 = make_post_opts([{thread_id, <<"new">>}, {attach, Gif1}]),
+  PostOpt1 = make_post_opts([{thread_id, <<"new">>}, {attach, [Gif1]}]),
   io:format(standard_error, "+++ try_post_with_attach-1~n", []),
-  {Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
+  {ok, Thread1, _Post1} = macaba_thread:new(BoardId, [], PostOpt1),
   io:format(standard_error, "+++ try_post_with_attach-1.1~n", []),
   ThreadId1 = Thread1#mcb_thread.thread_id,
 
   io:format(standard_error, "+++ try_post_with_attach-2~n", []),
   Gif2 = <<Gif1/binary, "@">>,
-  PostOpt2 = make_post_opts([{thread_id, ThreadId1}, {attach, Gif2}]),
+  PostOpt2 = make_post_opts([{thread_id, ThreadId1}, {attach, [Gif2]}]),
   {ok, Post2} = macaba_post:new(BoardId, PostOpt2),
   ?assertMatch(#mcb_post{}, Post2),
 
@@ -178,7 +186,7 @@ make_post_opts(ModifyFields) ->
                         , {email,      <<>>}
                         , {subject,    <<>>}
                         , {message,    <<"fgsfds">>}
-                        , {attach,     <<>>}
+                        , {attach,     []}
                         , {attach_key, <<>>}
                         , {deletepw,   <<"fgsfds">>}
                         ]),

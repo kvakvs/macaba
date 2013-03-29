@@ -119,18 +119,17 @@ count_images(Posts0, TailSize) ->
 -spec get_thread_previews(BoardId :: binary(),
                           ThreadIds :: [binary()],
                           PreviewSize :: non_neg_integer()) ->
-                                 [proplist_of(proplist_t())].
+                                 [{binary(), proplist_t()}].
+
 get_thread_previews(BoardId, ThreadIdList, PreviewSize) ->
-  %% for each thread get preview
-  %% lager:debug("cli: get_thr_previews ids=~p size=~p",
-  %%             [ThreadIdList, PreviewSize]),
   [{T, get_thread_preview(BoardId, T, PreviewSize)} || T <- ThreadIdList].
 
 %%%-----------------------------------------------------------------------------
 -spec get_thread_preview(BoardId :: binary(),
                          ThreadId :: binary(),
-                         PreviewSize :: non_neg_integer() | 'all') ->
+                         PreviewSize :: integer() | 'all') ->
                             [proplist_t()].
+
 get_thread_preview(BoardId, ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
   Posts = macaba_thread:get_contents(BoardId, ThreadId, PreviewSize),

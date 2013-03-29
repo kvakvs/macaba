@@ -27,12 +27,12 @@ start() ->
 -spec bucket_for(macaba_riak_object()) -> binary().
 
 bucket_for(mcb_site_config)     -> <<"site-conf">>;
-bucket_for(mcb_board_dynamic)   -> <<"board-dyn">>;  % also in _db_mnesia
-bucket_for(mcb_thread)          -> <<"thread-head">>;
-bucket_for(mcb_thread_dynamic)  -> <<"thread-dyn">>; % also in _db_mnesia
+bucket_for(mcb_board_dynamic)   -> <<"board-d">>;  % also in _db_mnesia
+bucket_for(mcb_thread)          -> <<"thrd">>;
+bucket_for(mcb_thread_dynamic)  -> <<"thrd-d">>; % also in _db_mnesia
 bucket_for(mcb_post)            -> <<"post">>;
-bucket_for(mcb_attachment)      -> <<"attach-head">>;
-bucket_for(mcb_attachment_body) -> <<"attach-body">>.
+bucket_for(mcb_attachment)      -> <<"att">>;
+bucket_for(mcb_attachment_body) -> <<"att-body">>.
 
 %%--------------------------------------------------------------------
 %% @doc Reads a single {bucket,key} from RIAK database. No conflict resolution
@@ -56,9 +56,11 @@ read_internal(Type, B, K) ->
   %% versioning on read for all other objects
   case riak_pool_auto:get(B, K) of
     {error, notfound} ->
+      %%lager:error("riak read_i not found ~p key=~p", [Type, K]),
       {error, not_found};
     {ok, O} ->
       X1 = riakc_obj:get_value(O),
+      %%lager:debug("riak read_i found ~p key=~p", [Type, K]),
       {Version, Value} = binary_to_term(X1, [safe]),
       X2 = macaba_db:upgrade(Type, Version, Value),
       {ok, X2}
@@ -106,7 +108,6 @@ write(Type, Value) ->
   Key = macaba_db:get_key_for_object(Value),
   write_internal(Type, bucket_for(Type), Key, Value).
   %% R = write_internal(Type, bucket_for(Type), Key, Value),
-  %% lager:debug("riak write ~p key=~p result=~p", [Type, Key, R]).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -116,7 +117,9 @@ write_internal(Type, B, K, Value) when is_binary(B), is_binary(K) ->
   %%------------------------------------
   Bin = macaba_db:encode(Type, Value),
   Obj = riakc_obj:new(B, K, Bin),
-  riak_pool_auto:put(Obj).
+  R = riak_pool_auto:put(Obj),
+  %%lager:debug("riak write_i ~p key=~p result=~p value ~p", [Type, K, R, Value]).
+  R.
 
 %%--------------------------------------------------------------------
 delete(Type, Value) when is_tuple(Value) ->

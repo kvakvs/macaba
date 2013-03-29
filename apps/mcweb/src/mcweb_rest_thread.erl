@@ -1,7 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @doc This module has few predefined handlers (init, handle and terminate)
-%%% which are called by cowboy on incoming HTTP request.
-%%% Serves HTML templates, and provides basic HTTP access to the board.
+%%% @doc REST resource for thread
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(mcweb_rest_thread).
@@ -11,11 +9,12 @@
         , rest_init/2
         , allowed_methods/2
         , content_types_provided/2
-        , content_types_accepted/2
+        %% , content_types_accepted/2
         , resource_exists/2
         , post_is_create/2
         , create_path/2
         ]).
+
 -include_lib("macaba/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
@@ -30,10 +29,10 @@ content_types_provided(Req, State) ->
     {{<<"application">>, <<"json">>, []}, thread_get}
    ], Req, State}.
 
-content_types_accepted(Req, State) ->
-  {[
-    {{<<"application">>, <<"x-www-form-urlencoded">>, []}, thread_post}
-   ], Req, State}.
+%% content_types_accepted(Req, State) ->
+%%   {[
+%%     {{<<"application">>, <<"json">>, []}, accept_POST_json}
+%%    ], Req, State}.
 
 allowed_methods(Req, State) ->
   {[<<"GET">>, <<"POST">>], Req, State}.

@@ -1,5 +1,5 @@
 MRUNCMD=erl -sname macaba@localhost -config macaba_erlang_node.config \
-	-pa ebin apps/*/ebin deps/*/ebin \
+	-pa ebin apps/*/ebin apps/*/src deps/*/ebin \
 	-s macaba_app -mnesia dir '"database/"'
 
 .PHONY: all
