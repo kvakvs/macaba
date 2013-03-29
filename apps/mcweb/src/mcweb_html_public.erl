@@ -301,10 +301,13 @@ macaba_handle_thread(<<"GET">>, Req0, State0) ->
                       [ fun chain_get_boards/2
                       , fun chain_get_board_info/2
                       , fun chain_get_thread_info/2
+                      , fun chain_thread_if_cached/2
                       , fun chain_get_thread_posts/2
+                      , fun chain_thread_set_headers/2
                       ], Req0, State0),
   mcweb:render_page("thread", Req, State).
 
+%%%---------------------------------------------------
 %% @private
 %% @doc get thread info if thread exists
 chain_get_thread_info(Req0, State0) ->
@@ -320,6 +323,29 @@ chain_get_thread_info(Req0, State0) ->
       mcweb:chain_success(Req, State)
   end.
 
+%%%---------------------------------------------------
+%% @private
+chain_thread_if_cached(Req0, State0) ->
+  {ThreadId, Req1} = cowboy_req:binding(mcb_thread, Req0),
+  {BoardId, Req2}  = cowboy_req:binding(mcb_board,  Req1),
+  case  macaba_thread:get_dynamic(BoardId, ThreadId) of
+    {ok, TD} ->
+      State = mcweb:state_set_var('_thread_dynamic', TD, State0),
+      {IfNoneMatch, Req3} = cowboy_req:header(<<"if-none-match">>, Req2),
+      case TD#mcb_thread_dynamic.etag of
+        <<>> ->
+          mcweb:chain_success(Req3, State); % continue chain, no cache
+        IfNoneMatch ->
+          {ok, Req} = cowboy_req:reply(304, [], <<>>, Req3),
+          mcweb:chain_fail(Req, State);
+        _ ->
+          mcweb:chain_success(Req3, State) % continue chain, no cache
+      end;
+    {error, not_found} ->
+      mcweb:chain_fail(mcweb:render_page(404, "thread_404", Req2, State0))
+  end.
+
+%%%---------------------------------------------------
 %% @private
 %% @doc get all posts in thread
 chain_get_thread_posts(Req0, State0) ->
@@ -336,6 +362,17 @@ chain_get_thread_posts(Req0, State0) ->
       mcweb:chain_success(Req, State2)
   end.
 
+%%%---------------------------------------------------
+%% @private
+chain_thread_set_headers(Req0, State0) ->
+  TD = mcweb:state_get_var('_thread_dynamic', State0),
+  MTime = TD#mcb_thread_dynamic.last_modified,
+  Req1 = cowboy_req:set_resp_header(
+           <<"Last-Modified">>, cowboy_clock:rfc1123(MTime), Req0),
+  Req = cowboy_req:set_resp_header(
+          <<"ETag">>, TD#mcb_thread_dynamic.etag, Req1),
+  mcweb:chain_success(Req, State0).
+
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id
 %%%-----------------------------------------------------------------------------
@@ -349,7 +386,7 @@ macaba_handle_attach(<<"GET">>, Req0, State0) ->
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
                       , fun chain_attach_if_cached/2
-                      , fun chain_attach_send_headers/2
+                      , fun chain_attach_set_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -368,7 +405,7 @@ macaba_handle_attach_thumb(<<"GET">>, Req0, State0) ->
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
                       , fun chain_attach_if_cached/2
-                      , fun chain_attach_send_headers/2
+                      , fun chain_attach_set_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -433,7 +470,7 @@ chain_attach_if_cached(Req0, State0) ->
   %% lager:debug("chain attach ifnonematch ~p att.etag ~p",
   %%             [IfNoneMatch, Att#mcb_attachment.etag]),
   case Att#mcb_attachment.etag of
-    undefined ->
+    <<>> ->
       mcweb:chain_success(Req1, State0); % continue chain, no cache
     IfNoneMatch ->
       {ok, Req} = cowboy_req:reply(304, [], <<>>, Req1),
@@ -444,7 +481,7 @@ chain_attach_if_cached(Req0, State0) ->
 
 %%%---------------------------------------------------
 %% @private
-chain_attach_send_headers(Req0, State0) ->
+chain_attach_set_headers(Req0, State0) ->
   Att = mcweb:state_get_var(attach, State0),
   MTime = Att#mcb_attachment.created,
   Req1 = cowboy_req:set_resp_header(<<"Last-Modified">>,

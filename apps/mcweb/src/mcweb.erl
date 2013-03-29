@@ -32,15 +32,16 @@
         , chain_fail_if_below_admin/2
         , chain_fail_if_below_mod/2
         , safe/2, safe_length/2
+        , create_and_format_etag/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 -type html_state() :: #mcb_html_state{}.
--type handler_return() :: {cowboy_req:req(), macaba_web:html_state()}.
+-type handler_return() :: {cowboy_req:req(), mcweb:html_state()}.
 -type chain_return() :: {chain_ok|chain_error
-                         , cowboy_req:req(), macaba_web:html_state()}.
+                         , cowboy_req:req(), mcweb:html_state()}.
 
 -export_type([ handler_return/0
              , html_state/0
@@ -50,8 +51,8 @@
 %%%------------------------------------------------------------------------
 -spec handle_helper(Module :: atom(),
                     Req :: cowboy_req:req(),
-                    State :: macaba_web:html_state()) ->
-                       {ok, cowboy_req:req(), macaba_web:html_state()}.
+                    State :: mcweb:html_state()) ->
+                       {ok, cowboy_req:req(), mcweb:html_state()}.
 
 %% @doc A handler entry point for all web resources. Checks and parses POST
 %% fields, checks user cookie and extracts user from session storage, checks
@@ -127,13 +128,13 @@ render(TplName, TplOptions) ->
 %%%------------------------------------------------------------------------
 %% @doc Runs list of functions passing opaque state through them and stopping
 %% if any of functions returns error.
--type handler_fun_t() :: fun((cowboy_req:req(), macaba_web:html_state()) ->
-                                macaba_web:chain_return()).
+-type handler_fun_t() :: fun((cowboy_req:req(), mcweb:html_state()) ->
+                                mcweb:chain_return()).
 -spec chain_run(FunList :: [handler_fun_t()],
                 Req :: cowboy_req:req(),
-                State :: macaba_web:html_state()) ->
-                   {ok, cowboy_req:req(), macaba_web:html_state()} |
-                   {error, cowboy_req:req(), macaba_web:html_state()}.
+                State :: mcweb:html_state()) ->
+                   {ok, cowboy_req:req(), mcweb:html_state()} |
+                   {error, cowboy_req:req(), mcweb:html_state()}.
 
 chain_run([], Req, State) -> {ok, Req, State};
 chain_run([F | Tail], Req, State) ->
@@ -152,8 +153,8 @@ chain_fail({Req, State = #mcb_html_state{}}) -> {chain_fail, Req, State}.
 %% @doc Renders HTML page for response
 -spec render_page(TemplateName :: string(),
                   Req0 :: cowboy_req:req(),
-                  State :: macaba_web:html_state()) ->
-                     macaba_web:handler_return().
+                  State :: mcweb:html_state()) ->
+                     mcweb:handler_return().
 
 render_page(TemplateName, Req0, State0) ->
   render_page(200, TemplateName, Req0, State0).
@@ -162,8 +163,8 @@ render_page(TemplateName, Req0, State0) ->
 -spec render_page(HttpStatus :: integer(),
                   TemplateName :: string(),
                   Req0 :: cowboy_req:req(),
-                  State :: macaba_web:html_state()) ->
-                     macaba_web:handler_return().
+                  State :: mcweb:html_state()) ->
+                     mcweb:handler_return().
 
 render_page(HttpStatus, TemplateName, Req0,
             State=#mcb_html_state{
@@ -186,8 +187,8 @@ render_page(_, _, Req, State=#mcb_html_state{already_rendered=true}) ->
 -spec response_text(HttpStatus :: integer(),
                     Body :: iolist() | binary(),
                     Req0 :: cowboy_req:req(),
-                    State :: macaba_web:html_state()) ->
-                       macaba_web:handler_return().
+                    State :: mcweb:html_state()) ->
+                       mcweb:handler_return().
 
 response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
   Headers = [ {<<"Content-Type">>, <<"text/plain">>}
@@ -201,8 +202,8 @@ response_text(HttpStatus, Body, Req0, State=#mcb_html_state{}) ->
 -spec response_json(HttpStatus :: integer(),
                     J :: jsx:json_term(),
                     Req0 :: cowboy_req:req(),
-                    State :: macaba_web:html_state()) ->
-                       macaba_web:handler_return().
+                    State :: mcweb:html_state()) ->
+                       mcweb:handler_return().
 
 response_json(HttpStatus, J, Req0, State=#mcb_html_state{}) ->
   Headers = [ {<<"Content-Type">>, <<"application/json">>}
@@ -216,8 +217,8 @@ response_json(HttpStatus, J, Req0, State=#mcb_html_state{}) ->
 %% @doc Redirects user
 -spec redirect(URL :: binary()|string(),
                Req0 :: cowboy_req:req(),
-               State :: macaba_web:html_state()) ->
-                  macaba_web:handler_return().
+               State :: mcweb:html_state()) ->
+                  mcweb:handler_return().
 
 redirect(URL, Req0, State=#mcb_html_state{}) ->
   {ok, Req} = cowboy_req:reply(
@@ -232,8 +233,8 @@ redirect(URL, Req0, State=#mcb_html_state{}) ->
 -spec redirect_to_thread(BoardId :: binary(),
                          ThreadId :: binary(),
                          Req0 :: cowboy_req:req(),
-                         State :: macaba_web:html_state()) ->
-                            macaba_web:handler_return().
+                         State :: mcweb:html_state()) ->
+                            mcweb:handler_return().
 
 redirect_to_thread(BoardId, ThreadId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
@@ -246,7 +247,7 @@ redirect_to_thread(BoardId, ThreadId, Req, State) ->
         ThreadId :: binary(),
         PostId :: binary(),
         Req0 :: cowboy_req:req(),
-        State :: macaba_web:html_state()) -> macaba_web:handler_return().
+        State :: mcweb:html_state()) -> mcweb:handler_return().
 
 redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
    redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
@@ -257,8 +258,8 @@ redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
 %% @doc Renders error page with custom message
 -spec render_error(Msg0 :: binary()|string(),
                    Req0 :: cowboy_req:req(),
-                   State :: macaba_web:html_state()) ->
-                      macaba_web:handler_return().
+                   State :: mcweb:html_state()) ->
+                      mcweb:handler_return().
 
 render_error(Msg, Req0, State0) ->
   State1 = state_set_var(error, macaba:as_binary(Msg), State0),
@@ -268,8 +269,8 @@ render_error(Msg, Req0, State0) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Sets page_vars for rendering template
 -spec state_set_var(K :: atom(), V :: any(),
-                    State :: macaba_web:html_state()) ->
-                       macaba_web:html_state().
+                    State :: mcweb:html_state()) ->
+                       mcweb:html_state().
 
 state_set_var(K, V, State = #mcb_html_state{ page_vars=P0 }) ->
   P = orddict:store(K, V, P0),
@@ -277,7 +278,7 @@ state_set_var(K, V, State = #mcb_html_state{ page_vars=P0 }) ->
 
 %%%-----------------------------------------------------------------------------
 %% @doc Retrieves value of some page_vars element
--spec state_get_var(K :: atom(), State :: macaba_web:html_state()) -> any().
+-spec state_get_var(K :: atom(), State :: mcweb:html_state()) -> any().
 
 state_get_var(K, #mcb_html_state{ page_vars=PV }) ->
   orddict:fetch(K, PV).
@@ -371,8 +372,8 @@ acc_multipart({eof, Req}, Acc) ->
 
 %%%-----------------------------------------------------------------------------
 -spec get_user_save_to_state(Req :: cowboy_req:req(),
-                             State :: macaba_web:html_state()) ->
-                                macaba_web:handler_return().
+                             State :: mcweb:html_state()) ->
+                                mcweb:handler_return().
 %% @doc Attempts to extract cookie and find session with that cookie, else
 %% returns anonymous user. Saves result state or clears cookie in request
 get_user_save_to_state(Req0, State0) ->
@@ -527,6 +528,17 @@ safe_htmlencode(<<$>, Tail/binary>>, Accum) ->
   safe_htmlencode(Tail, ["&gt;" | Accum]);
 safe_htmlencode(<<X:8, Tail/binary>>, Accum) ->
   safe_htmlencode(Tail, [X | Accum]).
+
+%%%------------------------------------------------------------------------
+%% @doc Converts given term to a quoted hex hash binary string, which is usable
+%% as ETag HTTP Header
+-spec create_and_format_etag(Term :: tuple()) -> binary().
+
+create_and_format_etag(Term) ->
+  Bin = erlang:term_to_binary(Term),
+  Hash = crypto:sha(Bin),
+  HashHex = bin_to_hex:bin_to_hex(Hash),
+  <<$", HashHex/binary, $">>.
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

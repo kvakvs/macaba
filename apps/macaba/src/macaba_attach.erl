@@ -29,9 +29,9 @@ write(Data) when is_binary(Data) ->
         %% {ok, {ThumbKey, ThumbSize}} ->
       {ok, {ThumbKey, ThumbSize}} = ThumbnailFun(ContentType, Data),
       Key = crypto:sha(Data),
-      MTime = calendar:local_time(),
-      Created = erlang:localtime_to_universaltime(MTime),
-      ETag = create_and_format_etag({Key, MTime, byte_size(Data)}),
+      CTime = calendar:local_time(),
+      Created = erlang:localtime_to_universaltime(CTime),
+      ETag = mcweb:create_and_format_etag({Key, CTime, byte_size(Data)}),
       A = #mcb_attachment{
           size           = byte_size(Data)
         , hash           = Key
@@ -53,15 +53,6 @@ write(Data) when is_binary(Data) ->
       %%   {error, Err} -> {error, Err}
       %% end
   end.
-
-%% @private
--spec create_and_format_etag(Term :: tuple()) -> binary().
-
-create_and_format_etag(Term) ->
-  Bin = erlang:term_to_binary(Term),
-  Hash = crypto:sha(Bin),
-  HashHex = bin_to_hex:bin_to_hex(Hash),
-  <<$", HashHex/binary, $">>.
 
 %%%-----------------------------------------------------------------------------
 %% @private

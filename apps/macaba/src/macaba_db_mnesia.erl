@@ -67,10 +67,11 @@ write(Tab, Value) ->
   case mnesia:transaction(WF) of
     {atomic, _} = X ->
       Key = macaba_db:get_key_for_object(Value),
+      %% lager:debug("mnesia write_i ~p key=~p value=~p", [Tab, Key, Value]),
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
-      lager:error("macaba_db_mnesia: write ~p:", [Y]),
+      lager:error("mnesia: write ~p:", [Y]),
       Y
   end.
 

@@ -63,9 +63,13 @@
           , last_post_id = 0 :: integer()
           , pinned_threads = [] :: [binary()]
           , threads = []     :: [binary()]
+          , last_modified    :: calendar:datetime()
+          , etag = <<>>      :: binary()
          }).
 
 -define(MCB_THREAD_VER, 1).
+%% @doc You have to update thread dynamic if thread is changed, to refresh
+%% etag/last_modified
 -record(mcb_thread, {
             %% first post_id equals to thread_id but we never display thread_id
             thread_id         :: binary()
@@ -85,6 +89,8 @@
           , thread_id     :: binary()
           , board_id      :: binary()
           , post_ids = [] :: [binary()]
+          , last_modified :: calendar:datetime()
+          , etag = <<>>   :: binary()
          }).
 
 %% @doc User identification - bits of information to help with detecting same
@@ -164,7 +170,7 @@
 -define(USERLEVEL_ANON, 0).
 -define(USERLEVEL_MOD, 100).
 -define(USERLEVEL_ADMIN, 1000).
-%% @doc A user info structure, you can get this by calling macaba_web:get_user
+%% @doc A user info structure, you can get this by calling mcweb:get_user
 -record(mcb_user, {
             level = 0   :: integer()
           , session_key :: binary()

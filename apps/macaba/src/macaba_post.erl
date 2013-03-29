@@ -74,7 +74,6 @@ new(BoardId, Opts) when is_binary(BoardId) ->
     {ok, Post0} ->
       Post  = macaba_post:write_attach_set_ids(Post0, Opts),
       ThreadId = macaba:propget(thread_id, Opts),
-      %% Post = Post1#mcb_post{ thread_id = ThreadId },
       macaba_thread:add_post(BoardId, ThreadId, Post),
       {ok, Post};
     {error, E} ->
@@ -89,20 +88,6 @@ write_attach_set_ids(P = #mcb_post{}, Opts) ->
   AttachIds0 = [macaba_attach:write(A) || A <- AttachList],
   AttachIds = [A || {ok, A} <- AttachIds0],
   P#mcb_post{ attach_ids = AttachIds }.
-  %% AttachList = macaba:propget(attach, Opts),
-  %% %% AttachKey = macaba:propget(attach_key, Opts),
-  %% case AttachList of
-  %%   [] -> P;
-  %%   [Attach | _] ->
-  %%     %% FIXME: Only attaching first in list or nothing
-  %%     case macaba_attach:write(Attach) of
-  %%       {error, _}=Err ->
-  %%         lager:error("post: write attach: ~p", [Err]),
-  %%         P;
-  %%       {ok, AttachId} ->
-  %%         P#mcb_post{ attach_ids = [AttachId] }
-  %%     end
-  %% end.
 
 %%%-----------------------------------------------------------------------------
 -spec delete_attach(BoardId :: binary(),
@@ -120,6 +105,8 @@ delete_attach(BoardId, PostId) ->
              PostId :: binary()) -> ok | {error, any()}.
 delete(BoardId, PostId) ->
   {ok, P} = ?MODULE:get(BoardId, PostId),
+  TDKey = macaba_db:key_for( mcb_thread_dynamic
+                           , {BoardId, P#mcb_post.thread_id}),
   Upd = fun(TD = #mcb_thread_dynamic{ post_ids=L }) ->
             L2 = lists:delete(PostId, L),
             %% if thread empty, send message to worker to delete thread
@@ -128,10 +115,8 @@ delete(BoardId, PostId) ->
                       BoardId, P#mcb_post.thread_id);
               _ -> ok
             end,
-            TD#mcb_thread_dynamic{ post_ids=L2 }
+            macaba_thread:touch(TD#mcb_thread_dynamic{ post_ids=L2 })
         end,
-  TDKey = macaba_db:key_for(
-            mcb_thread_dynamic, {BoardId, P#mcb_post.thread_id}),
   case macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, Upd) of
     {atomic, _} ->
       ?MODULE:delete_dirty(BoardId, PostId);
