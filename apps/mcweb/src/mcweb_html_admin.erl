@@ -122,7 +122,7 @@ chain_check_mod_login(Req0, State0) ->
                                  State :: mcweb:html_state()) ->
                                     mcweb:handler_return().
 
-macaba_handle_admin_logout(Method, Req0, State0) ->
+macaba_handle_admin_logout(_Method, Req0, State0) ->
   Req = mcweb:clear_session_cookie(Req0),
   mcweb:redirect("/", Req, State0).
 

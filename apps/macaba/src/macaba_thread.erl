@@ -12,7 +12,7 @@
         , new/3
         , delete/2
         , set_read_only/3
-        , touch/1
+        , touch_thread_dynamic/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -51,7 +51,7 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
         , board_id  = BoardId
         , post_ids  = [PostId]
        },
-      macaba_db_mnesia:write(mcb_thread_dynamic, touch(ThreadDyn)),
+      macaba_db_mnesia:write(mcb_thread_dynamic, touch_thread_dynamic(ThreadDyn)),
       Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
 
       %% link post to thread
@@ -211,7 +211,7 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
                      BoardId, ThreadId, true);
                  _ -> ok
                end,
-               touch(TD#mcb_thread_dynamic{ post_ids=L2 })
+               touch_thread_dynamic(TD#mcb_thread_dynamic{ post_ids=L2 })
            end,
   TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
   {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
@@ -223,21 +223,16 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Updates last_modified and etag for Thread Dynamic
 %% You have to update thread dynamic if thread is changed
--spec touch(#mcb_thread_dynamic{}) -> #mcb_thread_dynamic{}.
+-spec touch_thread_dynamic(#mcb_thread_dynamic{}) -> #mcb_thread_dynamic{}.
 
-touch(TD = #mcb_thread_dynamic{ post_ids = PostIds }) ->
-  try
-    MTime = calendar:local_time(),
-    Modified = erlang:localtime_to_universaltime(MTime),
-    ETag = mcweb:create_and_format_etag(PostIds),
-    TD#mcb_thread_dynamic{
+touch_thread_dynamic(TD = #mcb_thread_dynamic{ post_ids = PostIds }) ->
+  MTime = calendar:local_time(),
+  Modified = erlang:localtime_to_universaltime(MTime),
+  ETag = mcweb:create_and_format_etag(PostIds),
+  TD#mcb_thread_dynamic{
       last_modified = Modified
-      , etag          = ETag
-     }
-  catch X ->
-      lager:error("thread: touch ~p", [X]),
-      error
-  end.
+    , etag          = ETag
+   }.
 
 
 %%% Local Variables:

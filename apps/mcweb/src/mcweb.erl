@@ -94,7 +94,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
   end.
 
 %%%------------------------------------------------------------------------
-log_access(Method, Req0, State0=#mcb_html_state{ user=U }) ->
+log_access(Method, Req0, #mcb_html_state{ user=U }) ->
   {{IP1, IP2, IP3, IP4}, Req1} = cowboy_req:peer_addr(Req0),
   IP = iolist_to_binary([integer_to_list(IP1), $., integer_to_list(IP2), $.,
                          integer_to_list(IP3), $., integer_to_list(IP4)]),
@@ -543,7 +543,7 @@ safe_htmlencode(<<X:8, Tail/binary>>, Accum) ->
 %%%------------------------------------------------------------------------
 %% @doc Converts given term to a quoted hex hash binary string, which is usable
 %% as ETag HTTP Header
--spec create_and_format_etag(Term :: tuple()) -> binary().
+-spec create_and_format_etag(Term :: term()) -> binary().
 
 create_and_format_etag(Term) ->
   Bin = erlang:term_to_binary(Term),
