@@ -24,8 +24,10 @@
   {% with thread_id = thread.thread_id %}{% include "post_form.html" %}{% endwith %}
 </div></div>
 
-<form method="post"  enctype="multipart/form-data"
+{% comment %}<form method="post" enctype="multipart/form-data"
   action="/board/{{ board_info.board_id }}/thread/{{ thread.thread_id }}/manage">
+{% endcomment %}
+<form>
 <div class="row">
   <div class="span12">
     {% for post in posts %}{% with inside_thread = 1 %}
@@ -33,12 +35,15 @@
   </div>
 </div>
 
+{% if user.level > 100 %}{% include "post_admin.html" %}{% endif %}
 <div class="row"><div class="span12 reportbar">
   <input type="password" name="pass" class="input-small" />
   <input type="checkbox" name="fileonly" value="true" /> File only
-  <input type="submit" value="Delete" class="btn btn-warning" />
+  <input type="button" value="Delete" class="btn btn-warning"
+    onclick="user_delete('{{board_info.board_id}}', '{{post.post_id}}')" />
   <input type="text" disabled="disabled" name="report" class="input-small" />
-  <input type="submit" disabled="disabled" value="Report" class="btn btn-danger" />
+  <input type="button" disabled="disabled" value="Report" class="btn btn-danger"
+    onclick="user_report('{{board_info.board_id}}', '{{post.post_id}}')" />
 </div></div>
 </form>
 

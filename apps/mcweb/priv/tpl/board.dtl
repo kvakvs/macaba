@@ -40,13 +40,16 @@
 
 <div class="row">
   <div class="span12">
+    <form>
     {% for thread in threads %}
     <hr />
       {% include "board_post_list.html" %}
     {% endfor %}
+    </form>
   </div>
 </div>
 
+{% if user.level >= 100 %}{% include "post_admin.html" %}{% endif %}
 {% include "board_pagination.html" %}
 
 {% include "footer.html" %}

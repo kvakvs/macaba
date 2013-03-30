@@ -29,8 +29,9 @@
 -----------------------------{% endcomment %}
   <tr>
     <td colspan="2">
-      {% if inside_thread %}
-      <input type="checkbox" name="array_mark" value="{{ post.post_id }}" />
+      {% if inside_thread or user.level >= 100 %}
+<input type="checkbox" class="post_select" name="array_mark"
+value="{{ post.post_id }}" />
       {% endif %}
       <span class="title">{{ post.subject }}</span>
       <span class="author">
@@ -63,8 +64,6 @@
  [<a href="/board/{{ board_info.board_id }}/thread/{{ post.thread_id }}">Reply</a>]
         {% endif %}
       {% endif %}
-
-      {% if user.level > 100 %}{% include "post_admin.html" %}{% endif %}
     </td>
   </tr>
 
