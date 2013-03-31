@@ -15,8 +15,12 @@
       <fieldset>
         <legend>Disabling board temporarily</legend>
 
-        <label class="checkbox"><input name="offline" type="checkbox"
-          {% if site_offline %}checked="checked"{% endif %} />
+        <label class="checkbox">
+        {% if site_offline %}
+        <input name="offline" type="checkbox" checked="checked" />
+        {% else %}
+        <input name="offline" type="checkbox" />
+        {% endif %}
           Bring site offline with message:</label><br />
 
         <textarea name="offline_message" rows="3" cols="80"

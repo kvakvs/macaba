@@ -8,10 +8,10 @@
   <span class="label label-important">Site is set to OFFLINE</span>
   {% endif %}
 
-  {% if user.level < 1000 %}
-  <span class="label label-warning">Level {{user.level}} (mod)</span>
-  {% else %}
+  {% if user.level >= 1000 %}
   <span class="label label-important">Level {{user.level}} (admin)</span>
+  {% else %}
+  <span class="label label-warning">Level {{user.level}} (mod)</span>
   {% endif %}
 
   <a href="/admin" class="btn btn-small">Admin Home</a>

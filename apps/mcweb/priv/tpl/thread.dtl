@@ -44,6 +44,7 @@
   <input type="text" disabled="disabled" name="report" class="input-small" />
   <input type="button" disabled="disabled" value="Report" class="btn btn-danger"
     onclick="user_report('{{board_info.board_id}}', '{{post.post_id}}')" />
+  <div style="display:none" id="reportbar-msg"></div>
 </div></div>
 </form>
 

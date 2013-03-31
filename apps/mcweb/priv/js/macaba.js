@@ -21,15 +21,17 @@ function preview_show() {
 }
 
 function user_delete(BoardId, PostId) {
-    var selected = $("input:checkbox:checked.post_select").map(function() { return this.value; });
-    var Req = {  };
-    mcb_rest_call("/rest/board/" + BoardId + "/post/" + PostId, Req
+    var selected = $("input:checkbox:checked.post_select").map(function() {
+        return this.value; });
+    var Req = { board: BoardId, posts: selected
+              , password: $('input[name="pass"]').val()
+              , onlyfile: $('input[name="fileonly"]').checked()
+              };
+    mcb_rest_call("/rest/post/delete", Req
       , function(data, textStatus, jqXHR){
-          $("div#preview-popup").show();
-          $("div#preview-content").html(data.html);
+          $("div#reportbar-msg").show().html("Result: "+data.result);
       }
       , function(jqXHR, textStatus, errorThrown){
-          $("div#preview-popup").show();
-          $("div#preview-content").html(textStatus+"<br/>"+errorThrown);
+          $("div#reportbar-msg").show().html(textStatus+"<br/>"+errorThrown);
       });
 }

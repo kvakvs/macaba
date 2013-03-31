@@ -1,10 +1,26 @@
-MRUNCMD=erl -sname macaba@localhost -config macaba_erlang_node.config \
+MRUNCMD := erl -sname macaba@localhost -config macaba_erlang_node.config \
 	-pa ebin apps/*/ebin apps/*/src deps/*/ebin \
 	-s macaba_app -mnesia dir '"database/"'
+
+JITIFY := scripts/jitify-core-0.9.4
 
 .PHONY: all
 all: deps compile
 
+##################### Minification - how to use $make minify ###################
+#TEMPLATES_SRC := apps/mcweb/priv/tpl
+#TEMPLATES := $(wildcard $(TEMPLATES_SRC)/*.dtl) $(wildcard $(TEMPLATES_SRC)/*.html)
+#TEMPLATES_MINI := $(TEMPLATES_SRC)-mini
+#TEMPLATES_OUT := $(subst $(TEMPLATES_SRC),$(TEMPLATES_MINI),$(TEMPLATES))
+#${TEMPLATES_OUT}: ; $(JITIFY)/build/jitify --minify --html $(TEMPLATES_SRC)/$(notdir $@) > $@
+#.PHONY: minify
+#minify: jitify $(TEMPLATES_MINI) ${TEMPLATES_OUT}
+#	@echo ------ Minification finished ------
+#$(TEMPLATES_MINI):
+#	mkdir $(TEMPLATES_MINI) $(TEMPLATES_MINI)/ebin $(TEMPLATES_MINI)/custom_tags
+#.PHONY: jitify
+#jitify: ; cd $(JITIFY) && make tools
+#####################
 .PHONY: run
 run: deps compile database
 	$(MRUNCMD)

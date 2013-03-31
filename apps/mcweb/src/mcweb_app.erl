@@ -66,6 +66,8 @@ change_offline_mode(Offline) ->
 cowboy_compile_dispatch(Offline) ->
   Priv = code:priv_dir(mcweb),
   %% CurrentDir = filename:absname(""),
+  %% CSSPath = get_dir_or_minified_dir("css", "css-mini"),
+  %% JSPath  = get_dir_or_minified_dir("js", "js-mini"),
   CSSPath = filename:join([Priv, "css"]),
   JSPath  = filename:join([Priv, "js"]),
   ImgPath = filename:join([Priv, "img"]),

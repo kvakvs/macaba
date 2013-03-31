@@ -5,6 +5,7 @@
 -module(mcweb).
 
 -export([ handle_helper/3
+        %% , get_dir_or_minified_dir/2
         , compile/1
         , render/2
         , chain_run/3
@@ -112,17 +113,32 @@ log_access(Method, Req0, #mcb_html_state{ user=U }) ->
   Req2.
 
 %%%------------------------------------------------------------------------
+%% @-doc Returns priv/Dir or priv/MinifiedDir depending on 'minify' config
+%% option. To use - set option to true and do "make minify"
+%% get_dir_or_minified_dir(Dir, MinifiedDir) ->
+%%   Priv = code:priv_dir(mcweb),
+%%   {ok, Minify} = macaba_conf:get([<<"board">>, <<"minify">>]),
+%%   case macaba:as_bool(Minify) of
+%%     true ->
+%%       filename:join([Priv, MinifiedDir]);
+%%     false ->
+%%       filename:join([Priv, Dir])
+%%   end.
+
+%%%------------------------------------------------------------------------
 -spec compile(string()) -> atom().
 compile(TplName) ->
   TplModule = list_to_atom(TplName ++ "_dtl"),
   %% recompile-debug
   Priv = code:priv_dir(mcweb),
+  %%TplDir = get_dir_or_minified_dir("tpl", "tpl-mini"),
+  TplDir = filename:join([Priv, "tpl"]),
   erlydtl:compile(
-    Priv ++ "/tpl/" ++ TplName ++ ".dtl", TplModule,
+    filename:join([TplDir, TplName ++ ".dtl"]), TplModule,
     [ verbose
-    , {out_dir, filename:join([Priv, "tpl", "ebin"])}
-    , {doc_root, filename:join([Priv, "tpl"])}
-    , {custom_tags_dir, filename:join([Priv, "tpl", "custom_tags"])}
+    , {out_dir, filename:join([TplDir, "ebin"])}
+    , {doc_root, TplDir}
+    , {custom_tags_dir, filename:join([TplDir, "custom_tags"])}
     ]),
   TplModule.
 
