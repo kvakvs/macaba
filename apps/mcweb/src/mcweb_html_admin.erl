@@ -94,18 +94,16 @@ macaba_handle_admin(<<"GET">>, Req0, State0) ->
 %% @private
 %% @doc Checks admin login and password from macaba.config
 chain_check_admin_login(Req0, State0=#mcb_html_state{ post_data=PD }) ->
-  {ok, ALogin} = macaba_conf:get([<<"board">>, <<"admin_login">>]),
-  {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
   Login = macaba:propget(<<"login">>, PD),
   Password = macaba:propget(<<"password">>, PD),
-  case {ALogin =:= Login, APassword =:= Password} of
-    {true, true} ->
+
+  case mcweb:check_admin_login_password(Login, Password) of
+    true ->
       {Req, State} = mcweb:create_session_for(
-                       #mcb_user{level=?USERLEVEL_ADMIN},
-                       Req0, State0),
+                       #mcb_user{level=?USERLEVEL_ADMIN}, Req0, State0),
       %% stop checking passwords right here
       mcweb:chain_fail(Req, State);
-    _ ->
+    false ->
       mcweb:chain_success(Req0, State0)
   end.
 

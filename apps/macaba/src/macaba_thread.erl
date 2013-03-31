@@ -13,6 +13,7 @@
         , delete/2
         , set_read_only/3
         , touch_thread_dynamic/1
+        , update/1
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -57,7 +58,7 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
       %% link post to thread
       Post = Post1#mcb_post{ thread_id = PostId },
       macaba_db_riak:write(mcb_post, Post),
-      macaba_board:add_thread(BoardId, ThreadId),
+      macaba_board:add_thread(BoardId, ThreadId, Pinned),
       {ok, Thread, Post};
 
     {error, E} ->
@@ -65,11 +66,48 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
   end.
 
 %%%-----------------------------------------------------------------------------
+%% @doc Writes existing thread info to RIAK also updates board and thread dynamic
+%% for caching to refresh
+update(T = #mcb_thread{}) ->
+  macaba_db_riak:write(mcb_thread, T),
+  %% update thread dynamic
+  TDUpd = fun(TD = #mcb_thread_dynamic{}) ->
+              macaba_thread:touch_thread_dynamic(TD)
+          end,
+  BoardId  = T#mcb_thread.board_id,
+  ThreadId = T#mcb_thread.thread_id,
+  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, TDUpd),
+
+  %% update board dynamic
+  BDUpd = fun(BD = #mcb_board_dynamic{
+                pinned_threads=PThreads,
+                threads=Threads }) ->
+              Pinned = T#mcb_thread.pinned,
+              case Pinned of
+                %% if pinned, delete from threads and prepend to pthreads
+                true ->
+                  PThreads2 = [ThreadId | lists:delete(ThreadId, PThreads)],
+                  Threads2  = lists:delete(ThreadId, Threads);
+                %% if UNpinned, delete from pthreads and prepend to threads
+                false ->
+                  PThreads2 = lists:delete(ThreadId, PThreads),
+                  Threads2  = [ThreadId | lists:delete(ThreadId, Threads)]
+              end,
+              BD1 = BD#mcb_board_dynamic{
+                      pinned_threads = PThreads2,
+                      threads        = Threads2
+                     },
+              macaba_board:touch_board_dynamic(BD1)
+          end,
+  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BDUpd).
+
+%%%-----------------------------------------------------------------------------
 delete(BoardId, ThreadId) ->
   lager:info("thread: delete B=~s T=~s", [BoardId, ThreadId]),
   BUpd = fun(BD = #mcb_board_dynamic{ threads=T }) ->
             T2 = lists:delete(ThreadId, T),
-            BD#mcb_board_dynamic{ threads=T2 }
+            macaba_board:touch_board_dynamic(BD#mcb_board_dynamic{ threads=T2 })
         end,
   {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BUpd),
 
@@ -228,7 +266,7 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
 touch_thread_dynamic(TD = #mcb_thread_dynamic{ post_ids = PostIds }) ->
   MTime = calendar:local_time(),
   Modified = erlang:localtime_to_universaltime(MTime),
-  ETag = mcweb:create_and_format_etag(PostIds),
+  ETag = mcweb:create_and_format_etag({Modified, PostIds}),
   TD#mcb_thread_dynamic{
       last_modified = Modified
     , etag          = ETag

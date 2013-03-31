@@ -34,6 +34,7 @@
         , safe/2, safe_length/2
         , ip_to_integer/1
         , create_and_format_etag/1
+        , check_admin_login_password/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -50,6 +51,14 @@
              ]).
 
 %%%------------------------------------------------------------------------
+%% @doc Compares Login/Pass pair against configured admin credentials
+check_admin_login_password(Login, Password)
+  when is_binary(Login), is_binary(Password) ->
+  {ok, ALogin} = macaba_conf:get([<<"board">>, <<"admin_login">>]),
+  {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
+  (ALogin =:= Login andalso APassword =:= Password).
+
+%%%------------------------------------------------------------------------
 -spec handle_helper(Module :: atom(),
                     Req :: cowboy_req:req(),
                     State :: mcweb:html_state()) ->
@@ -64,23 +73,23 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
     {Method, Req1} = cowboy_req:method(Req0),
 
     %% parse request body as multipart, this will not work for POST urlencoded
-    {Req2, State1} = case ?MODULE:is_POST_and_multipart(Req1) of
-                       {true, true}  ->
-                         ?MODULE:parse_multipart_form_data(Req1, State0);
-                       {true, false}  ->
-                         ?MODULE:parse_body_qs(Req1, State0);
+    {Req2, State1} = case is_POST_and_multipart(Req1) of
+                       {true, true} ->
+                         parse_multipart_form_data(Req1, State0);
+                       {true, false} ->
+                         parse_body_qs(Req1, State0);
                        {false, _} ->
                          {Req1, State0}
                      end,
 
-    {Req3a, State2} = ?MODULE:get_user_save_to_state(Req2, State1),
+    {Req3a, State2} = get_user_save_to_state(Req2, State1),
     Req3 = log_access(Method, Req3a, State2),
 
     %% site offline flag
     %% TODO: cache site config in memory or in state
     #mcb_site_config{ offline=SiteOffline } = macaba_board:get_site_config(),
     State3 = State2#mcb_html_state{ site_offline = SiteOffline },
-    State4 = ?MODULE:state_set_var(site_offline, SiteOffline, State3),
+    State4 = state_set_var(site_offline, SiteOffline, State3),
 
     FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
     {Req4, State5} = apply(Module, FnName, [Method, Req3, State4]),
@@ -90,7 +99,7 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
       T = lists:flatten(io_lib:format("handle error: ~p ~p",
                                       [E, erlang:get_stacktrace()])),
       lager:error(E),
-      {ReqE, StateE} = ?MODULE:response_text(500, T, Req0, State0),
+      {ReqE, StateE} = response_text(500, T, Req0, State0),
       {ok, ReqE, StateE}
   end.
 
@@ -391,7 +400,6 @@ acc_multipart({eof, Req}, Acc) ->
 get_user_save_to_state(Req0, State0) ->
   {User, Req} = get_user(Req0),
   State = state_set_var(user, macaba:record_to_proplist(User), State0),
-  %% lager:debug("get_user: coo=~s user=~p", [SesId, User]),
   {Req, State#mcb_html_state{user=User}}.
 
 %%%-----------------------------------------------------------------------------

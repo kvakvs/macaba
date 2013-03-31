@@ -79,14 +79,17 @@ macaba_handle_board(<<"GET">>, Req0, State0) ->
                       ], Req0, State0),
   {Req, State}.
 
+%%%---------------------------------------------------
 chain_board_render_page(Req0, State0) ->
   mcweb:chain_success(mcweb:render_page("board", Req0, State0)).
 
+%%%---------------------------------------------------
 chain_get_boards(Req, State0) ->
   Boards = macaba_board_cli:get_boards(),
   State = mcweb:state_set_var(boards, Boards, State0),
   mcweb:chain_success(Req, State).
 
+%%%---------------------------------------------------
 %% @private
 %% @doc get current board info
 chain_get_board_info(Req0, State0) ->
@@ -144,22 +147,23 @@ chain_board_set_headers(Req0, State0) ->
 %%%---------------------------------------------------
 %% @private
 %% @doc get visible threads
-chain_get_threads(Req0, State0) ->
+chain_get_threads(Req0, State0=#mcb_html_state{ user=U }) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {Page0, Req} = cowboy_req:binding(mcb_page, Req1),
   {ok, PageSize0} = macaba_conf:get([<<"board">>, <<"page_size">>]),
   {ok, PreviewSize0} = macaba_conf:get([<<"board">>, <<"thread">>,
                                         <<"preview_last_posts">>]),
-  Page = macaba:as_integer(Page0, 1),
-  PageSize = macaba:as_integer(PageSize0),
+  Page        = macaba:as_integer(Page0, 1),
+  PageSize    = macaba:as_integer(PageSize0),
   PreviewSize = macaba:as_integer(PreviewSize0),
+  FilterHiddenThreads = (U#mcb_user.level < ?USERLEVEL_MOD),
   {ok, PinnedThreads, Threads, PageNums} = macaba_board_cli:get_threads(
-                                             BoardId,
-                                             {Page, PageSize},
-                                             PreviewSize),
-  State1 = mcweb:state_set_var(threads, PinnedThreads ++ Threads, State0),
-  %% State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
-  State  = mcweb:state_set_var(page_nums, PageNums, State1),
+                                             BoardId, {Page, PageSize},
+                                             PreviewSize, FilterHiddenThreads
+                                            ),
+  State1 = mcweb:state_set_var(threads,        Threads,       State0),
+  State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
+  State  = mcweb:state_set_var(page_nums,      PageNums,      State2),
   mcweb:chain_success(Req, State).
 
 %%%-----------------------------------------------------------------------------
@@ -364,8 +368,8 @@ chain_get_thread_info(Req0, State0) ->
     {error, not_found} ->
       mcweb:chain_fail(
         mcweb:render_page(404, "thread_404", Req, State0));
-    ThreadInfo ->
-      State = mcweb:state_set_var(thread_info, ThreadInfo, State0),
+    Thread ->
+      State = mcweb:state_set_var(thread, Thread, State0),
       mcweb:chain_success(Req, State)
   end.
 

@@ -74,6 +74,7 @@ process_post(Req0, State0) ->
   {P, _} = cowboy_req:path(Req0),
   handle_POST_as_json(P, Req0, State0).
 
+%% @private
 %% @doc Return post markup preview
 handle_POST_as_json(<<"/rest/post/preview">>, Req0, State0) ->
   %% lager:debug("handle_post_as_json ~p", [Path]),

@@ -13,6 +13,9 @@
         , resource_exists/2
         , post_is_create/2
         , create_path/2
+        , process_post/2
+        , is_authorized/2
+        , render_json_response/2
         ]).
 
 -include_lib("macaba/include/macaba_types.hrl").
@@ -26,7 +29,7 @@ rest_init(Req, HandlerOpts) ->
 
 content_types_provided(Req, State) ->
   {[
-    {{<<"application">>, <<"json">>, []}, thread_get}
+    {{<<"application">>, <<"json">>, []}, render_json_response}
    ], Req, State}.
 
 %% content_types_accepted(Req, State) ->
@@ -42,85 +45,92 @@ resource_exists(Req0, State0) ->
   {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
   case macaba_thread:get_dynamic(BoardId, ThreadId) of
     {error, _} -> {false, Req2, State0};
-    {ok, _TD} ->
-      {ok, _T} = macaba_thread:get(BoardId, ThreadId),
-      {false, Req2, State0}
+    {ok, TD} ->
+      case macaba_thread:get(BoardId, ThreadId) of
+        {ok, T} ->
+          State1 = mcweb:state_set_var(thread_dynamic, TD, State0),
+          State2 = mcweb:state_set_var(thread, T, State1),
+          {true, Req2, State2};
+        {error, _} ->
+          {false, Req2, State0}
+      end
   end.
 
-post_is_create(Req, State) ->
-  {true, Req, State}.
+%%%-----------------------------------------------------------------------------
+is_authorized(Req0, State0) ->
+  {Do, Req} = cowboy_req:qs_val(<<"do">>, Req0),
+  case Do of
+    <<"manage">> -> {is_authorized_mod(State0), Req, State0};
+    <<"delete">> -> {is_authorized_mod(State0), Req, State0};
+               _ -> {true, Req, State0}
+  end.
 
-create_path(_Req, _State) ->
-  error.
-%%  {<<$/, (new_paste_id())/binary>>, Req, State}.
-
+%%%---------------------------------------------------------
+is_authorized_mod(State) ->
+  U = State#mcb_html_state.user,
+  case U#mcb_user.level >= ?USERLEVEL_MOD of
+    true  -> true;
+    false -> {false, <<"Basic Realm=\"", ?MACABA_BASICAUTHREALM, "\"">>}
+  end.
 
 %%%-----------------------------------------------------------------------------
-%% init({_Transport, http}, Req, [Mode]) ->
-%%   {ok, Req, #mcb_html_state{
-%%          mode = Mode
-%%         }}.
-
-%% -spec handle(cowboy_req:req(), mcweb:html_state()) ->
-%%                 {ok, cowboy_req:req(), mcweb:html_state()}.
-
-%% handle(Req0, State0) ->
-%%   mcweb:handle_helper(?MODULE, Req0, State0).
-
-%% terminate(_Reason, _Req, _State) ->
-%%   ok.
+post_is_create(Req0, State0) ->
+  {Do, Req} = cowboy_req:qs_val(<<"do">>, Req0),
+  case Do of
+    <<"manage">> -> {false, Req, State0};
+    <<"delete">> -> {false, Req, State0};
+               _ -> {true, Req, State0}
+  end.
 
 %%%-----------------------------------------------------------------------------
-%% @doc /rest - entry point for REST calls
-%%%-----------------------------------------------------------------------------
-%% -spec macaba_handle_rest(Method :: binary(),
-%%                          Req :: cowboy_req:req(),
-%%                          State :: mcweb:html_state()) ->
-%%                             mcweb:handler_return().
-
-%% macaba_handle_rest(_Method, Req0, State0) ->
-%%   mcweb:response_json(200, "{\"result\":\"ok\"}", Req0, State0).
+create_path(Req0, State0) ->
+  {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
+  {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
+  {<<"/board/", BoardId/binary, "/thread/", ThreadId/binary>>
+     , Req2, State0}.
 
 %%%-----------------------------------------------------------------------------
-%%% Utility: Preview markup
-%%%-----------------------------------------------------------------------------
-%% -spec macaba_handle_util_preview(Method :: binary(),
-%%                                  Req :: cowboy_req:req(),
-%%                                  State :: mcweb:html_state()) ->
-%%                                     mcweb:handler_return().
-
-%% macaba_handle_util_preview(<<"POST">>, Req0, State0) ->
-%%   lager:debug("http POST util/preview"),
-%%   PD = State0#mcb_html_state.post_data,
-%%   Message = macaba:propget(<<"markup">>, PD, <<>>),
-%%   MessageProcessed = macaba_plugins:call(markup, [Message]),
-%%   ReplyJson = [{html, iolist_to_binary(MessageProcessed)}],
-%%   mcweb:response_json(200, ReplyJson, Req0, State0).
+%% @doc Return POST result as JSON
+process_post(Req0, State0) ->
+  {Do, Req} = cowboy_req:qs_val(<<"do">>, Req0),
+  handle_POST_as_json(Do, Req, State0).
 
 %%%-----------------------------------------------------------------------------
-%%% Thread manage
-%%%-----------------------------------------------------------------------------
-%% -spec macaba_handle_thread_manage(Method :: binary(),
-%%                                   Req :: cowboy_req:req(),
-%%                                   State :: mcweb:html_state()) ->
-%%                                      mcweb:handler_return().
+%% @private
+handle_POST_as_json(Do, Req0, State0)
+  when Do =:= <<"manage">> orelse Do =:= <<"delete">> ->
+  {_BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
+  {_ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
+  PD = State0#mcb_html_state.rest_body_json,
+  Update = macaba:propget(<<"update">>, PD, []),
 
-%% macaba_handle_thread_manage(<<"POST">>, Req0, State0) ->
-%%   lager:debug("http POST /rest/thread/manage"),
-%%   {_, Req, State} = mcweb:chain_run(
-%%                         [ fun mcweb:chain_fail_if_below_admin/2
-%%                         , fun chain_thread_manage_do/2
-%%                         ], Req0, State0),
-%%   {Req, State}.
+  T = mcweb:state_get_var(thread, State0),
+  Locked = macaba:propget(<<"locked">>, Update, T#mcb_thread.read_only),
+  Pinned = macaba:propget(<<"pinned">>, Update, T#mcb_thread.pinned),
+  Hidden = macaba:propget(<<"hidden">>, Update, T#mcb_thread.hidden),
+  T2 = T#mcb_thread{
+         read_only = Locked,
+         pinned = Pinned,
+         hidden = Hidden
+        },
+  macaba_thread:update(T2),
 
-%% %%%------------------------------------------------------------------%
-%% chain_thread_manage_do(Req0, State0) ->
-%%   {_BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
-%%   {_ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
-%%   %Ban = macaba:propget(<<"ban">>, 
+  ReplyJson = [{result, <<"ok">>}],
+  Reply = jsx:encode(ReplyJson),
+  Req = cowboy_req:set_resp_body(Reply, Req2),
 
-%%   ReplyJson = [{result, "ok"}],
-%%   mcweb:response_json(200, ReplyJson, Req2, State0).
+  {true, Req, State0};
+
+%%%---------------------------------------------------------
+%% @doc Error if do =/= manage or delete
+handle_POST_as_json(_Do, Req0, State0) ->
+  {false, Req0, State0}.
+
+%% @doc Does this ever get called?
+render_json_response(Req0, State0) ->
+  ReplyJ = mcweb:state_get_var(rest_result, State0),
+  {jsx:encode(ReplyJ), Req0, State0}.
+
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS
