@@ -1,5 +1,7 @@
 # macaba
 
+[![Build Status](https://secure.travis-ci.org/kvakvs/macaba.png)](https://travis-ci.org/kvakvs/macaba)
+
 Anonymous message board server made in Erlang, designed with high load,
 scalability and extensibility in mind. The forum layout concept is designed to
 be familiar for wakaba users:
