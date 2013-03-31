@@ -4,9 +4,11 @@
 <div class="row">
   <div class="span8">
 
-<form method="post" class="form-inline framedform" enctype="multipart/form-data"
-      name="postform"
-      action="/board/{{ board_info.board_id }}/{% if thread_id == "new" %}thread{% else %}post{% endif %}/new">
+{% if thread_id == "new" %}
+<form method="post" class="form-inline framedform" enctype="multipart/form-data" name="postform" action="/board/{{ board_info.board_id }}/thread/new">
+{% else %}
+<form method="post" class="form-inline framedform" enctype="multipart/form-data" name="postform" action="/board/{{ board_info.board_id }}/post/new">
+{% endif %}
   {% if thread_id == "new" %}
   <h4>Create new thread</h4>
   {% else %}
@@ -23,8 +25,11 @@
 
   <label>Subject</label>
   <input type="text" name="subject" size="40" />
-  <input type="submit" value="{% if thread_id == "new" %}New thread{% else %}Post reply{% endif %}"
-         class="btn btn-primary" />
+  {% if thread_id == "new" %}
+  <input type="submit" value="New thread" class="btn btn-primary" />
+  {% else %}
+  <input type="submit" value="Post reply" class="btn btn-primary" />
+  {% endif %}
 
   <input type="button" value="Preview" class="btn btn-small btn-info" onclick="preview_show()" />
   <br/>

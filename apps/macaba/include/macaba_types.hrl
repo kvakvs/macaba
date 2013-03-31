@@ -63,9 +63,13 @@
           , last_post_id = 0 :: integer()
           , pinned_threads = [] :: [binary()]
           , threads = []     :: [binary()]
+          , last_modified    :: calendar:datetime()
+          , etag = <<>>      :: binary()
          }).
 
 -define(MCB_THREAD_VER, 1).
+%% @doc You have to update thread dynamic if thread is changed, to refresh
+%% etag/last_modified
 -record(mcb_thread, {
             %% first post_id equals to thread_id but we never display thread_id
             thread_id         :: binary()
@@ -85,6 +89,8 @@
           , thread_id     :: binary()
           , board_id      :: binary()
           , post_ids = [] :: [binary()]
+          , last_modified :: calendar:datetime()
+          , etag = <<>>   :: binary()
          }).
 
 %% @doc User identification - bits of information to help with detecting same
@@ -126,6 +132,9 @@
           , thumbnail_size  :: integer()
           , content_type    :: binary()
           , references = [] :: [binary()] % list of posts referring to file
+          , created         :: calendar:datetime()
+          %% formatted for HTTP headers, in form of <<"\"" hex, "\"">>
+          , etag = <<>>     :: binary()
          }).
 
 -define(MCB_ATTACHMENT_BODY_VER, 1).
@@ -135,15 +144,17 @@
          }).
 
 %% @doc Mnesia objects are stored in memory only and built on node start
--type macaba_mnesia_object() :: mcb_board_dynamic | mcb_thread_dynamic.
--type macaba_mnesia_record() :: #mcb_board_dynamic{} | #mcb_thread_dynamic{}.
+-type macaba_mnesia_object() :: mcb_site_config | mcb_board_dynamic
+                              | mcb_thread_dynamic.
+-type macaba_mnesia_record() :: #mcb_site_config{} | #mcb_board_dynamic{}
+                              | #mcb_thread_dynamic{}.
 %% @doc RIAK objects are written once and changed rarely, and persist on disk
 %% RIAK also stores all Mnesia objects, they are updated regularly by leader
 %% node, and reloaded on cluster1 restart
--type macaba_riak_object()   :: mcb_site_config | mcb_thread | mcb_post
+-type macaba_riak_object()   :: mcb_thread | mcb_post
                               | mcb_attachment | mcb_attachment_body
                               | macaba_mnesia_object().
--type macaba_riak_record()   :: #mcb_site_config{} | #mcb_thread{} | #mcb_post{}
+-type macaba_riak_record()   :: #mcb_thread{} | #mcb_post{}
                               | #mcb_attachment{} | #mcb_attachment_body{}
                               | macaba_mnesia_record().
 -type macaba_db_object()     :: macaba_riak_object().
@@ -161,7 +172,7 @@
 -define(USERLEVEL_ANON, 0).
 -define(USERLEVEL_MOD, 100).
 -define(USERLEVEL_ADMIN, 1000).
-%% @doc A user info structure, you can get this by calling macaba_web:get_user
+%% @doc A user info structure, you can get this by calling mcweb:get_user
 -record(mcb_user, {
             level = 0   :: integer()
           , session_key :: binary()

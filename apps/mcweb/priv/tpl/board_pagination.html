@@ -1,0 +1,15 @@
+{% if page_nums|length > 1 %}
+<div class="row">
+  <div class="span12">
+    <div class="pagination">
+      <ul>
+        <li class="disabled"><a href="#">Prev</a></li>
+        {% for pnum in page_nums %}
+        <li><a href="/board/{{board_info.board_id}}/page/{{pnum}}">{{pnum}}</a></li>
+        {% endfor %}
+        <li class="disabled"><a href="#">Next</a></li>
+      </ul>
+    </div> <!-- end pagination -->
+  </div>
+</div>
+{% endif %}

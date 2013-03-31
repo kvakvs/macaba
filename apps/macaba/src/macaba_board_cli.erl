@@ -8,7 +8,7 @@
 -export([ get_boards/0
         , get_board/1
         , get_thread/2
-        , get_threads/3
+        , get_threads/4
         , get_thread_previews/3
         , get_thread_preview/3
         , anonymous_delete_post/4
@@ -65,25 +65,30 @@ get_thread(BoardId, ThreadId) ->
 %% @doc Returns board contents paginated and list of page numbers
 -spec get_threads(BoardId :: binary(),
                   {Page :: integer(), PageSize :: integer()},
-                  PreviewSize :: integer()) ->
+                  PreviewSize :: integer(),
+                  FilterHiddenThreads :: boolean()) ->
                      {ok, PinnedThreads :: [proplist_t()],
                       Threads :: [proplist_t()], PageNums :: [integer()]}.
 
-get_threads(BoardId, {undefined, PageSize}, PreviewSize) ->
-  get_threads(BoardId, {1, PageSize}, PreviewSize);
-get_threads(BoardId, {Page, PageSize}, PreviewSize) ->
+get_threads(BoardId, {undefined, PageSize}, PreviewSize, FilterHiddenThreads) ->
+  get_threads(BoardId, {1, PageSize}, PreviewSize, FilterHiddenThreads);
+
+get_threads(BoardId, {Page, PageSize}, PreviewSize, FilterHiddenThreads) ->
   {ok, PinThreads0, Threads0} = macaba_board:get_threads(BoardId),
-  Threads1 = macaba:pagination(Threads0, Page, PageSize),
+  HideFun = case FilterHiddenThreads of
+              %% create a fun which will throw away invis threads
+              true -> fun(#mcb_thread{ hidden=H }) -> not H end;
+              %% create a fun which will show all threads
+              false -> fun(X) -> true end
+            end,
+  Threads1 = macaba:pagination(lists:filter(HideFun, Threads0), Page, PageSize),
   PageNums = lists:seq(1, (length(Threads0) + PageSize - 1) div PageSize),
-  Threads2 = lists:map(fun macaba:record_to_proplist/1, Threads1),
-  case PreviewSize of
-    X when X > 1 ->
-      Threads = [additional_fields_for_thread(T, PreviewSize)
-                 || T <- Threads2];
-    _ ->
-      Threads = Threads2
-  end,
-  PinnedThreads = lists:map(fun macaba:record_to_proplist/1, PinThreads0),
+  PreprocessFun = fun(T0) ->
+                      T1 = macaba:record_to_proplist(T0),
+                      additional_fields_for_thread(T1, PreviewSize)
+                  end,
+  Threads = lists:map(PreprocessFun, Threads1),
+  PinnedThreads = lists:map(PreprocessFun, lists:filter(HideFun, PinThreads0)),
   {ok, PinnedThreads, Threads, PageNums}.
 
 %%%-----------------------------------------------------------------------------
@@ -119,18 +124,17 @@ count_images(Posts0, TailSize) ->
 -spec get_thread_previews(BoardId :: binary(),
                           ThreadIds :: [binary()],
                           PreviewSize :: non_neg_integer()) ->
-                                 [proplist_of(proplist_t())].
+                                 [{binary(), proplist_t()}].
+
 get_thread_previews(BoardId, ThreadIdList, PreviewSize) ->
-  %% for each thread get preview
-  %% lager:debug("cli: get_thr_previews ids=~p size=~p",
-  %%             [ThreadIdList, PreviewSize]),
   [{T, get_thread_preview(BoardId, T, PreviewSize)} || T <- ThreadIdList].
 
 %%%-----------------------------------------------------------------------------
 -spec get_thread_preview(BoardId :: binary(),
                          ThreadId :: binary(),
-                         PreviewSize :: non_neg_integer() | 'all') ->
+                         PreviewSize :: integer() | 'all') ->
                             [proplist_t()].
+
 get_thread_preview(BoardId, ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
   Posts = macaba_thread:get_contents(BoardId, ThreadId, PreviewSize),

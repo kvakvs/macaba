@@ -28,18 +28,23 @@ start() ->
          mcb_board_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_board_dynamic)}
-         %% , {index, [#mcb_board_dynamic.board_id]}
          , {type, set}
          ]),
-  lager:debug("creating board dynamics table: ~p", [BD]),
+  lager:info("creating board-dynamics table: ~p", [BD]),
   TD = mnesia:create_table(
          mcb_thread_dynamic,
          [ {ram_copies, [node()]}
          , {attributes, record_info(fields, mcb_thread_dynamic)}
-         %% , {index, [#mcb_thread_dynamic.thread_id]}
          , {type, set}
          ]),
-  lager:debug("creating thread dynamics table: ~p", [TD]).
+  lager:info("creating thread-dynamics table: ~p", [TD]),
+  SC = mnesia:create_table(
+         mcb_site_config,
+         [ {ram_copies, [node()]}
+         , {attributes, record_info(fields, mcb_site_config)}
+         , {type, set}
+         ]),
+  lager:info("creating site-config table: ~p", [SC]).
 
 %%--------------------------------------------------------------------
 -spec read(Type :: macaba_mnesia_object(),
@@ -50,11 +55,8 @@ read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
   case mnesia:transaction(RFun) of
     {atomic, [Row]} ->
-      %% lager:debug("mnesia read K=~p Value=~p", [Key, Row]),
       {ok, Row};
     _ ->
-      %% lager:debug("mnesia read K=~p not found", [Key]),
-      %% lager:debug("~p", [erlang:get_stacktrace()]),
       {error, not_found}
   end.
 
@@ -70,7 +72,7 @@ write(Tab, Value) ->
       gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
-      lager:error("macaba_db_mnesia: write ~p:", [Y]),
+      lager:error("mnesia: write ~p:", [Y]),
       Y
   end.
 

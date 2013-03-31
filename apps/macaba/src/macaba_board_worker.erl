@@ -84,7 +84,7 @@ handle_cast({thread_set_read_only, {BoardId, ThreadId, RO}}, State) ->
   {noreply, State};
 
 handle_cast({board_add_thread, {BoardId, ThreadId}}, State) ->
-  macaba_board:add_thread(BoardId, ThreadId),
+  macaba_board:add_thread(BoardId, ThreadId, false),
   {noreply, State};
 
 handle_cast(Msg, State) ->

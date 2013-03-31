@@ -56,7 +56,6 @@ terminate(_Reason, _Req, _State) ->
                              mcweb:handler_return().
 
 macaba_handle_index(<<"GET">>, Req0, State0) ->
-  %%lager:debug("http GET /"),
   Boards = macaba_board_cli:get_boards(),
   State1 = mcweb:state_set_var(boards, Boards, State0),
   mcweb:render_page("index", Req0, State1).
@@ -73,20 +72,28 @@ macaba_handle_board(<<"GET">>, Req0, State0) ->
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_boards/2
                       , fun chain_get_board_info/2
+                      , fun chain_board_if_cached/2
                       , fun chain_get_threads/2
+                      , fun chain_board_set_headers/2
+                      , fun chain_board_render_page/2
                       ], Req0, State0),
-  mcweb:render_page("board", Req, State).
+  {Req, State}.
 
+%%%---------------------------------------------------
+chain_board_render_page(Req0, State0) ->
+  mcweb:chain_success(mcweb:render_page("board", Req0, State0)).
+
+%%%---------------------------------------------------
 chain_get_boards(Req, State0) ->
   Boards = macaba_board_cli:get_boards(),
   State = mcweb:state_set_var(boards, Boards, State0),
   mcweb:chain_success(Req, State).
 
+%%%---------------------------------------------------
 %% @private
 %% @doc get current board info
 chain_get_board_info(Req0, State0) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
-  lager:debug("http GET board ~s", [BoardId]),
   case macaba_board_cli:get_board(BoardId) of
     {error, not_found} ->
       {Req1, State1} = mcweb:render_page(404, "board_404", Req, State0),
@@ -96,24 +103,67 @@ chain_get_board_info(Req0, State0) ->
       mcweb:chain_success(Req, State)
   end.
 
+%%%---------------------------------------------------
+%% @private
+%% @doc Do caching for anon users, but not for mods/admins
+chain_board_if_cached(Req0, State0=#mcb_html_state{ user=U })
+  when U#mcb_user.level < ?USERLEVEL_MOD ->
+  {BoardId, Req2}  = cowboy_req:binding(mcb_board,  Req0),
+  case macaba_board:get_dynamic(BoardId) of
+    {ok, BD} ->
+      State = mcweb:state_set_var('_board_dynamic', BD, State0),
+      {IfNoneMatch, Req3} = cowboy_req:header(<<"if-none-match">>, Req2),
+      case BD#mcb_board_dynamic.etag of
+        <<>> -> mcweb:chain_success(Req3, State); % continue chain, no cache
+        IfNoneMatch ->
+          {ok, Req} = cowboy_req:reply(304, [], <<>>, Req3),
+          mcweb:chain_fail(Req, State);
+        _ -> mcweb:chain_success(Req3, State) % continue chain, no cache
+      end;
+    {error, not_found} ->
+      mcweb:chain_fail(mcweb:render_page(404, "board_404", Req2, State0))
+  end;
+
+chain_board_if_cached(Req0, State0) ->
+  mcweb:chain_success(Req0, State0).
+
+%%%---------------------------------------------------
+%% @private
+%% @doc For anonymous - etag & full caching
+chain_board_set_headers(Req0, State0=#mcb_html_state{ user=U })
+  when U#mcb_user.level < ?USERLEVEL_MOD ->
+  BD = mcweb:state_get_var('_board_dynamic', State0),
+  MTime = BD#mcb_board_dynamic.last_modified,
+  Req1 = cowboy_req:set_resp_header(
+           <<"Last-Modified">>, cowboy_clock:rfc1123(MTime), Req0),
+  Req = cowboy_req:set_resp_header(
+          <<"ETag">>, BD#mcb_board_dynamic.etag, Req1),
+  mcweb:chain_success(Req, State0);
+
+%% @doc for admins and mods - no caching
+chain_board_set_headers(Req0, State0) ->
+  mcweb:chain_success(Req0, State0).
+
+%%%---------------------------------------------------
 %% @private
 %% @doc get visible threads
-chain_get_threads(Req0, State0) ->
+chain_get_threads(Req0, State0=#mcb_html_state{ user=U }) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {Page0, Req} = cowboy_req:binding(mcb_page, Req1),
   {ok, PageSize0} = macaba_conf:get([<<"board">>, <<"page_size">>]),
   {ok, PreviewSize0} = macaba_conf:get([<<"board">>, <<"thread">>,
                                         <<"preview_last_posts">>]),
-  Page = macaba:as_integer(Page0, 1),
-  PageSize = macaba:as_integer(PageSize0),
+  Page        = macaba:as_integer(Page0, 1),
+  PageSize    = macaba:as_integer(PageSize0),
   PreviewSize = macaba:as_integer(PreviewSize0),
+  FilterHiddenThreads = (U#mcb_user.level < ?USERLEVEL_MOD),
   {ok, PinnedThreads, Threads, PageNums} = macaba_board_cli:get_threads(
-                                             BoardId,
-                                             {Page, PageSize},
-                                             PreviewSize),
-  State1 = mcweb:state_set_var(threads, PinnedThreads ++ Threads, State0),
-  %% State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
-  State  = mcweb:state_set_var(page_nums, PageNums, State1),
+                                             BoardId, {Page, PageSize},
+                                             PreviewSize, FilterHiddenThreads
+                                            ),
+  State1 = mcweb:state_set_var(threads,        Threads,       State0),
+  State2 = mcweb:state_set_var(pinned_threads, PinnedThreads, State1),
+  State  = mcweb:state_set_var(page_nums,      PageNums,      State2),
   mcweb:chain_success(Req, State).
 
 %%%-----------------------------------------------------------------------------
@@ -163,7 +213,6 @@ chain_check_post_attach(Req0, State0=#mcb_html_state{post_data=PD}) ->
 %% @doc Creates new thread
 chain_thread_new(Req0, State0) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
-  %% lager:debug("http POST new thread, board=~s", [BoardId]),
   PostOpt = get_post_create_options(Req, State0),
   ThreadOpt = orddict:from_list([]),
   case macaba_thread:new(BoardId, ThreadOpt, PostOpt) of
@@ -198,7 +247,6 @@ chain_post_new_redirect(Req0, State0) ->
   Post     = mcweb:state_get_var(created_post, State0),
   ThreadId = Post#mcb_post.thread_id,
   PostId   = Post#mcb_post.post_id,
-  %% lager:debug("http POST reply, board=~s thread=~s", [BoardId, ThreadId]),
   {Req, State} = mcweb:redirect_to_thread_and_post(
                    BoardId, ThreadId, PostId, Req1, State0),
   mcweb:chain_success(Req, State).
@@ -236,24 +284,25 @@ chain_check_thread_exists(Req0, State0=#mcb_html_state{post_data=PD}) ->
 %% @private
 get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
-  ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
-  Author   = macaba:propget(<<"author">>,    PD, ""),
-  Email    = macaba:propget(<<"email">>,     PD, ""),
-  Subject  = macaba:propget(<<"subject">>,   PD, ""),
-  Message  = macaba:propget(<<"message">>,   PD, ""),
-  Attach   = macaba:propget(<<"attach">>,    PD, ""),
-  DeletePw = macaba:propget(<<"deletepw">>,  PD, ""),
+  ThreadId = macaba:propget(<<"thread_id">>, PD, <<>>),
+  Author   = macaba:propget(<<"author">>,    PD, <<>>),
+  Email    = macaba:propget(<<"email">>,     PD, <<>>),
+  Subject  = macaba:propget(<<"subject">>,   PD, <<>>),
+  Message  = macaba:propget(<<"message">>,   PD, <<>>),
+  Attach1  = macaba:propget(<<"attach">>,    PD, <<>>),
+  DeletePw = macaba:propget(<<"deletepw">>,  PD, <<>>),
 
   %% user identification and poster_id
   UserId   = mcweb:get_user_identification(Req0),
   PosterId = mcweb:get_poster_id(UserId),
+  Attaches = case Attach1 of <<>> -> []; _ -> [Attach1] end,
 
   orddict:from_list([ {thread_id,  ThreadId}
                     , {author,     Author}
                     , {email,      Email}
                     , {subject,    Subject}
                     , {message,    Message}
-                    , {attach,     Attach}
+                    , {attach,     Attaches}
                     , {ident,      UserId}
                     , {poster_id,  PosterId}
                     , {deletepw,   DeletePw}
@@ -276,7 +325,6 @@ macaba_handle_thread_manage(<<"POST">>, Req0, State0) ->
   mcweb:redirect_to_thread(BoardId, ThreadId, Req3, State).
 
 chain_thread_manage_delete(Req0, State0=#mcb_html_state{post_data=PD}) ->
-  %%lager:debug("manage_delete post=~p", [PD]),
   MarkedPosts = macaba:propget(<<"array_mark">>, PD),
   Password = macaba:propget(<<"pass">>, PD),
   FileOnly = macaba:as_bool(macaba:propget(<<"fileonly">>, PD, false)),
@@ -300,25 +348,59 @@ macaba_handle_thread(<<"GET">>, Req0, State0) ->
                       [ fun chain_get_boards/2
                       , fun chain_get_board_info/2
                       , fun chain_get_thread_info/2
+                      , fun chain_thread_if_cached/2
                       , fun chain_get_thread_posts/2
+                      , fun chain_thread_set_headers/2
+                      , fun chain_thread_render_page/2
                       ], Req0, State0),
-  mcweb:render_page("thread", Req, State).
+  {Req, State}.
 
+chain_thread_render_page(Req0, State0) ->
+  mcweb:chain_success(mcweb:render_page("thread", Req0, State0)).
+
+%%%---------------------------------------------------
 %% @private
 %% @doc get thread info if thread exists
 chain_get_thread_info(Req0, State0) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
   {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
-  lager:debug("http GET thread ~s", [ThreadId]),
   case macaba_board_cli:get_thread(BoardId, ThreadId) of
     {error, not_found} ->
       mcweb:chain_fail(
         mcweb:render_page(404, "thread_404", Req, State0));
-    ThreadInfo ->
-      State = mcweb:state_set_var(thread_info, ThreadInfo, State0),
+    Thread ->
+      State = mcweb:state_set_var(thread, Thread, State0),
       mcweb:chain_success(Req, State)
   end.
 
+%%%---------------------------------------------------
+%% @private
+%% @doc Do caching for anon users, but not for mods/admins
+chain_thread_if_cached(Req0, State0=#mcb_html_state{ user=U }) 
+  when U#mcb_user.level < ?USERLEVEL_MOD ->
+  {ThreadId, Req1} = cowboy_req:binding(mcb_thread, Req0),
+  {BoardId, Req2}  = cowboy_req:binding(mcb_board,  Req1),
+  case  macaba_thread:get_dynamic(BoardId, ThreadId) of
+    {ok, TD} ->
+      State = mcweb:state_set_var('_thread_dynamic', TD, State0),
+      {IfNoneMatch, Req3} = cowboy_req:header(<<"if-none-match">>, Req2),
+      case TD#mcb_thread_dynamic.etag of
+        <<>> ->
+          mcweb:chain_success(Req3, State); % continue chain, no cache
+        IfNoneMatch ->
+          {ok, Req} = cowboy_req:reply(304, [], <<>>, Req3),
+          mcweb:chain_fail(Req, State);
+        _ ->
+          mcweb:chain_success(Req3, State) % continue chain, no cache
+      end;
+    {error, not_found} ->
+      mcweb:chain_fail(mcweb:render_page(404, "thread_404", Req2, State0))
+  end;
+
+chain_thread_if_cached(Req0, State0) ->
+  mcweb:chain_success(Req0, State0).
+
+%%%---------------------------------------------------
 %% @private
 %% @doc get all posts in thread
 chain_get_thread_posts(Req0, State0) ->
@@ -335,6 +417,23 @@ chain_get_thread_posts(Req0, State0) ->
       mcweb:chain_success(Req, State2)
   end.
 
+%%%---------------------------------------------------
+%% @private
+%% @doc Caching for regular anon users
+chain_thread_set_headers(Req0, State0=#mcb_html_state{ user=U })
+  when U#mcb_user.level < ?USERLEVEL_MOD ->
+  TD = mcweb:state_get_var('_thread_dynamic', State0),
+  MTime = TD#mcb_thread_dynamic.last_modified,
+  Req1 = cowboy_req:set_resp_header(
+           <<"Last-Modified">>, cowboy_clock:rfc1123(MTime), Req0),
+  Req = cowboy_req:set_resp_header(
+          <<"ETag">>, TD#mcb_thread_dynamic.etag, Req1),
+  mcweb:chain_success(Req, State0);
+
+%% @doc No caching for admins and mods
+chain_thread_set_headers(Req0, State0) ->
+  mcweb:chain_success(Req0, State0).
+
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id
 %%%-----------------------------------------------------------------------------
@@ -347,6 +446,8 @@ macaba_handle_attach(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, false, State0),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
+                      , fun chain_attach_if_cached/2
+                      , fun chain_attach_set_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -363,6 +464,8 @@ macaba_handle_attach_thumb(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, true, State0),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
+                      , fun chain_attach_if_cached/2
+                      , fun chain_attach_set_headers/2
                       , fun chain_attach_send/2
                       ], Req0, State1),
   {Req, State}.
@@ -385,12 +488,12 @@ chain_get_attach(Req0, State0) ->
       %% for thumbnail attachid.thumbnail_hash=attach_body_id
       State2 = case mcweb:state_get_var(thumbnail, State1) of
                  false ->
-                   lager:debug("http GET attach ~s",
-                               [bin_to_hex:bin_to_hex(AttachId)]),
+                   %% lager:debug("http GET attach ~s",
+                   %%             [bin_to_hex:bin_to_hex(AttachId)]),
                    State1;
                  true ->
-                   lager:debug("http GET thumb ~s",
-                               [bin_to_hex:bin_to_hex(AttachId)]),
+                   %% lager:debug("http GET thumb ~s",
+                   %%             [bin_to_hex:bin_to_hex(AttachId)]),
                    mcweb:state_set_var(
                      body_id, Att#mcb_attachment.thumbnail_hash,
                      State1)
@@ -403,7 +506,6 @@ chain_get_attach(Req0, State0) ->
 %%%---------------------------------------------------
 %% @private
 chain_attach_send(Req0, State0) ->
-  %% TODO: Etag/if modified since support
   case State0#mcb_html_state.already_rendered of
     true ->
       mcweb:chain_success(Req0, State0);
@@ -419,6 +521,31 @@ chain_attach_send(Req0, State0) ->
       State = State0#mcb_html_state{already_rendered=true},
       mcweb:chain_success(Req, State)
   end.
+
+%%%---------------------------------------------------
+%% @private
+chain_attach_if_cached(Req0, State0) ->
+  Att = mcweb:state_get_var(attach, State0),
+  {IfNoneMatch, Req1} = cowboy_req:header(<<"if-none-match">>, Req0),
+  case Att#mcb_attachment.etag of
+    <<>> ->
+      mcweb:chain_success(Req1, State0); % continue chain, no cache
+    IfNoneMatch ->
+      {ok, Req} = cowboy_req:reply(304, [], <<>>, Req1),
+      mcweb:chain_fail(Req, State0);
+    _ ->
+      mcweb:chain_success(Req1, State0) % continue chain, no cache
+  end.
+
+%%%---------------------------------------------------
+%% @private
+chain_attach_set_headers(Req0, State0) ->
+  Att = mcweb:state_get_var(attach, State0),
+  MTime = Att#mcb_attachment.created,
+  Req1 = cowboy_req:set_resp_header(<<"Last-Modified">>,
+                                    cowboy_clock:rfc1123(MTime), Req0),
+  Req = cowboy_req:set_resp_header(<<"ETag">>, Att#mcb_attachment.etag, Req1),
+  mcweb:chain_success(Req, State0).
 
 %%%-----------------------------------------------------------------------------
 %%% HELPER FUNCTIONS

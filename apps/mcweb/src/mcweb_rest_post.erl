@@ -1,6 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @doc This module has few predefined handlers (init, handle and terminate)
-%%% which are called by cowboy on incoming HTTP request.
+%%% @doc REST resource for post and post-related REST tool calls
 %%% Serves HTML templates, and provides basic HTTP access to the board.
 %%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
@@ -73,10 +72,11 @@ provide_json(Req0, State0) ->
 %% @doc Return POST result as JSON
 process_post(Req0, State0) ->
   {P, _} = cowboy_req:path(Req0),
-  handle_post_as_json(P, Req0, State0).
+  handle_POST_as_json(P, Req0, State0).
 
+%% @private
 %% @doc Return post markup preview
-handle_post_as_json(<<"/rest/post/preview">>, Req0, State0) ->
+handle_POST_as_json(<<"/rest/post/preview">>, Req0, State0) ->
   %% lager:debug("handle_post_as_json ~p", [Path]),
   PD = State0#mcb_html_state.rest_body_json,
   Message = macaba:propget(<<"markup">>, PD, <<>>),

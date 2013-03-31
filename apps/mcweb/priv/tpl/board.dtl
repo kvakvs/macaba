@@ -1,37 +1,24 @@
 {% comment %}-------------------------------------------------------------------
-| This is board template (thread index), meant to display list of 'threads' in
+| This is board template (thread index), displays list of threads in
 | this board (with pagination) with each thread preview (first and few last
 | posts), also list of 'boards' for rendering top menu is available.
 |
-| A thread is represented by id, has subject, author and creation time
-|
-| Incoming parameters: 'board_info' #mcb_board{}
+| Incoming parameters:
+| 'board_info' #mcb_board{}
 | 'boards' - all configured boards, list of #mcb_board{}
 | 'threads' - a list of property lists #mcb_thread{} - paginated visible piece
 |     of board's threads
-| 'previews' - map<ThreadId::string, [#mcb_post{}]> a preview is first post in
-|     thread plus few last posts (configurable)
+| 'pinned_threads' - list of all pinned threads, no pagination
 +---------------------------------------------------------------{% endcomment %}
 {% with title="board" %}{% include "header.html" %}{% endwith %}
 
 <div class="row">
   <div class="span12">
     <h3>{{ board_info.short_name }} - {{ board_info.title }}</h3>
-
-    {% if page_nums|length > 1 %}
-    <div class="pagination">
-      <ul>
-        <li class="disabled"><a href="#">Prev</a></li>
-        {% for pnum in page_nums %}
-        <li><a href="/board/{{board_info.board_id}}/page/{{pnum}}">{{pnum}}</a></li>
-        {% endfor %}
-        <li class="disabled"><a href="#">Next</a></li>
-      </ul>
-    </div> <!-- end pagination -->
-    {% endif %}
-
   </div>
 </div>
+
+{% include "board_pagination.html" %}
 
 <div class="row">
   <div class="span12">
@@ -39,21 +26,30 @@
   </div>
 </div>
 
+{% if pinned_threads %}
 <div class="row">
   <div class="span12">
-    {% for t in threads %}
-      <hr />
-      {% for p in t.preview %}
-        {% include "post.html" %}
-        {% if forloop.counter == 1 %}{% if t.skipped_posts > 0 %}
-          {{ t.skipped_posts }} posts and {{ t.skipped_images }}
-images omitted, click
-<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}"
-here</a> to view
-        {% endif %}{% endif %}
-      {% endfor %}
+    <div class="well">
+    {% for thread in pinned_threads %}
+      {% include "board_post_list.html" %}
     {% endfor %}
+    </div>
   </div>
 </div>
+{% endif %}
+
+<div class="row">
+  <div class="span12">
+    <form>
+    {% for thread in threads %}
+    <hr />
+      {% include "board_post_list.html" %}
+    {% endfor %}
+    </form>
+  </div>
+</div>
+
+{% if user.level >= 100 %}{% include "post_admin.html" %}{% endif %}
+{% include "board_pagination.html" %}
 
 {% include "footer.html" %}

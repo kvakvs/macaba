@@ -22,9 +22,12 @@
     *   Admin: Site options, maintenance mode, boards list and board options
 *   REST API
     *   Preview function for post markup
+    *   Thread property edit (pinned, locked, hidden)
 *   Other features
     *   Simple plugins system. Extension modules and hooks are work-in-progress
     *   REST API work in progress http://docs.macaba.apiary.io/
+    *   Caching and load-balancer support, the board web server is using ETag and
+        Last-Modified HTTP headers to speed up page and attachments reloading.
 *   Quality and testing
     *   Board post/reply/upload tests (not perfect, but good to have!)
     *   WakabaMark markup tests and some other unit tests
@@ -38,11 +41,6 @@
 
 *   Mod: Words/regex blacklisting, image hash/similarity? blacklisting
 *   Mod: User blacklisting, bans, ban page with ban reason
-*   Timestamps, Etags, If-modified-since, Expires HTTP headers support:
-    *   board_dynamic
-    *   thread_dynamic
-    *   post view as separate resource (related to tier2 todo for post resource)
-    *   attachments
 *   Different backends for storing attachments (static file system, S3)
 *   Modules/hooks support for: post parsing, themes, additional
     site sections, post display

@@ -66,6 +66,8 @@ change_offline_mode(Offline) ->
 cowboy_compile_dispatch(Offline) ->
   Priv = code:priv_dir(mcweb),
   %% CurrentDir = filename:absname(""),
+  %% CSSPath = get_dir_or_minified_dir("css", "css-mini"),
+  %% JSPath  = get_dir_or_minified_dir("js", "js-mini"),
   CSSPath = filename:join([Priv, "css"]),
   JSPath  = filename:join([Priv, "js"]),
   ImgPath = filename:join([Priv, "img"]),
@@ -90,7 +92,7 @@ cowboy_compile_dispatch(Offline) ->
               [thread_manage]},
   TShow    = {"/board/:mcb_board/thread/:mcb_thread", HMod, [thread]},
   TRepl    = {"/board/:mcb_board/post/new", HMod, [post_new]},
-  BShow1   = {"/board/:mcb_board/:mcb_page", HMod, [board]},
+  BShow1   = {"/board/:mcb_board/page/:mcb_page", HMod, [board]},
   BShow2   = {"/board/:mcb_board", HMod, [board]},
   AttThumb = {"/attach/:mcb_attach/thumb", HMod, [attach_thumb]},
   Attach   = {"/attach/:mcb_attach", HMod, [attach]},

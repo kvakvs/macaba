@@ -1,0 +1,9 @@
+{% for post in thread.preview %}
+{% include "post.html" %}
+{% if forloop.counter == 1 %}{% if thread.skipped_posts > 0 %}
+{{ thread.skipped_posts }} posts and {{ thread.skipped_images }}
+images omitted, click
+<a href="/board/{{ board_info.board_id }}/thread/{{ post.thread_id }}#i{{ post.post_id }}">
+here</a> to view{% endif %}
+{% endif %}
+{% endfor %}

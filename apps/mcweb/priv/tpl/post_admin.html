@@ -1,46 +1,64 @@
 {% comment %}-------------------------------------------------------------------
 | Admin panel to include in every post, contains deleting, banning options
 | params:
-|    p - post
+|    post
+|    thread
 |    board_info
-|    p.ident - user identification for this post, contains ip (string and
+|    post.ident - user identification for this post, contains ip (string and
 |        numeric in ip_num), proxy_ip (string and numeric in proxy_ip_num),
 |        user_agent, accept headers
 ----------------------------------------------------------------{% endcomment %}
-<div class="post_admin">
-  {% if user.level >= 1000 %}{% if forloop.counter == 1 %}
-  <button onclick="admin_pin_thread('{{board_info.board_id}}', '{{p.post_id}}');"
-          class="btn btn-danger">Pin</button>
-  {% endif %}{% endif %}
+<form>
+  <div class="row">
+    <div class="span12 post_admin">
+      {% if user.level >= 1000 %}
+      <div>
+        <button onclick="admin_pin('{{board_info.board_id}}', '{{post.post_id}}', true);"
+                class="btn btn-danger">Pin</button>
+        <button onclick="admin_pin('{{board_info.board_id}}', '{{post.post_id}}', false);"
+                class="btn btn-danger">Unpin</button>
+        <button onclick="admin_lock('{{board_info.board_id}}', '{{post.post_id}}', true);"
+                class="btn btn-danger">Lock</button>
+        <button onclick="admin_lock('{{board_info.board_id}}', '{{post.post_id}}', false);"
+                class="btn btn-danger">Unlock</button>
+        <button onclick="admin_hide('{{board_info.board_id}}', '{{post.post_id}}', true);"
+                class="btn btn-danger">Hide</button>
+        <button onclick="admin_hide('{{board_info.board_id}}', '{{post.post_id}}', false);"
+                class="btn btn-danger">Show</button>
+        For selected threads
+      </div>
+      {% endif %}
 
-  <input type="checkbox" id="admin_delete_{{p.post_id}}" />Delete post
-  {% if forloop.counter == 1 %}and thread{% endif %}
-  <input type="checkbox" id="admin_deletefile_{{p.post_id}}" />Delete file
-  <input type="checkbox" id="admin_search_{{p.post_id}}" />
-  All posts of this user
-  <input type="checkbox" id="admin_ban_{{p.post_id}}" />Ban
-  <input type="text" id="admin_ban_{{p.post_id}}" class="input-small"
-         placeholder="Reason" />
-  for <select id="admin_ban_duration_{{p.post_id}}" class="input-small">
-    <option value="3600">1 hour</option>
-    <option value="10800">3 hours</option>
-    <option value="43200">12 hours</option>
-    <option value="86400">1 day</option>
-    <option value="259200">3 days</option>
-    <option value="604800">7 days</option>
-    <option value="2592000">1 month</option>
-    <option value="7776000">3 months</option>
-    <option value="31104000">1 year</option>
-  </select>
-  {% if p.attach_info %}
-  <input type="checkbox" id="admin_delete_file_{{p.post_id}}" />
-  <i class="icon-picture"></i> Delete file
-  {% endif %}
-  <button onclick="admin_manage_post('{{board_info.board_id}}', '{{p.post_id}}');"
-          class="btn btn-warning">Go</button>
+      <input type="checkbox" id="admin_delete_{{post.post_id}}" />Delete
+      {% if forloop.counter == 1 %}and thread{% endif %}
+      <input type="checkbox" id="admin_deletefile_{{post.post_id}}" />Delete file
+      <input type="checkbox" id="admin_search_{{post.post_id}}" />
+      All posts of this user
+      <input type="checkbox" id="admin_ban_{{post.post_id}}" />Ban
+      <input type="text" id="admin_ban_{{post.post_id}}" class="input-small"
+             placeholder="Reason" />
+      for <select id="admin_ban_duration_{{post.post_id}}" class="input-small">
+        <option value="3600">1 hour</option>
+        <option value="10800">3 hours</option>
+        <option value="43200">12 hours</option>
+        <option value="86400">1 day</option>
+        <option value="259200">3 days</option>
+        <option value="604800">7 days</option>
+        <option value="2592000">1 month</option>
+        <option value="7776000">3 months</option>
+        <option value="31104000">1 year</option>
+      </select>
+      {% if post.attach_info %}
+      <input type="checkbox" id="admin_delete_file_{{post.post_id}}" />
+      <i class="icon-picture"></i> Delete file
+      {% endif %}
+      <button onclick="admin_manage_post('{{board_info.board_id}}', '{{post.post_id}}');"
+              class="btn btn-warning">Do for selected posts</button>
 
-  IP <span class="label">{{p.ident.ip}}{% if p.ident.proxy_ip %} proxy
-    {{p.ident.proxy_ip}}{% endif %}</span>
-</div>
+      IP <span class="label">{{post.ident.ip}}{% if post.ident.proxy_ip %} proxy
+        {{post.ident.proxy_ip}}{% endif %}</span>
+    </div>
+  </div>
+</form>
 
-<div id="admin_{{p.post_id}}" style="display:none"></div>
+<div id="admin_{{post.post_id}}" style="display:none"></div>

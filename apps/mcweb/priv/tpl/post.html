@@ -1,66 +1,69 @@
 {% comment %}-------------------------------------------------------------------
 | This snippet represents a forum post, or OP-post (first post in thread)
 | this is called from a loop, so 'forloop' variable is always available
-| post object is passed as 'p' variable which has fields:
-| - p.post_id (string)
-| - p.author (string)
-| - p.email (string)
-| - p.subject (string)
-| - p.created_utc, p.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
-| - p.attach_info (list of attach objects)
+| thread object is passed as 'thread' variable with fields:
+| - thread.pinned
+| - thread.read_only
+| - thread.hidden
+| post object is passed as 'post' variable which has fields:
+| - post.post_id (string)
+| - post.author (string)
+| - post.email (string)
+| - post.subject (string)
+| - post.created_utc, post.created_local (Erlang datetime \{\{Y,M,D},{h,m,s}})
+| - post.attach_info (list of attach objects)
 |   - att.hash (binary string) a binary hash key of attach (do not use!)
 |   - att.hash_hex (string) a hex representation of att.hash (displayable)
 |   - att.content_type (string) HTTP content-type for attach
 |   - att.size (integer)
-| - p.message (string)
-| use p.created_local for server time, or p.created_utc for GMT time
-| - inside_thread: set to 1 if viewing thread, not set if viewing board
-| - board_info: #mcb_board{} struct with board options
+| - post.message (string)
+| use post.created_local for server time, or post.created_utc for GMT time
+| var inside_thread: set to 1 if viewing thread, not set if viewing board
+| var board_info: #mcb_board{} struct with board options
 ----------------------------------------------------------------{% endcomment %}
-<a name="i{{ p.post_id }}"></a>
-<table border="0" cellpadding="8" cellspacing="0" id="post_{{ p.post_id }}"
+<a name="i{{ post.post_id }}"></a>
+<table border="0" cellpadding="8" cellspacing="0" id="post_{{ post.post_id }}"
        class="{% if forloop.counter == 1 %}oppost {% endif %}post">
 {% comment %}-------------------------------
 | Post header and flags row
 -----------------------------{% endcomment %}
   <tr>
     <td colspan="2">
-      {% if inside_thread %}
-      <input type="checkbox" name="array_mark" value="{{ p.post_id }}" />
+      {% if inside_thread or user.level >= 100 %}
+<input type="checkbox" class="post_select" name="array_mark"
+value="{{ post.post_id }}" />
       {% endif %}
-      <span class="title">{{ p.subject }}</span>
+      <span class="title">{{ post.subject }}</span>
       <span class="author">
-        {% if p.email %}<a href="mailto:{{ p.email }}">{% endif %}
-        {% if p.author %}{{ p.author }}
+        {% if post.email %}<a href="mailto:{{ post.email }}">{% endif %}
+        {% if post.author %}{{ post.author }}
           {% else %}{{ board_info.anonymous_name }}{% endif %}
-        {% if p.email %}</a>{% endif %}
+        {% if post.email %}</a>{% endif %}
 
         {% if board_info.poster_id == "sage" %}
-        ID={% if p.email == "sage" %}{{board_info.poster_id_sage_text}}
-        {% else %}{{p.poster_id}}{% endif %}{% endif %}
+        ID={% if post.email == "sage" %}{{board_info.poster_id_sage_text}}
+        {% else %}{{post.poster_id}}{% endif %}{% endif %}
 
-        {% if board_info.poster_id == "text" %}ID={{p.poster_id}}{% endif %}
+        {% if board_info.poster_id == "text" %}ID={{post.poster_id}}{% endif %}
       </span>
 
-      <span class="time">{{ p.created_utc|date:"D d M Y" }}
-        {{ p.created_utc|time:"H:i:s" }}</span>
+      <span class="time">{{ post.created_utc|date:"D d M Y" }}
+        {{ post.created_utc|time:"H:i:s" }}</span>
 
-      <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}#i{{ p.post_id }}">
-          №{{ p.post_id }}</a></span>
-      {% if p.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}
+      <span class="reflink"><a href="/board/{{ board_info.board_id }}/thread/{{ post.thread_id }}#i{{ post.post_id }}">
+          №{{ post.post_id }}</a></span>
+      {% if post.email == "sage" %}<i class="icon-arrow-down"></i> sage{% endif %}
 
       {% if forloop.counter == 1 %}
-        {% if p.read_only %}<i class="icon-lock"></i> locked{% endif %}
-        {% if p.pinned %}<i class="icon-warning-sign"></i> pinned{% endif %}
+        {% if thread.read_only %}<i class="icon-lock"></i> locked{% endif %}
+        {% if thread.pinned %}<i class="icon-warning-sign"></i> pinned{% endif %}
       {% endif %}
 
       {% if not inside_thread %}
         {% if forloop.counter == 1 %}
- [<a href="/board/{{ board_info.board_id }}/thread/{{ p.thread_id }}">Reply</a>]
+ [<a href="/board/{{ board_info.board_id }}/thread/{{ post.thread_id }}">Reply</a>]
         {% endif %}
       {% endif %}
-
-      {% if user.level > 100 %}{% include "post_admin.html" %}{% endif %}
     </td>
   </tr>
 
@@ -68,12 +71,12 @@
 | Attachment thumbnail and message row
 -----------------------------{% endcomment %}
   <tr>
-    <td width="{% if p.attach_info %}150{% else %}1%{% endif %}">
-      <span id="img_{{ p.post_id }}">
-        {% if p.attach_deleted %}<div class="filedeleted">File deleted</div>
+    <td width="{% if post.attach_info %}150{% else %}1%{% endif %}">
+      <span id="img_{{ post.post_id }}">
+        {% if post.attach_deleted %}<div class="filedeleted">File deleted</div>
         {% endif %}
 
-        {% for att in p.attach_info %}
+        {% for att in post.attach_info %}
         <a href="/attach/{{ att.hash_hex|lower }}">
           {% if att.thumbnail_hash %}
           <img class="img" src="/attach/{{ att.hash_hex|lower }}/thumb">
@@ -84,9 +87,9 @@ height="150">{% endif %}
         {% endfor %}
       </span>
     </td>
-    <td class="msg" id="msg_{{ p.post_id }}">
-      {{ p.message }}
-      {% if p.user_banned %}<p class="was_banned">
+    <td class="msg" id="msg_{{post.post_id}}">
+      {{ post.message }}
+      {% if post.user_banned %}<p class="was_banned">
         USER WAS BANNED FOR THIS POST</p>{% endif %}
     </td>
   </tr>
