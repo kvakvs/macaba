@@ -48,7 +48,7 @@ reset_demo_db() ->
  "fork and watch github repo at http://github.com/macaba/\n",
  "Features and TODO: https://github.com/kvakvs/macaba/blob/master/FEATURES.md  <-\n"
  "[spoiler]board will reset fully 1 hour after this post was created[/spoiler]">>}
-               , {attach, File}
+               , {attach, [File]}
                , {author, <<>>}
                , {email,  <<"sage">>}
                %%, {attach_key, crypto:sha(File)}
