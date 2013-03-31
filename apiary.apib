@@ -111,18 +111,25 @@ Message (post) resource
 Represents a single post, with functions to get, modify, delete, moderate/ban.
 --
 
-Modify post or delete post. If poster doesn't have mod rights, a valid post
-management password is required (different for every post). Optional 'onlyfile'
-parameter requests attachment deletion, but post remains. If 'ban' parameter was
-present, the poster is banned and post displays 'user was banned for this post'
-flag.
-POST /board/{board_id}/post/{post_id}?do=manage|delete
+Modify post or delete post. If 'ban'
+parameter was present, the poster is banned and post displays 'user was banned
+for this post' flag.
+POST /board/{board_id}/post/{post_id}
 > Content-Type: application/json
-{ "ban": { "reason": "board rules", "expires": "unix time" }, "onlyfile": true,
-  "password": "jbieber" }
+{ "do": "manage|delete"," "ban": { "reason": "board rules", "expires": "unix time" } }
 < 200
 < Content-Type: application/json
 { "result": "ok", "ban_id": "78ba981d8a8fe0918902" }
+
+Deletes posts or attachments using password, no mod rights required. A valid post
+management password is required (set by post's author). Optional 'onlyfile'
+parameter requests only attachment deletion, and post is not deleted. 
+POST /post/delete
+> Content-Type: application/json
+{ "board": "board_id", "posts": [1,2,3,4], "onlyfile": true, "password": "jbieber" }
+< 200
+< Content-Type: application/json
+{ "result": {"id1": "ok|password", "id2": "ok|password", ...}}
 
 Runs markup processing over given piece of text, to help user preview his post.
 POST /post/preview
