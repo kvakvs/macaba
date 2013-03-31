@@ -1,7 +1,7 @@
 MRUNCMD := erl -sname macaba@localhost -config macaba_erlang_node.config \
 	-pa ebin apps/*/ebin apps/*/src deps/*/ebin \
 	-s macaba_app -mnesia dir '"database/"'
-
+HERE := $(shell pwd)
 JITIFY := scripts/jitify-core-0.9.4
 
 .PHONY: all
@@ -42,7 +42,7 @@ compilef:
 
 .PHONY: deps
 deps: rebar
-	./rebar get-deps
+	$(HERE)/rebar get-deps
 
 .PHONY: clean
 clean: rebar
