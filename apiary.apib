@@ -7,21 +7,9 @@ Welcome to the Macaba board REST API documentation. This API allows anonymous an
 access (for admins, mods and VIP users) to board functions, such as listing boards, threads, posts,
 creating threads and posts, uploading and downloading files, check for thread and board updates,
 and utility calls like previewing markup before posting.
+
+To authenticate use HTTP basic auth with your login and password.
 ---
-
---
-Authentication
-Site management, user login. Some operations in sections below may require authentication, most of them
-are open publicly though. After successful login you get a session token which is valid as long as you
-don't stop using resources at least every few minutes, then session closes and you must relogin.
---
-
-POST /login
-> Content-Type: application/json
-{ "user": "superadmin", "pass": "notgay" }
-< 200
-< Content-Type: application/json
-
 
 --
 Board Resource
