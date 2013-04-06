@@ -22,7 +22,7 @@ You can download and run it. Production use is not recommended
 
 ### Features
 
-[Features and TODO list](https://github.com/kvakvs/macaba/blob/master/FEATURES.md)
+[Features and TODO list](https://github.com/kvakvs/macaba/blob/master/doc/FEATURES.md)
 can be found here.
 
 ### Demo
