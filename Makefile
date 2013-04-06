@@ -1,103 +1,95 @@
-MRUNCMD := erl -sname macaba@localhost -config macaba_erlang_node.config \
-	-pa ebin apps/*/ebin apps/*/src deps/*/ebin \
-	-s macaba_app -mnesia dir '"database/"'
-HERE := $(shell pwd)
-JITIFY := scripts/jitify-core-0.9.4
+#REBAR = $(shell pwd)/rebar
+REBAR=rebar
 
-.PHONY: all
 all: deps compile
 
-##################### Minification - how to use $make minify ###################
-#TEMPLATES_SRC := apps/mcweb/priv/tpl
-#TEMPLATES := $(wildcard $(TEMPLATES_SRC)/*.dtl) $(wildcard $(TEMPLATES_SRC)/*.html)
-#TEMPLATES_MINI := $(TEMPLATES_SRC)-mini
-#TEMPLATES_OUT := $(subst $(TEMPLATES_SRC),$(TEMPLATES_MINI),$(TEMPLATES))
-#${TEMPLATES_OUT}: ; $(JITIFY)/build/jitify --minify --html $(TEMPLATES_SRC)/$(notdir $@) > $@
-#.PHONY: minify
-#minify: jitify $(TEMPLATES_MINI) ${TEMPLATES_OUT}
-#	@echo ------ Minification finished ------
-#$(TEMPLATES_MINI):
-#	mkdir $(TEMPLATES_MINI) $(TEMPLATES_MINI)/ebin $(TEMPLATES_MINI)/custom_tags
-#.PHONY: jitify
-#jitify: ; cd $(JITIFY) && make tools
-#####################
 .PHONY: run
-run: deps compile database
-	$(MRUNCMD)
+run:
+	rel/macaba/bin/macaba console
 
-.PHONY: runf
-runf: compilef database
-	$(MRUNCMD)
-
-database:
-	mkdir database
-
-.PHONY: compile
-compile: rebar
-	./rebar compile
-
-.PHONY: compilef
-compilef:
-	./rebar compile skip_deps=true
+compile:
+	$(REBAR) compile
 
 .PHONY: deps
-deps: rebar
-	$(HERE)/rebar get-deps
+deps:
+	$(REBAR) get-deps
 
-.PHONY: clean
-clean: rebar
-	./rebar clean
+clean:
+	$(REBAR) clean
 
-.PHONY: test
+distclean: clean devclean relclean
+	$(REBAR) delete-deps
+
 test:
-	@./rebar skip_deps=true eunit
+	$(REBAR) skip_deps=true eunit
 
 .PHONY: rel
-rel: rebar deps
-	./rebar compile generate -f
+rel: all
+	$(REBAR) generate
 
-#devrel: $(DEVNODES)
+relclean:
+	rm -rf rel/macaba
 
-#testrel: $(DEVNODES) $(TESTNODES)
+devrel: dev1 dev2 dev3
 
-OTP_PLT   = $(HOME)/.macaba_otp.plt
-COMBO_PLT = $(HOME)/.macaba_combo.plt
-PLT_LIBS0 = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
-PLT_LIBS  = $(subst deps/riak_pb/ebin,,$(PLT_LIBS0))
+###
+### Docs
+###
+docs:
+	$(REBAR) skip_deps=true doc
 
-DIALYZER_APPS = macaba mcweb
-DIALYZER_APPS_PATHS = $(addsuffix /ebin, $(addprefix apps/, $(DIALYZER_APPS)))
+##
+## Developer targets
+##
 
-.PHONY: check_plt
-check_plt: rel
-	dialyzer --check_plt --plt $(COMBO_PLT) $(PLT_LIBS)
+stage : rel
+	$(foreach dep,$(wildcard deps/* wildcard apps/*), rm -rf rel/macaba/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/macaba/lib;)
 
-.PHONY: build_sysplt
-build_sysplt: $(OTP_PLT)
 
-$(OTP_PLT):
-	dialyzer --output_plt $(OTP_PLT) --build_plt \
-		--apps erts kernel stdlib mnesia compiler syntax_tools runtime_tools \
-		crypto tools inets sasl ssh ssl public_key xmerl
+.PHONY: stagedevrel
+stagedevrel: dev1 dev2 dev3
+	$(foreach dev,$^,\
+	  $(foreach dep,$(wildcard deps/* wildcard apps/*), rm -rf dev/$(dev)/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$(dev)/lib;))
 
-.PHONY: build_plt
-build_plt: compile build_sysplt $(COMBO_PLT)
+devrel: dev1 dev2 dev3
 
-$(COMBO_PLT):
-	dialyzer --plt $(OTP_PLT) --output_plt $(COMBO_PLT) --add_to_plt $(PLT_LIBS)
 
-.PHONY: dialyzer
-dialyzer: compile check_plt
-	dialyzer -Wno_return --fullpath --plt $(COMBO_PLT) $(DIALYZER_APPS_PATHS) \
-	    | fgrep -v -f ./dialyzer.ignore-warnings | tee dialyzer.log -
+devclean:
+	rm -rf dev
 
-.PHONY: cleanplt
+dev1 dev2 dev3: all
+	mkdir -p dev
+	(cd rel && $(REBAR) generate target_dir=../dev/$@ overlay_vars=vars/$@.config)
+
+
+##
+## Dialyzer
+##
+APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
+	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
+COMBO_PLT = $(HOME)/.mcbd_combo_dialyzer_plt
+
+check_plt: deps compile
+	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
+		deps/*/ebin apps/*/ebin
+
+build_plt: deps compile
+	dialyzer --build_plt --output_plt $(COMBO_PLT) --apps $(APPS) \
+		deps/*/ebin apps/*/ebin
+
+dialyzer: deps compile
+	@echo
+	@echo Use "'make check_plt'" to check PLT prior to using this target.
+	@echo Use "'make build_plt'" to build PLT prior to using this target.
+	@echo
+	@sleep 1
+	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin apps/*/ebin
+
+
 cleanplt:
+	@echo
+	@echo "Are you sure?  It takes about 1/2 hour to re-build."
+	@echo Deleting $(COMBO_PLT) in 5 seconds.
+	@echo
+	sleep 5
 	rm $(COMBO_PLT)
-
-#test_deps: rebar
-#	./rebar -C rebar.tests.config get-deps
-
-rebar:
-	wget -q http://cloud.github.com/downloads/basho/rebar/rebar
-	chmod u+x rebar
