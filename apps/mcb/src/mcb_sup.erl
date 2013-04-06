@@ -41,8 +41,6 @@ init([]) ->
          [ child(mcb_conf, worker)
          , child(mcb_hooks, worker) % run this after conf, before plugins
          , child(mcb_plugins, worker) % run this after conf
-         , child(mcb_masternode, worker)
-         %% , child(mcb_ses_sup, supervisor)
          , child(mcb_startup, worker, transient)
          , child(mcb_board_worker, worker) % run this when board started
          ]} }.

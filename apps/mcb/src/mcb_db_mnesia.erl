@@ -70,7 +70,7 @@ write(Tab, Value) ->
   case mnesia:transaction(WF) of
     {atomic, _} = X ->
       Key = mcb_db:get_key_for_object(Value),
-      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
+      mcb_db:updated_in_mnesia(Tab, Key),
       X;
     Y ->
       lager:error("mnesia: write ~p:", [Y]),
@@ -98,7 +98,7 @@ update(Tab, Key, Fun) when is_binary(Key) ->
        end,
   case mnesia:transaction(UF) of
     {atomic, _} = X ->
-      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
+      mcb_db:updated_in_mnesia(Tab, Key),
       X;
     Y ->
       lager:error("mnesia: update ~p:", [Y]),
@@ -112,7 +112,7 @@ delete(Tab, Key) when is_binary(Key) ->
        end,
   case mnesia:transaction(DF) of
     {atomic, _} = X ->
-      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
+      mcb_db:updated_in_mnesia(Tab, Key),
       X;
     Y ->
       lager:error("mnesia: delete ~p:", [Y]),

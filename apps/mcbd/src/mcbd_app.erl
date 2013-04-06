@@ -10,6 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
+    mcb:ensure_started(mcweb),
     case mcbd_sup:start_link() of
         {ok, Pid} ->
             ok = riak_core:register([{vnode_module, mcbd_vnode}]),

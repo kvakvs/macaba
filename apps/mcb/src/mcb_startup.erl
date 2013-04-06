@@ -52,26 +52,20 @@ init([]) ->
   mcb_db_mnesia:start(),
   StorageState = mcb_attach_riak:start_storage(),
 
-  %% TODO: reorder start calls to db and board and leader (spawned under sup)
-  ThisNode = node(),
-  case gen_leader:call(mcb_masternode, get_leader) of
-    ThisNode ->
-      lager:info("startup: This node is leader node, attempting database init"),
-      try mcb_board:load_board_dynamics()
-      catch E ->
-          lager:error("startup: load_board_dyn ~p", [E]),
-          mcb:fatal("Resync error, can't start", E)
-      end;
-    _ ->
-      lager:info("startup: This node is not leader node, skipping master init")
-  end,
-
   %% this is called after database is reloaded, so we can allow resyncing
   %% Mnesia writes and deletes to RIAK
-  gen_leader:leader_call(mcb_masternode, start_resync),
+  mcb_db:start_resync(),
+
+  %% TODO: reorder start calls to db and board and leader (spawned under sup)
+  lager:info("startup: This node is leader node, attempting database init"),
+  try mcb_board:load_board_dynamics()
+  catch E ->
+      lager:error("startup: load_board_dyn ~p", [E]),
+      mcb:fatal("Resync error, can't start", E)
+  end,
 
   %% mcb_app:start_web(),
-  mcb:ensure_started(mcweb),
+  %%mcb:ensure_started(mcweb),
 
   mcb_board:start(),
   {ok, #startup_state{

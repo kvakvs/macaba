@@ -13,10 +13,22 @@
         , get_key_for_object/1
         , key_for/2
         , reset_all_data/0
+        , updated_in_mnesia/2
+        , start_resync/0
+        , mnesia_resync/0
         ]).
 
 -include_lib("mcb/include/macaba_types.hrl").
 
+%% Represents an value in updated Mnesia memory table. Current cluster
+%% leader fetches records from ETS and sends them to RIAK periodically.
+%% TODO: Stop syncing if leader changes, transfer update lists to new leader?
+-record(mcb_riak_sync, {
+            id     :: {atom(), binary()}
+         }).
+-define(RESYNC_SLEEP_MSEC, 1000).
+
+%%%-----------------------------------------------------------------------------
 %% @doc You would not want to call this in production, no really
 reset_all_data() ->
   mnesia:clear_table(mcb_board_dynamic),
@@ -107,6 +119,45 @@ key_for(T, K) ->
   erlang:error({error, badarg}).
 
 %%%-----------------------------------------------------------------------------
+updated_in_mnesia(Type, Key) ->
+  SyncValue = #mcb_riak_sync{id={Type, Key}},
+  ets:insert(mcb_riak_sync, SyncValue).
+
+start_resync() ->
+  ets:new(mcb_riak_sync, [ public
+                         , set
+                         , named_table
+                         , {write_concurrency, true}
+                         , {keypos, #mcb_riak_sync.id}
+                         ]),
+  lager:info("mcb_db: resync to RIAK enabled"),
+  timer:apply_after(?RESYNC_SLEEP_MSEC, ?MODULE, mnesia_resync, []).
+
+%% @private
+%% @doc Iterates over ETS mcb_riak_sync tab, each key represents record type
+%% and key to read from Mnesia and save to RIAK.
+mnesia_resync() ->
+  timer:apply_after(?RESYNC_SLEEP_MSEC, ?MODULE, mnesia_resync, []),
+  Tab = mcb_riak_sync,
+  mnesia_resync_2(ets:first(Tab)),
+  %% this is called synchronously from masternode process, so we guarantee
+  %% that there will be no writes to ETS while sync is in progress
+  ets:delete_all_objects(Tab).
+
+%% @private
+mnesia_resync_2('$end_of_table') -> ok;
+mnesia_resync_2(K) ->
+  Tab = mcb_riak_sync,
+  [#mcb_riak_sync{id={Type, Key}}] = ets:lookup(Tab, K),
+  case mcb_db_mnesia:read(Type, Key) of
+    {error, not_found} ->
+      lager:debug("sync: delete ~p key=~p", [Type, Key]),
+      mcb_db_riak:delete(Type, Key);
+    {ok, Value} ->
+      lager:debug("sync: write ~p key=~p", [Type, Key]),
+      mcb_db_riak:write(Type, Value)
+  end,
+  mnesia_resync_2(ets:next(Tab, K)).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2
