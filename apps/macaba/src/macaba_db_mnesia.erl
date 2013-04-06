@@ -2,7 +2,8 @@
 %%% @doc Database layer for using Mnesia as distributed storage
 %%% We only use mnesia for operations which require transactions and locking,
 %%% that's thread counters. Other data is stored in RIAK (see macaba_db_riak)
-%%% Created: 2013-02-19 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-19
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_db_mnesia).
 

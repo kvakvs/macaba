@@ -1,6 +1,7 @@
 %%%------------------------------------------------------------------------
 %%% @doc Post data model, represents thread posts and actions with posts
-%%% Created: 2013-03-09 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-03-09
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_post).
 

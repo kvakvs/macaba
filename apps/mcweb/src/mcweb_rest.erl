@@ -1,6 +1,7 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc Library for REST resources
-%%% Created: 2013-03-24 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-03-24
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(mcweb_rest).
 

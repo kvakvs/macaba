@@ -1,6 +1,7 @@
 %%%------------------------------------------------------------------------
 %%% @doc Contains a few utility functions for which I've found no better place
-%%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-16
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba).
 

@@ -1,6 +1,7 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc Converts things to JSON and back.
-%%% Created: 2013-03-14 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-03-14
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(macaba_json).
 

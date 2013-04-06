@@ -2,7 +2,8 @@
 %%% @doc This module has few predefined handlers (init, handle and terminate)
 %%% which are called by cowboy on incoming HTTP request.
 %%% Serves HTML templates, and provides basic HTTP access to the board.
-%%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-16
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(mcweb_html_admin).
 

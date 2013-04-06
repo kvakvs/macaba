@@ -1,3 +1,8 @@
+%%%-------------------------------------------------------------------
+%%% @doc Supervisor
+%%% @version 2013-02-21
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%%-------------------------------------------------------------------
 -module(macaba_sup).
 
 -behaviour(supervisor).

@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @doc Configuration loader
-%%% Created: 2013-02-21
+%%% @version 2013-02-21
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
 -module(macaba_conf).

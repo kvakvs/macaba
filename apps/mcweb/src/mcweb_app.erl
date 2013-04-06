@@ -2,7 +2,8 @@
 %%% @doc Defines start point for application, also starts dependencies if
 %%% started from the console, and, sort of, prepared to be started as a
 %%% release, but its not tested and not sure why you would want that?
-%%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-16
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(mcweb_app).
 

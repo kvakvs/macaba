@@ -2,7 +2,8 @@
 %%% @doc An anonymous or registered user session, is spawned when sesid is
 %%% generated, and is deleted automatically, when session is not accessed
 %%% for defined ses timeout time
-%%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-16
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(mcweb_ses).
 -behaviour(gen_server).

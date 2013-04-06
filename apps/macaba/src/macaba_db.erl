@@ -1,7 +1,8 @@
 %%%------------------------------------------------------------------------
 %%% @doc Database tools for Macaba board, provides code for encoding, decoding
 %%% and versioning (upgrading) data pieces
-%%% Created: 2013-02-19 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-19
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_db).
 

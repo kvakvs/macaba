@@ -6,7 +6,7 @@
 %%% To enable this backend set value of plugins.attachments in macaba.config
 %%% to "macaba_attach_riak"
 %%%
-%%% Created: 2013-03-03
+%%% @version 2013-03-03
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
 -module(macaba_attach_riak).

@@ -1,6 +1,7 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc REST resource for thread
-%%% Created: 2013-02-16 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-16
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(mcweb_rest_thread).
 

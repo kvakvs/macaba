@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @doc Startup service ensuring that other services start in the correct
 %%% order, and then shutting down itself.
-%%% Created: 2013-02-21
+%%% @version 2013-02-21
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
 -module(macaba_startup).

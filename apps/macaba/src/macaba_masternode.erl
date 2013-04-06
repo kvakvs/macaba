@@ -2,7 +2,8 @@
 %%% @doc Master node for Macaba cluster, elected by gen_leader. Master node
 %%% does synchronization jobs, updates dynamics from Mnesia to RIAK, and
 %%% reloads Mnesia dynamic data on startup from RIAK.
-%%% Created: 2013-02-20 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-20
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_masternode).
 
@@ -37,7 +38,7 @@
           sync = false :: boolean(),
           is_leader = false :: boolean()
          }).
-%% @doc Represents an value in updated Mnesia memory table. Current cluster
+%% Represents an value in updated Mnesia memory table. Current cluster
 %% leader fetches records from ETS and sends them to RIAK periodically.
 %% TODO: Stop syncing if leader changes, transfer update lists to new leader?
 -record(mcb_riak_sync, {
@@ -129,7 +130,7 @@ surrendered(State, _Synch, _Eelection) ->
                              #leader_state{}}.
                               %% | {stop, Reason :: any(), #leader_state{}}.
 
-%% @doc Command from mnesia db that a record was updated. Handled only if sync
+%% Command from mnesia db that a record was updated. Handled only if sync
 %% flag in state set to true
 handle_leader_call({updated_in_mnesia, Type, Key}, _From,
                    State=#leader_state{sync=true}, _Election) ->
@@ -138,12 +139,12 @@ handle_leader_call({updated_in_mnesia, Type, Key}, _From,
   ets:insert(State#leader_state.riak_sync_tab, SyncValue),
   {reply, ok, State};
 
-%% @doc Do nothing if sync=false
+%% Do nothing if sync=false
 handle_leader_call({updated_in_mnesia, _Type, _Key}, _From,
                    State=#leader_state{sync=false}, _Election) ->
   {reply, ok, State};
 
-%% @doc Starts sync mode for Mnesia data
+%% Starts sync mode for Mnesia data
 handle_leader_call(start_resync, _From, State=#leader_state{sync=false}, _E) ->
   lager:info("masternode: resync to RIAK enabled"),
   erlang:send_after(?RESYNC_SLEEP_MSEC, self(), do_resync),
@@ -228,7 +229,7 @@ handle_cast(Msg, State, _Election) ->
                      {noreply, #leader_state{}} |
                      {stop, Reason :: any(), #leader_state{}}.
 
-%% @doc Iterates over keys in mcb_riak_sync and writes updated records to Riak
+%% Iterates over keys in mcb_riak_sync and writes updated records to Riak
 handle_info(do_resync, State=#leader_state{sync=true}, _E) ->
   sync_mnesia_to_riak(State#leader_state.riak_sync_tab),
   erlang:send_after(?RESYNC_SLEEP_MSEC, self(), do_resync),

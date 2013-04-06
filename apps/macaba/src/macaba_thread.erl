@@ -1,6 +1,7 @@
 %%%------------------------------------------------------------------------
 %%% @doc Thread data model, represents threads and actions with threads
-%%% Created: 2013-03-09 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-03-09
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_thread).
 

@@ -1,7 +1,8 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc Processes a raw unicode text entered by user, to produce HTML
 %%% according to Wakaba formatting rules.
-%%% Created: 2013-02-28 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-28
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(macaba_markup).
 

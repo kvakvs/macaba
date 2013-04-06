@@ -1,7 +1,8 @@
 %%%------------------------------------------------------------------------
 %%% @doc Board data model, is used by board client (macaba_board_cli) and then
 %%% formatted to HTML or JSON etc
-%%% Created: 2013-02-17 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-17
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_board).
 
@@ -177,7 +178,7 @@ check_board_threads_limit(BoardId) ->
 
 %%%-----------------------------------------------------------------------------
 %% @private
-%% @doc Checks email field of the new post, if it contains no <<"sage">>, and if
+%% @doc Checks email field of the new post, if it contains no "sage", and if
 %% thread is shorter than SoftPostLimit - bumps thread to become first on board
 -spec thread_bump_if_no_sage(BoardId :: binary(),
                              ThreadId :: binary(),

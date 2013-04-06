@@ -1,7 +1,8 @@
 %%%------------------------------------------------------------------------
 %%% @doc Board client, requests data from macaba_board and formats it to
 %%% proplists according to board needs
-%%% Created: 2013-02-24 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-24
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(macaba_board_cli).
 

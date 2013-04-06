@@ -1,6 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc Attach storage behaviour
-%%% Created: 2013-03-19
+%%% @version 2013-03-19
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
 -module(gen_macaba_storage).

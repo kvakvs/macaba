@@ -1,6 +1,7 @@
 %%%------------------------------------------------------------------------
 %%% @doc Utility functions for web server and templates
-%%% Created: 2013-02-17 Dmytro Lytovchenko <kvakvs@yandex.ru>
+%%% @version 2013-02-17
+%%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
 -module(mcweb).
 

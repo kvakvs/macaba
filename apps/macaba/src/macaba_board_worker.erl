@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @doc Board worker is a permanently running gen_server doing various
 %%% board tasks, such as background deletion of objects
-%%% Created: 2013-03-02
+%%% @version 2013-03-02
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
 -module(macaba_board_worker).
