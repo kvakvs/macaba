@@ -1,10 +1,10 @@
 %%%-------------------------------------------------------------------
-%%% @doc Startup service ensuring that other services start in the correct
-%%% order, and then shutting down itself.
+%%% @doc Hooks library allows to define types of hooks, which then will be
+%%% called from various locations in board code
 %%% @version 2013-02-21
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
--module(macaba_hooks).
+-module(mcb_hooks).
 
 -behaviour(gen_server).
 

@@ -4,7 +4,7 @@
 %%% @version 2013-02-21
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
--module(macaba_startup).
+-module(mcb_startup).
 
 -behaviour(gen_server).
 
@@ -48,19 +48,19 @@ start_link() ->
 -spec init(Args :: list()) -> {ok, #startup_state{}} | ignore |
                               {stop, Reason :: any()}.
 init([]) ->
-  macaba_db_riak:start(),
-  macaba_db_mnesia:start(),
-  StorageState = macaba_attach_riak:start_storage(),
+  mcb_db_riak:start(),
+  mcb_db_mnesia:start(),
+  StorageState = mcb_attach_riak:start_storage(),
 
   %% TODO: reorder start calls to db and board and leader (spawned under sup)
   ThisNode = node(),
-  case gen_leader:call(macaba_masternode, get_leader) of
+  case gen_leader:call(mcb_masternode, get_leader) of
     ThisNode ->
       lager:info("startup: This node is leader node, attempting database init"),
-      try macaba_board:load_board_dynamics()
+      try mcb_board:load_board_dynamics()
       catch E ->
           lager:error("startup: load_board_dyn ~p", [E]),
-          macaba:fatal("Resync error, can't start", E)
+          mcb:fatal("Resync error, can't start", E)
       end;
     _ ->
       lager:info("startup: This node is not leader node, skipping master init")
@@ -68,12 +68,12 @@ init([]) ->
 
   %% this is called after database is reloaded, so we can allow resyncing
   %% Mnesia writes and deletes to RIAK
-  gen_leader:leader_call(macaba_masternode, start_resync),
+  gen_leader:leader_call(mcb_masternode, start_resync),
 
-  %% macaba_app:start_web(),
-  macaba:ensure_started(mcweb),
+  %% mcb_app:start_web(),
+  mcb:ensure_started(mcweb),
 
-  macaba_board:start(),
+  mcb_board:start(),
   {ok, #startup_state{
      %% use this to shut down storage cleanly
      storage_module_state = StorageState

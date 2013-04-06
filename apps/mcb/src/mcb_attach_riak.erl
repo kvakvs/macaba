@@ -9,7 +9,7 @@
 %%% @version 2013-03-03
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
--module(macaba_attach_riak).
+-module(mcb_attach_riak).
 -behaviour(gen_macaba_storage).
 
 -export([ start_storage/0
@@ -22,7 +22,7 @@
         , write_body/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -record(attach_riak_storage_state, {}).
 
 %%%-----------------------------------------------------------------------------
@@ -38,18 +38,18 @@ stop_storage(#attach_riak_storage_state{}) ->
 
 %%%-----------------------------------------------------------------------------
 write_header(A=#mcb_attachment{}) ->
-  macaba_db_riak:write(mcb_attachment, A).
+  mcb_db_riak:write(mcb_attachment, A).
 
 %%%-----------------------------------------------------------------------------
 write_body(B=#mcb_attachment_body{}) ->
-  macaba_db_riak:write(mcb_attachment_body, B).
+  mcb_db_riak:write(mcb_attachment_body, B).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Checks if attachment exists in storage
 -spec exists(Key :: binary()) -> boolean().
 exists(<<>>) -> false;
 exists(Digest) ->
-  case macaba_db_riak:read(mcb_attachment, Digest) of
+  case mcb_db_riak:read(mcb_attachment, Digest) of
     {ok, #mcb_attachment{}} -> true;
     {error, not_found} -> false
   end.
@@ -65,10 +65,10 @@ delete(AttId) ->
       lager:error("board: delete_attachment ~s not found", [AttIdHex]),
       {error, not_found};
     {ok, A = #mcb_attachment{}} ->
-      macaba_db_riak:delete(mcb_attachment_body,
+      mcb_db_riak:delete(mcb_attachment_body,
                             A#mcb_attachment.thumbnail_hash),
-      macaba_db_riak:delete(mcb_attachment_body, AttId),
-      macaba_db_riak:delete(mcb_attachment, AttId),
+      mcb_db_riak:delete(mcb_attachment_body, AttId),
+      mcb_db_riak:delete(mcb_attachment, AttId),
       lager:info("board: delete_attachment ~s", [AttIdHex]),
       ok
   end.
@@ -76,12 +76,12 @@ delete(AttId) ->
 -spec read_header(AttachId :: binary()) ->
                      {ok, #mcb_attachment{}} | {error, not_found}.
 read_header(AttachId) ->
-  macaba_db_riak:read(mcb_attachment, AttachId).
+  mcb_db_riak:read(mcb_attachment, AttachId).
 
 -spec read_body(AttachId :: binary()) ->
                    {ok, #mcb_attachment{}} | {error, not_found}.
 read_body(AttachId) ->
-  macaba_db_riak:read(mcb_attachment_body, AttachId).
+  mcb_db_riak:read(mcb_attachment_body, AttachId).
 
 %%% Local Variables:
 %%% erlang-indent-level: 2

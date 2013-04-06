@@ -5,7 +5,7 @@
 %%% @version 2013-02-16
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_app).
+-module(mcb_app).
 
 -behaviour(application).
 
@@ -15,20 +15,20 @@
         , stop/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 %% -define(MACABA_LISTENER, macaba_http_listener).
 
 %% ===================================================================
 %% Application callbacks
 %% ===================================================================
 start() ->
-  macaba:ensure_started(sasl),
-  macaba:ensure_started(gproc),
+  mcb:ensure_started(sasl),
+  mcb:ensure_started(gproc),
   lager:start(),
-  application:start(macaba).
+  application:start(mcb).
 
 start(_StartType, _StartArgs) ->
-  macaba_sup:start_link().
+  mcb_sup:start_link().
 
 stop(_State) ->
   ok.

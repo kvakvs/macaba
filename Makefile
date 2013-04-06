@@ -68,14 +68,17 @@ dev1 dev2 dev3: all
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
 COMBO_PLT = $(HOME)/.mcbd_combo_dialyzer_plt
+DEPS_LIST0 = $(wildcard apps/*/ebin) $(wildcard deps/*/ebin)
+DEPS_LIST1 = $(subst deps/riak_pb/ebin,,$(DEPS_LIST0))
+DEPS_LIST  = $(subst deps/riak_core/ebin,,$(DEPS_LIST1))
 
 check_plt: deps compile
 	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin apps/*/ebin
+		$(DEPS_LIST)
 
 build_plt: deps compile
 	dialyzer --build_plt --output_plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin apps/*/ebin
+		$(DEPS_LIST)
 
 dialyzer: deps compile
 	@echo
@@ -83,7 +86,7 @@ dialyzer: deps compile
 	@echo Use "'make build_plt'" to build PLT prior to using this target.
 	@echo
 	@sleep 1
-	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin apps/*/ebin
+	dialyzer -Wno_return --plt $(COMBO_PLT) $(wildcard apps/*/ebin)
 
 
 cleanplt:

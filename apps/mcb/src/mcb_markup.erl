@@ -4,7 +4,7 @@
 %%% @version 2013-02-28
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
--module(macaba_markup).
+-module(mcb_markup).
 
 -export([ wakabamark/1
         , wakabamark_process/2
@@ -58,9 +58,9 @@ wakabamark_rules_bbcode(true) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Calls wakabamark_process() with options from config
 wakabamark(T) ->
-  {ok, MarkdownEnabled} = macaba_conf:get([<<"plugins">>, <<"wakabamark">>,
+  {ok, MarkdownEnabled} = mcb_conf:get([<<"plugins">>, <<"wakabamark">>,
                                            <<"enable_markdown">>]),
-  {ok, BBEnabled} = macaba_conf:get([<<"plugins">>, <<"wakabamark">>,
+  {ok, BBEnabled} = mcb_conf:get([<<"plugins">>, <<"wakabamark">>,
                                      <<"enable_bbcode">>]),
   wakabamark_process(T, [{markdown, MarkdownEnabled}, {bbcode, BBEnabled}]).
 
@@ -71,8 +71,8 @@ wakabamark_process(T, Opt) when is_binary(T) ->
   wakabamark_process(unicode:characters_to_list(T, utf8), Opt);
 
 wakabamark_process(T0, Opt) when is_list(T0) ->
-  MarkdownEnabled = macaba:propget(markdown, Opt, false),
-  BBEnabled = macaba:propget(bbcode, Opt, false),
+  MarkdownEnabled = mcb:propget(markdown, Opt, false),
+  BBEnabled = mcb:propget(bbcode, Opt, false),
 
   %% html encode and add end of line to simplify regex searching
   T1 = [$\n | xmerl_lib:export_text(T0) ++ "\n"],

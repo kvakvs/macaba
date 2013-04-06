@@ -3,7 +3,7 @@
 %%% @version 2013-02-21
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
--module(macaba_sup).
+-module(mcb_sup).
 
 -behaviour(supervisor).
 
@@ -33,18 +33,18 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  %% Nodes = case application:get_env(macaba, cluster) of
+  %% Nodes = case application:get_env(mcb, cluster) of
   %%           {ok, Value} -> Value;
   %%           undefined -> [node()]
   %%         end,
   {ok, { {one_for_one, 15, 60},
-         [ child(macaba_conf, worker)
-         , child(macaba_hooks, worker) % run this after conf, before plugins
-         , child(macaba_plugins, worker) % run this after conf
-         , child(macaba_masternode, worker)
-         %% , child(macaba_ses_sup, supervisor)
-         , child(macaba_startup, worker, transient)
-         , child(macaba_board_worker, worker) % run this when board started
+         [ child(mcb_conf, worker)
+         , child(mcb_hooks, worker) % run this after conf, before plugins
+         , child(mcb_plugins, worker) % run this after conf
+         , child(mcb_masternode, worker)
+         %% , child(mcb_ses_sup, supervisor)
+         , child(mcb_startup, worker, transient)
+         , child(mcb_board_worker, worker) % run this when board started
          ]} }.
 
 

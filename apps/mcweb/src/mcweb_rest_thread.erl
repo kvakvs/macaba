@@ -19,7 +19,7 @@
         , render_json_response/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 init(_Transport, _Req, []) ->
@@ -44,10 +44,10 @@ allowed_methods(Req, State) ->
 resource_exists(Req0, State0) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
-  case macaba_thread:get_dynamic(BoardId, ThreadId) of
+  case mcb_thread:get_dynamic(BoardId, ThreadId) of
     {error, _} -> {false, Req2, State0};
     {ok, TD} ->
-      case macaba_thread:get(BoardId, ThreadId) of
+      case mcb_thread:get(BoardId, ThreadId) of
         {ok, T} ->
           State1 = mcweb:state_set_var(thread_dynamic, TD, State0),
           State2 = mcweb:state_set_var(thread, T, State1),
@@ -71,7 +71,7 @@ is_authorized_mod(State) ->
   U = State#mcb_html_state.user,
   case U#mcb_user.level >= ?USERLEVEL_MOD of
     true  -> true;
-    false -> {false, <<"Basic Realm=\"", ?MACABA_BASICAUTHREALM, "\"">>}
+    false -> {false, <<"Basic Realm=\"", ?MCB_BASICAUTHREALM, "\"">>}
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -103,18 +103,18 @@ handle_POST_as_json(Do, Req0, State0)
   {_BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {_ThreadId, Req2} = cowboy_req:binding(mcb_thread, Req1),
   PD = State0#mcb_html_state.rest_body_json,
-  Update = macaba:propget(<<"update">>, PD, []),
+  Update = mcb:propget(<<"update">>, PD, []),
 
   T = mcweb:state_get_var(thread, State0),
-  Locked = macaba:propget(<<"locked">>, Update, T#mcb_thread.read_only),
-  Pinned = macaba:propget(<<"pinned">>, Update, T#mcb_thread.pinned),
-  Hidden = macaba:propget(<<"hidden">>, Update, T#mcb_thread.hidden),
+  Locked = mcb:propget(<<"locked">>, Update, T#mcb_thread.read_only),
+  Pinned = mcb:propget(<<"pinned">>, Update, T#mcb_thread.pinned),
+  Hidden = mcb:propget(<<"hidden">>, Update, T#mcb_thread.hidden),
   T2 = T#mcb_thread{
          read_only = Locked,
          pinned = Pinned,
          hidden = Hidden
         },
-  macaba_thread:update(T2),
+  mcb_thread:update(T2),
 
   ReplyJson = [{result, <<"ok">>}],
   Reply = jsx:encode(ReplyJson),

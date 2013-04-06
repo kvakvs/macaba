@@ -3,14 +3,14 @@
 %%% @version 2013-03-09
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_attach).
+-module(mcb_attach).
 
 -export([ write/1
         , write_thumbnail/2
         , detect_content_type/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
 %% @private
@@ -42,7 +42,7 @@ write(Data) when is_binary(Data) ->
         , created        = Created
         , etag           = ETag
        },
-      AttachMod = macaba_plugins:mod(attachments),
+      AttachMod = mcb_plugins:mod(attachments),
       AttachMod:write_header(A),
       B = #mcb_attachment_body{
         key  = Key,
@@ -63,8 +63,8 @@ write(Data) when is_binary(Data) ->
                                   {ok, {_, _}} | {error, _}).
 -spec get_thumbnail_fun() -> thumbnail_fun_t().
 get_thumbnail_fun() ->
-  {ok, ThumbnailerEnabled} = macaba_conf:get(
-                               [<<"board">>, <<"thumbnailer">>], true),
+  {ok, ThumbnailerEnabled} = mcb_conf:get([<<"board">>, <<"thumbnailer">>],
+                                          true),
   case ThumbnailerEnabled of
     true ->
       fun(CT, D) -> write_thumbnail(CT, D) end;
@@ -91,17 +91,17 @@ write_thumbnail(<<"image/jpeg">>, Data) -> write_thumbnail_1(jpg, Data).
 write_thumbnail_1(TypeAtom, Data) ->
   {ok, Image} = eim:load(Data),
   %% Image = case TypeAtom of gif -> convert_to_jpeg(Image0); _ -> Image0 end,
-  {ok, FitH} = macaba_conf:get([<<"board">>, <<"thread">>,
-                                <<"thumbnail_height">>]),
-  {ok, FitW} = macaba_conf:get([<<"board">>, <<"thread">>,
-                               <<"thumbnail_width">>]),
+  {ok, FitH} = mcb_conf:get([<<"board">>, <<"thread">>,
+                             <<"thumbnail_height">>]),
+  {ok, FitW} = mcb_conf:get([<<"board">>, <<"thread">>,
+                             <<"thumbnail_width">>]),
   TData = eim:derive(Image, TypeAtom, {fit, FitW, FitH}),
   TDigest = crypto:sha(TData),
   TBody = #mcb_attachment_body{
     key  = TDigest,
     data = TData
    },
-  AttachMod = macaba_plugins:mod(attachments),
+  AttachMod = mcb_plugins:mod(attachments),
   AttachMod:write_body(TBody),
   {ok, {TDigest, byte_size(TData)}}.
 

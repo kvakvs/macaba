@@ -19,7 +19,7 @@
         , provide_json/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 init(_Transport, _Req, []) ->
@@ -48,7 +48,7 @@ resource_exists(Req0, State0) ->
   case {BoardId, PostId} of
     {undefined, undefined} -> {true, Req2, State0};
     {_, _} ->
-      case macaba_post:get(BoardId, PostId) of
+      case mcb_post:get(BoardId, PostId) of
         {error, _} -> {false, Req2, State0};
         {ok, _TD} -> {true, Req2, State0}
       end
@@ -80,8 +80,8 @@ process_post(Req0, State0) ->
 handle_POST_as_json(<<"/rest/post/preview">>, Req0, State0) ->
   %% lager:debug("handle_post_as_json ~p", [Path]),
   PD = State0#mcb_html_state.rest_body_json,
-  Message = macaba:propget(<<"markup">>, PD, <<>>),
-  MessageProcessed = macaba_plugins:call(markup, [Message]),
+  Message = mcb:propget(<<"markup">>, PD, <<>>),
+  MessageProcessed = mcb_plugins:call(markup, [Message]),
   ReplyJson = [{html, iolist_to_binary(MessageProcessed)}],
   Reply = jsx:encode(ReplyJson),
   Req = cowboy_req:set_resp_body(Reply, Req0),

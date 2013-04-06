@@ -18,7 +18,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 -record(mcb_session, {
@@ -39,7 +39,7 @@
 -spec get(SesId :: undefined | binary()) -> {ok, pid()} | {error, not_found}.
 get(<<>>) -> {error, not_found};
 get(SesId) when is_binary(SesId) ->
-  case catch gproc:lookup_local_name({macaba_session, SesId}) of
+  case catch gproc:lookup_local_name({mcb_session, SesId}) of
     X when is_pid(X) -> {ok, X};
     _Error -> {error, not_found}
   end;
@@ -52,7 +52,7 @@ get(_) -> {error, not_found}.
 -spec new(Params :: orddict:orddict()) -> {binary(), pid()}.
 new(Params0) ->
   SesId = make_random_sesid(32),
-  %%Pid = gen_server:start_link(macaba_ses, [Params], []),
+  %%Pid = gen_server:start_link(mcb_ses, [Params], []),
   Params1 = [{sesid, SesId} | Params0],
   lager:debug("ses:new id=~s", [SesId]),
   {ok, Pid} = supervisor:start_child(mcweb_ses_sup, [Params1]),
@@ -74,10 +74,10 @@ start_link(Params) ->
 -spec init(Args :: list()) -> {ok, #mcb_session{}} | ignore
                                   | {stop, Reason :: any()}.
 init(Params) ->
-  RemoteAddr = macaba:propget(remote_addr, Params, {0,0,0,0}),
-  User       = macaba:propget(user, Params, #mcb_user{}),
-  SesId      = macaba:propget(sesid, Params),
-  gproc:add_local_name({macaba_session, SesId}),
+  RemoteAddr = mcb:propget(remote_addr, Params, {0,0,0,0}),
+  User       = mcb:propget(user, Params, #mcb_user{}),
+  SesId      = mcb:propget(sesid, Params),
+  gproc:add_local_name({mcb_session, SesId}),
   {ok, #mcb_session{
      sesid       = SesId,
      user        = User,

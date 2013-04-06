@@ -8,7 +8,7 @@
 -export([ rest_init_helper/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 -spec rest_init_helper(Req :: cowboy_req:req(),

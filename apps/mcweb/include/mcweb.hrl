@@ -2,7 +2,7 @@
 -define(MCWEB_HRL, true).
 
 -compile([{parse_transform, lager_transform}]).
--define(MACABA_BASICAUTHREALM, "Macaba").
+-define(MCB_BASICAUTHREALM, "Macaba").
 
 -record(mcb_html_state, {
             mode                     :: atom()

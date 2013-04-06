@@ -4,7 +4,7 @@
 %%% @version 2013-02-17
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_board).
+-module(mcb_board).
 
 -export([ start/0
         , load_board_dynamics/0
@@ -20,7 +20,7 @@
         , touch_board_dynamic/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -define(DEFAULT_SITE, <<"default">>).
 
 %%%-----------------------------------------------------------------------------
@@ -46,7 +46,7 @@ add_thread(BoardId, ThreadId, Pinned) ->
                  },
           touch_board_dynamic(BD2)
       end,
-  {atomic, _NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
+  {atomic, _NewD} = mcb_db_mnesia:update(mcb_board_dynamic, BoardId, F),
   check_board_threads_limit(BoardId).
 
 %%%-----------------------------------------------------------------------------
@@ -59,25 +59,25 @@ get_boards() ->
 %%%-----------------------------------------------------------------------------
 get_site_config() ->
   SiteKey = ?DEFAULT_SITE,
-  case macaba_db_mnesia:read(mcb_site_config, SiteKey) of
+  case mcb_db_mnesia:read(mcb_site_config, SiteKey) of
     {ok, #mcb_site_config{} = Conf1} ->
       Conf1;
     {error, not_found} ->
-      case macaba_db_riak:read(mcb_site_config, SiteKey) of
+      case mcb_db_riak:read(mcb_site_config, SiteKey) of
         {ok, #mcb_site_config{} = Conf2} ->
-          macaba_db_mnesia:write(mcb_site_config, Conf2),
+          mcb_db_mnesia:write(mcb_site_config, Conf2),
           Conf2;
         {error, not_found} ->
           Default = fake_default_site_config(),
-          macaba_db_mnesia:write(mcb_site_config, Default),
-          macaba_db_riak:write(mcb_site_config, Default),
+          mcb_db_mnesia:write(mcb_site_config, Default),
+          mcb_db_riak:write(mcb_site_config, Default),
           Default
       end
   end.
 
 %%%-----------------------------------------------------------------------------
 set_site_config(Site = #mcb_site_config{}) ->
-  macaba_db_riak:write(mcb_site_config, Site),
+  mcb_db_riak:write(mcb_site_config, Site),
   %% ensure board dynamics created for new boards
   Boards = Site#mcb_site_config.boards,
   [internal_create_dynamic(BId) || #mcb_board{board_id=BId} <- Boards].
@@ -89,8 +89,8 @@ internal_create_dynamic(BoardId) when is_binary(BoardId) ->
          {ok, Value} -> Value
        end,
   BD2 = touch_board_dynamic(BD),
-  macaba_db_riak:write(mcb_board_dynamic, BD2),
-  macaba_db_mnesia:write(mcb_board_dynamic, BD2).
+  mcb_db_riak:write(mcb_board_dynamic, BD2),
+  mcb_db_mnesia:write(mcb_board_dynamic, BD2).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board by name
@@ -114,8 +114,8 @@ fake_default_site_config() ->
 
 %% @private
 fake_default_boards() ->
-  {ok, DefaultAnon} = macaba_conf:get([<<"board">>,
-                                       <<"default_anonymous_name">>]),
+  {ok, DefaultAnon} = mcb_conf:get([<<"board">>,
+                                    <<"default_anonymous_name">>]),
   [#mcb_board{
         board_id       = <<"unconfigured">>
       , short_name     = <<"default_board">>
@@ -132,7 +132,7 @@ fake_default_boards() ->
                      {ok, [#mcb_thread{}], [#mcb_thread{}]} | {error, any()}.
 
 get_threads(BoardId) when is_binary(BoardId) ->
-  case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+  case mcb_db_mnesia:read(mcb_board_dynamic, BoardId) of
     {error, not_found} ->
       {error, dynamic_not_found};
     {ok, #mcb_board_dynamic{
@@ -147,7 +147,7 @@ get_threads(BoardId) when is_binary(BoardId) ->
 %% @private
 load_threads(_BoardId, [], Accum) -> lists:reverse(Accum);
 load_threads(BoardId, [ThreadId | Tail], Accum) -> 
-  case macaba_thread:get(BoardId, ThreadId) of
+  case mcb_thread:get(BoardId, ThreadId) of
     {ok, Thread} ->
       load_threads(BoardId, Tail, [Thread | Accum]);
     {error, not_found} ->
@@ -165,11 +165,11 @@ check_board_threads_limit(BoardId) ->
           Cut = min(Board#mcb_board.max_threads, length(T)),
           {T2, Delete} = lists:split(Cut, T),
           %% send messages to delete sunken threads
-          [macaba_board_worker:thread_delete(BoardId, ThreadId)
+          [mcb_board_worker:thread_delete(BoardId, ThreadId)
            || ThreadId <- Delete],
           touch_board_dynamic(BD#mcb_board_dynamic{ threads = T2 })
       end,
-  case macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F) of
+  case mcb_db_mnesia:update(mcb_board_dynamic, BoardId, F) of
     {atomic, _} ->
       ok;
     Err ->
@@ -189,12 +189,12 @@ thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit,
                        #mcb_post{email = Email}) ->
   Sink = case Email of
            <<"sage">> ->
-             {ok, Sink0} = macaba_conf:get([<<"board">>, <<"sage_sink">>], 3),
+             {ok, Sink0} = mcb_conf:get([<<"board">>, <<"sage_sink">>], 3),
              Sink0;
            _ -> 0
          end,
   %% sage is not set - bump up
-  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = mcb_thread:get_dynamic(BoardId, ThreadId),
   case length(TD#mcb_thread_dynamic.post_ids) > SoftPostLimit of
     true ->
       false; % over soft limit, no bumping
@@ -203,7 +203,7 @@ thread_bump_if_no_sage(BoardId, ThreadId, SoftPostLimit,
                   T = bump_or_sink(Sink, Email, ThreadId, T0),
                   touch_board_dynamic(BD#mcb_board_dynamic{ threads = T })
               end,
-      {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF),
+      {atomic, _} = mcb_db_mnesia:update(mcb_board_dynamic, BoardId, BumpF),
       true
   end.
 
@@ -233,20 +233,20 @@ next_post_id(BoardId) when is_binary(BoardId) ->
          ({error, not_found}) ->
           touch_board_dynamic(#mcb_board_dynamic{ last_post_id = 0 })
       end,
-  {atomic, NewD} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, F),
-  Next = macaba:as_binary(NewD#mcb_board_dynamic.last_post_id),
+  {atomic, NewD} = mcb_db_mnesia:update(mcb_board_dynamic, BoardId, F),
+  Next = mcb:as_binary(NewD#mcb_board_dynamic.last_post_id),
   lager:debug("board: next_post_id board=~p result=~s", [BoardId, Next]),
   Next.
 
 %%%-----------------------------------------------------------------------------
 get_dynamic(BoardId) when is_binary(BoardId) ->
-  case macaba_db_mnesia:read(mcb_board_dynamic, BoardId) of
+  case mcb_db_mnesia:read(mcb_board_dynamic, BoardId) of
     {ok, Value} -> {ok, Value};
     {error, not_found} -> get_dynamic_riak(BoardId)
   end.
 
 get_dynamic_riak(BoardId) when is_binary(BoardId) ->
-  macaba_db_riak:read(mcb_board_dynamic, BoardId).
+  mcb_db_riak:read(mcb_board_dynamic, BoardId).
 
 %%%-----------------------------------------------------------------------------
 %% @doc May be SLOW! Enumerates RIAK keys in board bucket, and calculates thread
@@ -269,7 +269,7 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
          {ok, Value} -> Value
        end,
   lager:debug("{{dbinit}} upd_dyn_b bd=~p", [BD]),
-  macaba_db_mnesia:write(mcb_board_dynamic, touch_board_dynamic(BD)),
+  mcb_db_mnesia:write(mcb_board_dynamic, touch_board_dynamic(BD)),
   update_dynamics_for_threads(BoardId, BD#mcb_board_dynamic.threads),
   update_dynamics_for_board(Boards).
 
@@ -277,9 +277,9 @@ update_dynamics_for_board([B = #mcb_board{} | Boards]) ->
 update_dynamics_for_threads(_BoardId, []) -> ok;
 update_dynamics_for_threads(BoardId, [ThreadId | Threads])
   when is_binary(ThreadId) ->
-  {ok, TD} = macaba_thread:get_dynamic_riak(BoardId, ThreadId),
+  {ok, TD} = mcb_thread:get_dynamic_riak(BoardId, ThreadId),
   lager:debug("{{dbinit}} upd_dyn_t td=~p", [TD]),
-  macaba_db_mnesia:write(mcb_thread_dynamic, TD),
+  mcb_db_mnesia:write(mcb_thread_dynamic, TD),
   update_dynamics_for_threads(BoardId, Threads).
 
 %%%-----------------------------------------------------------------------------

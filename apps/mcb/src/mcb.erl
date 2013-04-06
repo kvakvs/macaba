@@ -3,7 +3,7 @@
 %%% @version 2013-02-16
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba).
+-module(mcb).
 
 -export([ ensure_started/1
         , as_atom/1
@@ -27,7 +27,7 @@
         , unix_now/0
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 -type user_t() :: #mcb_user{}.
 -export_type([ user_t/0

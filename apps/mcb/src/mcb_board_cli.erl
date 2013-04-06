@@ -4,7 +4,7 @@
 %%% @version 2013-02-24
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_board_cli).
+-module(mcb_board_cli).
 
 -export([ get_boards/0
         , get_board/1
@@ -15,7 +15,7 @@
         , anonymous_delete_post/4
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
 %% @doc Attempts to delete post if passwords match
@@ -26,12 +26,12 @@
 anonymous_delete_post(BoardId, PostId, FileOnly, Password) ->
   lager:info("board_cli: anonymous_delete_post B=~s P=~s Pass=~s",
              [BoardId, PostId, Password]),
-  {ok, P} = macaba_post:get(BoardId, PostId),
+  {ok, P} = mcb_post:get(BoardId, PostId),
   case P#mcb_post.delete_pass of
     Password when byte_size(Password) > 0 ->
       case FileOnly of
-        true -> macaba_post:delete_attach(BoardId, PostId);
-        false -> macaba_post:delete(BoardId, PostId)
+        true -> mcb_post:delete_attach(BoardId, PostId);
+        false -> mcb_post:delete(BoardId, PostId)
       end;
     _ -> {error, password}
   end.
@@ -40,16 +40,16 @@ anonymous_delete_post(BoardId, PostId, FileOnly, Password) ->
 %% @doc Returns list of boards as proplists
 -spec get_boards() -> [proplist_t()].
 get_boards() ->
-  B = macaba_board:get_boards(),
-  lists:map(fun macaba:record_to_proplist/1, B).
+  B = mcb_board:get_boards(),
+  lists:map(fun mcb:record_to_proplist/1, B).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Returns board header formatted as proplist
 -spec get_board(BoardId :: binary()) -> proplist_t() | {error, not_found}.
 get_board(BoardId) ->
-  case macaba_board:get(BoardId) of
+  case mcb_board:get(BoardId) of
     {error, not_found} -> {error, not_found};
-    {ok, B} -> macaba:record_to_proplist(B)
+    {ok, B} -> mcb:record_to_proplist(B)
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -57,9 +57,9 @@ get_board(BoardId) ->
 -spec get_thread(BoardId :: binary(), ThreadId :: binary()) ->
                     proplist_t() | {error, not_found}.
 get_thread(BoardId, ThreadId) ->
-  case macaba_thread:get(BoardId, ThreadId) of
+  case mcb_thread:get(BoardId, ThreadId) of
     {error, not_found} -> {error, not_found};
-    {ok, T} -> macaba:record_to_proplist(T)
+    {ok, T} -> mcb:record_to_proplist(T)
   end.
 
 %%%-----------------------------------------------------------------------------
@@ -75,17 +75,17 @@ get_threads(BoardId, {undefined, PageSize}, PreviewSize, FilterHiddenThreads) ->
   get_threads(BoardId, {1, PageSize}, PreviewSize, FilterHiddenThreads);
 
 get_threads(BoardId, {Page, PageSize}, PreviewSize, FilterHiddenThreads) ->
-  {ok, PinThreads0, Threads0} = macaba_board:get_threads(BoardId),
+  {ok, PinThreads0, Threads0} = mcb_board:get_threads(BoardId),
   HideFun = case FilterHiddenThreads of
               %% create a fun which will throw away invis threads
               true -> fun(#mcb_thread{ hidden=H }) -> not H end;
               %% create a fun which will show all threads
               false -> fun(X) -> true end
             end,
-  Threads1 = macaba:pagination(lists:filter(HideFun, Threads0), Page, PageSize),
+  Threads1 = mcb:pagination(lists:filter(HideFun, Threads0), Page, PageSize),
   PageNums = lists:seq(1, (length(Threads0) + PageSize - 1) div PageSize),
   PreprocessFun = fun(T0) ->
-                      T1 = macaba:record_to_proplist(T0),
+                      T1 = mcb:record_to_proplist(T0),
                       additional_fields_for_thread(T1, PreviewSize)
                   end,
   Threads = lists:map(PreprocessFun, Threads1),
@@ -95,11 +95,11 @@ get_threads(BoardId, {Page, PageSize}, PreviewSize, FilterHiddenThreads) ->
 %%%-----------------------------------------------------------------------------
 %% @private
 additional_fields_for_thread(T, PreviewSize) ->
-  BoardId     = macaba:propget(board_id, T),
-  ThreadId    = macaba:propget(thread_id, T),
+  BoardId     = mcb:propget(board_id, T),
+  ThreadId    = mcb:propget(thread_id, T),
   PreviewList = get_thread_preview(BoardId, ThreadId, PreviewSize),
   Preview = {preview, PreviewList},
-  {ok, TD} = macaba_thread:get_dynamic(BoardId, ThreadId),
+  {ok, TD} = mcb_thread:get_dynamic(BoardId, ThreadId),
   PostIds = TD#mcb_thread_dynamic.post_ids,
   SkippedP = {skipped_posts, max(0, length(PostIds) - PreviewSize - 1)},
   PreviewListTl = case PreviewList of
@@ -113,7 +113,7 @@ additional_fields_for_thread(T, PreviewSize) ->
 count_images(Posts0, TailSize) ->
   {Posts, _} = lists:split(max(0, length(Posts0) - TailSize), Posts0),
   lists:foldl(fun(X, Accum) ->
-                  case macaba:propget(attach_id, X) of
+                  case mcb:propget(attach_id, X) of
                     [] -> Accum;
                     L when is_list(L) -> Accum+1
                   end
@@ -138,20 +138,20 @@ get_thread_previews(BoardId, ThreadIdList, PreviewSize) ->
 
 get_thread_preview(BoardId, ThreadId, PreviewSize) ->
   %% lager:debug("cli: get_thread_preview id=~p", [ThreadId]),
-  Posts = macaba_thread:get_contents(BoardId, ThreadId, PreviewSize),
+  Posts = mcb_thread:get_contents(BoardId, ThreadId, PreviewSize),
   %% convert each record in preview to proplist
-  [additional_fields_for_post(P, macaba:record_to_proplist(P)) || P <- Posts].
+  [additional_fields_for_post(P, mcb:record_to_proplist(P)) || P <- Posts].
 
 additional_fields_for_post(P = #mcb_post{}, PropList) ->
   %% load attachment headers
-  AttachMod = macaba_plugins:mod(attachments),
+  AttachMod = mcb_plugins:mod(attachments),
   Att0 = lists:map(fun(AttId) ->
                        {ok, H1} = AttachMod:read_header(AttId),
                        H1
                    end, P#mcb_post.attach_ids),
   %% filter out only existing attachments
   Att1 = lists:filter(fun(#mcb_attachment{}) -> true; (_) -> false end, Att0),
-  Att = lists:map(fun macaba:record_to_proplist/1, Att1),
+  Att = lists:map(fun mcb:record_to_proplist/1, Att1),
   [{attach_info, Att} | PropList].
 
 %%% Local Variables:

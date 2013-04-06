@@ -5,7 +5,7 @@
 %%% @version 2013-02-20
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_masternode).
+-module(mcb_masternode).
 
 -behaviour(gen_leader).
 
@@ -53,7 +53,7 @@
 %%--------------------------------------------------------------------
 %% @doc Starts the server
 start_link() ->
-  {ok, Nodes} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
+  {ok, Nodes} = mcb_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
   start_link(lists:map(fun(X) -> erlang:binary_to_atom(X, latin1) end, Nodes)).
 
 -spec start_link([node()]) -> {ok, pid()} | ignore | {error, Error :: any()}.
@@ -283,13 +283,13 @@ sync_mnesia_to_riak(Tab) ->
 sync_mnesia_to_riak_2(_Tab, '$end_of_table') -> ok;
 sync_mnesia_to_riak_2(Tab, K) ->
   [#mcb_riak_sync{id={Type, Key}}] = ets:lookup(Tab, K),
-  case macaba_db_mnesia:read(Type, Key) of
+  case mcb_db_mnesia:read(Type, Key) of
     {error, not_found} ->
       lager:debug("masternode sync: delete ~p key=~p", [Type, Key]),
-      macaba_db_riak:delete(Type, Key);
+      mcb_db_riak:delete(Type, Key);
     {ok, Value} ->
       lager:debug("masternode sync: write ~p key=~p", [Type, Key]),
-      macaba_db_riak:write(Type, Value)
+      mcb_db_riak:write(Type, Value)
   end,
   sync_mnesia_to_riak_2(Tab, ets:next(Tab, K)).
 

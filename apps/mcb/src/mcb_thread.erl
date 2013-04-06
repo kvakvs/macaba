@@ -3,7 +3,7 @@
 %%% @version 2013-03-09
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_thread).
+-module(mcb_thread).
 
 -export([ get/2
         , get_contents/3
@@ -17,7 +17,7 @@
         , update/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
 -spec new(BoardId :: binary(),
@@ -28,13 +28,13 @@
 %% @doc Creates a new thread with a single post, thread_id is set to the first
 %% post id. Writes both thread and post to database.
 new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
-  case macaba_post:construct(BoardId, PostOpts) of
+  case mcb_post:construct(BoardId, PostOpts) of
     {ok, Post0} ->
       PostId   = Post0#mcb_post.post_id,
 
-      Hidden   = macaba:propget(hidden,    ThreadOpts, false),
-      Pinned   = macaba:propget(pinned,    ThreadOpts, false),
-      ReadOnly = macaba:propget(read_only, ThreadOpts, false),
+      Hidden   = mcb:propget(hidden,    ThreadOpts, false),
+      Pinned   = mcb:propget(pinned,    ThreadOpts, false),
+      ReadOnly = mcb:propget(read_only, ThreadOpts, false),
       ThreadId = PostId,
 
       Thread = #mcb_thread{
@@ -44,22 +44,22 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
         , pinned    = Pinned
         , read_only = ReadOnly
        },
-      macaba_db_riak:write(mcb_thread, Thread),
+      mcb_db_riak:write(mcb_thread, Thread),
 
-      TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+      TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
       ThreadDyn = #mcb_thread_dynamic{
         internal_mnesia_key = TDKey
         , thread_id = ThreadId
         , board_id  = BoardId
         , post_ids  = [PostId]
        },
-      macaba_db_mnesia:write(mcb_thread_dynamic, touch_thread_dynamic(ThreadDyn)),
-      Post1 = macaba_post:write_attach_set_ids(Post0, PostOpts),
+      mcb_db_mnesia:write(mcb_thread_dynamic, touch_thread_dynamic(ThreadDyn)),
+      Post1 = mcb_post:write_attach_set_ids(Post0, PostOpts),
 
       %% link post to thread
       Post = Post1#mcb_post{ thread_id = PostId },
-      macaba_db_riak:write(mcb_post, Post),
-      macaba_board:add_thread(BoardId, ThreadId, Pinned),
+      mcb_db_riak:write(mcb_post, Post),
+      mcb_board:add_thread(BoardId, ThreadId, Pinned),
       {ok, Thread, Post};
 
     {error, E} ->
@@ -70,15 +70,15 @@ new(BoardId, ThreadOpts, PostOpts) when is_binary(BoardId) ->
 %% @doc Writes existing thread info to RIAK also updates board and thread dynamic
 %% for caching to refresh
 update(T = #mcb_thread{}) ->
-  macaba_db_riak:write(mcb_thread, T),
+  mcb_db_riak:write(mcb_thread, T),
   %% update thread dynamic
   TDUpd = fun(TD = #mcb_thread_dynamic{}) ->
-              macaba_thread:touch_thread_dynamic(TD)
+              mcb_thread:touch_thread_dynamic(TD)
           end,
   BoardId  = T#mcb_thread.board_id,
   ThreadId = T#mcb_thread.thread_id,
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, TDUpd),
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  {atomic, _} = mcb_db_mnesia:update(mcb_thread_dynamic, TDKey, TDUpd),
 
   %% update board dynamic
   BDUpd = fun(BD = #mcb_board_dynamic{
@@ -99,30 +99,30 @@ update(T = #mcb_thread{}) ->
                       pinned_threads = PThreads2,
                       threads        = Threads2
                      },
-              macaba_board:touch_board_dynamic(BD1)
+              mcb_board:touch_board_dynamic(BD1)
           end,
-  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BDUpd).
+  {atomic, _} = mcb_db_mnesia:update(mcb_board_dynamic, BoardId, BDUpd).
 
 %%%-----------------------------------------------------------------------------
 delete(BoardId, ThreadId) ->
   lager:info("thread: delete B=~s T=~s", [BoardId, ThreadId]),
   BUpd = fun(BD = #mcb_board_dynamic{ threads=T }) ->
             T2 = lists:delete(ThreadId, T),
-            macaba_board:touch_board_dynamic(BD#mcb_board_dynamic{ threads=T2 })
+            mcb_board:touch_board_dynamic(BD#mcb_board_dynamic{ threads=T2 })
         end,
-  {atomic, _} = macaba_db_mnesia:update(mcb_board_dynamic, BoardId, BUpd),
+  {atomic, _} = mcb_db_mnesia:update(mcb_board_dynamic, BoardId, BUpd),
 
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  {ok, TD} = macaba_db_mnesia:read(mcb_thread_dynamic, TDKey),
-  lists:foreach(fun(P) -> macaba_post:delete_dirty(BoardId, P) end,
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  {ok, TD} = mcb_db_mnesia:read(mcb_thread_dynamic, TDKey),
+  lists:foreach(fun(P) -> mcb_post:delete_dirty(BoardId, P) end,
                 TD#mcb_thread_dynamic.post_ids),
 
-  TKey = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
-  macaba_db_riak:delete(mcb_thread, TKey),
+  TKey = mcb_db:key_for(mcb_thread, {BoardId, ThreadId}),
+  mcb_db_riak:delete(mcb_thread, TKey),
 
   %% mnesia delete will also delete in riak but 1 sec later, delete now
-  macaba_db_riak:delete(mcb_thread_dynamic, TDKey),
-  macaba_db_mnesia:delete(mcb_thread_dynamic, TDKey).
+  mcb_db_riak:delete(mcb_thread_dynamic, TDKey),
+  mcb_db_mnesia:delete(mcb_thread_dynamic, TDKey).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Thread is identified by board name and number
@@ -130,8 +130,8 @@ delete(BoardId, ThreadId) ->
           ThreadId :: binary()) -> {ok, #mcb_thread{}} | {error, not_found}.
 
 get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
-  K = macaba_db:key_for(mcb_thread, {BoardId, ThreadId}),
-  case macaba_db_riak:read(mcb_thread, K) of
+  K = mcb_db:key_for(mcb_thread, {BoardId, ThreadId}),
+  case mcb_db_riak:read(mcb_thread, K) of
     {ok, #mcb_thread{}=Value} -> {ok, Value};
     {error, _} -> {error, not_found}
   end.
@@ -142,8 +142,8 @@ get(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
                      {ok, #mcb_thread_dynamic{}} | {error, not_found}.
 
 get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  case macaba_db_mnesia:read(mcb_thread_dynamic, TDKey) of
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  case mcb_db_mnesia:read(mcb_thread_dynamic, TDKey) of
     {ok, TD} -> {ok, TD};
     {error, not_found} ->
       %% FIXME: may cause additional load on RIAK
@@ -157,8 +157,8 @@ get_dynamic(BoardId, ThreadId) when is_binary(BoardId), is_binary(ThreadId) ->
 
 get_dynamic_riak(BoardId, ThreadId)
   when is_binary(BoardId), is_binary(ThreadId) ->
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  macaba_db_riak:read(mcb_thread_dynamic, TDKey).
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  mcb_db_riak:read(mcb_thread_dynamic, TDKey).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Sets thread read-only, ignores possible chance of conflicting writes
@@ -175,7 +175,7 @@ set_read_only(BoardId, ThreadId, RO) ->
       lager:info("thread: set_read_only B=~s T=~s -> ~p",
                  [BoardId, ThreadId, RO]),
       T2 = T#mcb_thread{ read_only = RO },
-      macaba_db_riak:write(mcb_thread, T2);
+      mcb_db_riak:write(mcb_thread, T2);
     {error, not_found} ->
       {error, not_found}
   end.
@@ -190,8 +190,8 @@ set_read_only(BoardId, ThreadId, RO) ->
 
 get_contents(BoardId, ThreadId, LastCount0)
   when is_binary(BoardId), is_binary(ThreadId) ->
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  case macaba_db_mnesia:read(mcb_thread_dynamic, TDKey) of
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  case mcb_db_mnesia:read(mcb_thread_dynamic, TDKey) of
     {error, not_found} -> TD = #mcb_thread_dynamic{};
     {ok, TD} -> TD
   end,
@@ -208,7 +208,7 @@ get_contents(BoardId, ThreadId, LastCount0)
   First = case PostIds of
             [] -> [];
             [F|_] ->
-              {ok, PFirst} = macaba_post:get(BoardId, F),
+              {ok, PFirst} = mcb_post:get(BoardId, F),
               PFirst
           end,
   %% FIXME: this may run slow on large threads >1000 posts?
@@ -220,7 +220,7 @@ get_contents(BoardId, ThreadId, LastCount0)
                 lists:nthtail(T, PostIds2)
             end,
   Last = lists:map(fun(Id) ->
-                       {ok, P} = macaba_post:get(BoardId, Id),
+                       {ok, P} = mcb_post:get(BoardId, Id),
                        P
                    end, LastIds),
   lists:flatten([First | Last]).
@@ -233,9 +233,9 @@ get_contents(BoardId, ThreadId, LastCount0)
 %% must already have its attachments saved
 add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
   lager:debug("thread: add_post"),
-  macaba_db_riak:write(mcb_post, Post),
+  mcb_db_riak:write(mcb_post, Post),
 
-  {ok, Board} = macaba_board:get(BoardId),
+  {ok, Board} = mcb_board:get(BoardId),
   ThreadHardLimit = Board#mcb_board.max_thread_post_lock,
   ThreadSoftLimit = Board#mcb_board.max_thread_posts,
 
@@ -246,17 +246,17 @@ add_post(BoardId, ThreadId, Post = #mcb_post{}) ->
                  ThreadHardLimit ->
                    %% lock once when reaching hard limit, allow mods to
                    %% unlock if needed
-                   macaba_board_worker:thread_set_read_only(
+                   mcb_board_worker:thread_set_read_only(
                      BoardId, ThreadId, true);
                  _ -> ok
                end,
                touch_thread_dynamic(TD#mcb_thread_dynamic{ post_ids=L2 })
            end,
-  TDKey = macaba_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
-  {atomic, _} = macaba_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
+  TDKey = mcb_db:key_for(mcb_thread_dynamic, {BoardId, ThreadId}),
+  {atomic, _} = mcb_db_mnesia:update(mcb_thread_dynamic, TDKey, ReplyF),
 
   %% update board thread list (bump thread)
-  macaba_board:thread_bump_if_no_sage(BoardId, ThreadId, ThreadSoftLimit, Post),
+  mcb_board:thread_bump_if_no_sage(BoardId, ThreadId, ThreadSoftLimit, Post),
   ok.
 
 %%%-----------------------------------------------------------------------------

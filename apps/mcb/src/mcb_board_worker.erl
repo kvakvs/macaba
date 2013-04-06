@@ -4,7 +4,7 @@
 %%% @version 2013-03-02
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-------------------------------------------------------------------
--module(macaba_board_worker).
+-module(mcb_board_worker).
 
 -behaviour(gen_server).
 
@@ -76,15 +76,15 @@ handle_call(Request, _From, State) ->
                          {stop, Reason :: any(), #bw_state{}}.
 
 handle_cast({thread_delete, {BoardId, ThreadId}}, State) ->
-  macaba_thread:delete(BoardId, ThreadId),
+  mcb_thread:delete(BoardId, ThreadId),
   {noreply, State};
 
 handle_cast({thread_set_read_only, {BoardId, ThreadId, RO}}, State) ->
-  macaba_thread:set_read_only(BoardId, ThreadId, RO),
+  mcb_thread:set_read_only(BoardId, ThreadId, RO),
   {noreply, State};
 
 handle_cast({board_add_thread, {BoardId, ThreadId}}, State) ->
-  macaba_board:add_thread(BoardId, ThreadId, false),
+  mcb_board:add_thread(BoardId, ThreadId, false),
   {noreply, State};
 
 handle_cast(Msg, State) ->

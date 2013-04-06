@@ -17,16 +17,16 @@
         , change_offline_mode/1
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
--define(MACABA_LISTENER, macaba_http_listener).
+-define(MCB_LISTENER, mcb_http_listener).
 
 %% ===================================================================
 %% Application callbacks
 %% ===================================================================
 start() ->
-  macaba:ensure_started(sasl),
-  macaba:ensure_started(gproc),
+  mcb:ensure_started(sasl),
+  mcb:ensure_started(gproc),
   lager:start(),
   application:start(mcweb).
 
@@ -37,21 +37,21 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
   ok.
 
-%% @doc TODO: move this out of macaba_app
+%% @doc TODO: move this out of mcb_app
 start_web() ->
-  ok = macaba:ensure_started(crypto),
-  ok = macaba:ensure_started(ranch),
-  ok = macaba:ensure_started(cowboy),
+  ok = mcb:ensure_started(crypto),
+  ok = mcb:ensure_started(ranch),
+  ok = mcb:ensure_started(cowboy),
 
-  Site = macaba_board:get_site_config(),
+  Site = mcb_board:get_site_config(),
   Disp = cowboy_compile_dispatch(Site#mcb_site_config.offline),
   cowboy_start_listener(Disp).
 
 %%%-----------------------------------------------------------------------------
 cowboy_start_listener(Disp) ->
-  {ok, HttpPort} = macaba_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
-  {ok, Listeners} = macaba_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
-  cowboy:start_http(?MACABA_LISTENER, Listeners,
+  {ok, HttpPort} = mcb_conf:get_or_fatal([<<"html">>, <<"listen_port">>]),
+  {ok, Listeners} = mcb_conf:get_or_fatal([<<"html">>, <<"listeners">>]),
+  cowboy:start_http(?MCB_LISTENER, Listeners,
                     [{port, HttpPort}, {ip, {0,0,0,0}}],
                     [{env, [{dispatch, Disp}]}]
                    ).
@@ -59,9 +59,9 @@ cowboy_start_listener(Disp) ->
 %%%-----------------------------------------------------------------------------
 change_offline_mode(Offline) ->
   Disp = cowboy_compile_dispatch(Offline),
-  %% cowboy:stop_listener(?MACABA_LISTENER),
+  %% cowboy:stop_listener(?MCB_LISTENER),
   %% cowboy_start_listener(Disp).
-  cowboy:set_env(?MACABA_LISTENER, dispatch, Disp).
+  cowboy:set_env(?MCB_LISTENER, dispatch, Disp).
 
 %%%-----------------------------------------------------------------------------
 cowboy_compile_dispatch(Offline) ->

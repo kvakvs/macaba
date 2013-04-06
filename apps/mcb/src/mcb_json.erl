@@ -3,13 +3,13 @@
 %%% @version 2013-03-14
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%-----------------------------------------------------------------------------
--module(macaba_json).
+-module(mcb_json).
 
 -export([ to_json/1
         , from_json/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 %%%-----------------------------------------------------------------------------
 to_json(_) -> erlang:throw({error, badarg}).
@@ -18,16 +18,16 @@ to_json(_) -> erlang:throw({error, badarg}).
 from_json(mcb_board, J) when is_list(J) ->
   %% TODO: Get board by board_id and update it if some fields were missing?
   %% or any other sort of validation, json schema?
-  BI = macaba:as_binary(macaba:propget(<<"board_id">>, J)),
-  Ca = macaba:as_binary(macaba:propget(<<"category">>, J)),
-  T = macaba:as_binary(macaba:propget(<<"title">>, J)),
-  SN = macaba:as_binary(macaba:propget(<<"short_name">>, J)),
-  AN = macaba:as_binary(macaba:propget(<<"anonymous_name">>, J)),
-  MT = macaba:as_integer(macaba:propget(<<"max_threads">>, J)),
-  MTP = macaba:as_integer(macaba:propget(<<"max_thread_posts">>, J)),
-  MTPL = macaba:as_integer(macaba:propget(<<"max_thread_post_lock">>, J)),
-  PI = macaba:as_binary(macaba:propget(<<"poster_id">>, J)),
-  PIST = macaba:as_binary(macaba:propget(<<"poster_id_sage_text">>, J)),
+  BI = mcb:as_binary(mcb:propget(<<"board_id">>, J)),
+  Ca = mcb:as_binary(mcb:propget(<<"category">>, J)),
+  T = mcb:as_binary(mcb:propget(<<"title">>, J)),
+  SN = mcb:as_binary(mcb:propget(<<"short_name">>, J)),
+  AN = mcb:as_binary(mcb:propget(<<"anonymous_name">>, J)),
+  MT = mcb:as_integer(mcb:propget(<<"max_threads">>, J)),
+  MTP = mcb:as_integer(mcb:propget(<<"max_thread_posts">>, J)),
+  MTPL = mcb:as_integer(mcb:propget(<<"max_thread_post_lock">>, J)),
+  PI = mcb:as_binary(mcb:propget(<<"poster_id">>, J)),
+  PIST = mcb:as_binary(mcb:propget(<<"poster_id_sage_text">>, J)),
   #mcb_board{ board_id = BI,
               category = Ca,
               title = T,

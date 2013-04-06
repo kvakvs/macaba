@@ -5,7 +5,7 @@
 %%% @version 2013-02-19
 %%% @author Dmytro Lytovchenko <kvakvs@yandex.ru>
 %%%------------------------------------------------------------------------
--module(macaba_db_mnesia).
+-module(mcb_db_mnesia).
 
 -export([ start/0
         , read/2
@@ -14,17 +14,17 @@
         , delete/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 
 %%--------------------------------------------------------------------
 %% @doc Prepare database for use
 start() ->
-  lager:info("macaba_db_mnesia: starting"),
-  {ok, Nodes0} = macaba_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
+  lager:info("mnesia: starting"),
+  {ok, Nodes0} = mcb_conf:get_or_fatal([<<"cluster">>, <<"nodes">>]),
   Nodes = lists:map(fun(X) -> erlang:binary_to_atom(X, latin1) end, Nodes0),
   CS = mnesia:create_schema(Nodes),
   lager:debug("create schema: ~p", [CS]),
-  macaba:ensure_started(mnesia),
+  mcb:ensure_started(mnesia),
   BD = mnesia:create_table(
          mcb_board_dynamic,
          [ {ram_copies, [node()]}
@@ -48,9 +48,9 @@ start() ->
   lager:info("creating site-config table: ~p", [SC]).
 
 %%--------------------------------------------------------------------
--spec read(Type :: macaba_mnesia_object(),
+-spec read(Type :: mcb_mnesia_object(),
            Key  :: binary()) ->
-              {ok, macaba_mnesia_record()} | {error, not_found}.
+              {ok, mcb_mnesia_record()} | {error, not_found}.
 
 read(Tab, Key) when is_binary(Key) ->
   RFun = fun() -> mnesia:read({Tab, Key}) end,
@@ -62,15 +62,15 @@ read(Tab, Key) when is_binary(Key) ->
   end.
 
 %%--------------------------------------------------------------------
--spec write(Type :: macaba_mnesia_object(),
-            Value :: macaba_mnesia_record()) ->
+-spec write(Type :: mcb_mnesia_object(),
+            Value :: mcb_mnesia_record()) ->
                {atomic, any()} | {error, any()}.
 write(Tab, Value) ->
   WF = fun() -> mnesia:write(Value) end,
   case mnesia:transaction(WF) of
     {atomic, _} = X ->
-      Key = macaba_db:get_key_for_object(Value),
-      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      Key = mcb_db:get_key_for_object(Value),
+      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
       lager:error("mnesia: write ~p:", [Y]),
@@ -98,10 +98,10 @@ update(Tab, Key, Fun) when is_binary(Key) ->
        end,
   case mnesia:transaction(UF) of
     {atomic, _} = X ->
-      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
-      lager:error("macaba_db_mnesia: update ~p:", [Y]),
+      lager:error("mnesia: update ~p:", [Y]),
       Y
   end.
 
@@ -112,10 +112,10 @@ delete(Tab, Key) when is_binary(Key) ->
        end,
   case mnesia:transaction(DF) of
     {atomic, _} = X ->
-      gen_leader:leader_call(macaba_masternode, {updated_in_mnesia, Tab, Key}),
+      gen_leader:leader_call(mcb_masternode, {updated_in_mnesia, Tab, Key}),
       X;
     Y ->
-      lager:error("macaba_db_mnesia: delete ~p:", [Y]),
+      lager:error("mnesia: delete ~p:", [Y]),
       Y
   end.
 

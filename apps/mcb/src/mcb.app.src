@@ -1,17 +1,16 @@
 %% -*- mode:erlang; -*-
-{application, mcweb,
+{application, mcb,
  [
-  {description, "Web and REST frontend for Macaba board"},
+  {description, "Macaba board engine (old)"},
   {vsn, "1"},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib,
+                  sasl,
                   lager,
-                  gproc,
-                  crypto, ranch, cowboy,
-                  mcb
+                  gproc
                  ]},
-  {mod, { mcweb_app, []}},
+  {mod, { mcb_app, []}},
   {env, []}
  ]}.

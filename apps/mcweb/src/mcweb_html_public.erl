@@ -10,14 +10,14 @@
 -export([ init/3
         , handle/2
         , terminate/3]).
--export([ macaba_handle_index/3
-        , macaba_handle_board/3
-        , macaba_handle_thread/3
-        , macaba_handle_thread_new/3
-        , macaba_handle_thread_manage/3
-        , macaba_handle_post_new/3
-        , macaba_handle_attach/3
-        , macaba_handle_attach_thumb/3
+-export([ mcb_handle_index/3
+        , mcb_handle_board/3
+        , mcb_handle_thread/3
+        , mcb_handle_thread_new/3
+        , mcb_handle_thread_manage/3
+        , mcb_handle_post_new/3
+        , mcb_handle_attach/3
+        , mcb_handle_attach_thumb/3
         ]).
 -export([ chain_get_boards/2
         , chain_get_board_info/2
@@ -30,7 +30,7 @@
         , chain_attach_send/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 %%%-----------------------------------------------------------------------------
@@ -51,25 +51,25 @@ terminate(_Reason, _Req, _State) ->
 %%%-----------------------------------------------------------------------------
 %% @doc GET /
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_index(Method :: binary(),
+-spec mcb_handle_index(Method :: binary(),
                           Req :: cowboy_req:req(),
                           State :: mcweb:html_state()) ->
                              mcweb:handler_return().
 
-macaba_handle_index(<<"GET">>, Req0, State0) ->
-  Boards = macaba_board_cli:get_boards(),
+mcb_handle_index(<<"GET">>, Req0, State0) ->
+  Boards = mcb_board_cli:get_boards(),
   State1 = mcweb:state_set_var(boards, Boards, State0),
   mcweb:render_page("index", Req0, State1).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET board/id/
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_board(Method :: binary(),
+-spec mcb_handle_board(Method :: binary(),
                           Req :: cowboy_req:req(),
                           State :: mcweb:html_state()) ->
                              mcweb:handler_return().
 
-macaba_handle_board(<<"GET">>, Req0, State0) ->
+mcb_handle_board(<<"GET">>, Req0, State0) ->
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_boards/2
                       , fun chain_get_board_info/2
@@ -86,7 +86,7 @@ chain_board_render_page(Req0, State0) ->
 
 %%%---------------------------------------------------
 chain_get_boards(Req, State0) ->
-  Boards = macaba_board_cli:get_boards(),
+  Boards = mcb_board_cli:get_boards(),
   State = mcweb:state_set_var(boards, Boards, State0),
   mcweb:chain_success(Req, State).
 
@@ -95,7 +95,7 @@ chain_get_boards(Req, State0) ->
 %% @doc get current board info
 chain_get_board_info(Req0, State0) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
-  case macaba_board_cli:get_board(BoardId) of
+  case mcb_board_cli:get_board(BoardId) of
     {error, not_found} ->
       {Req1, State1} = mcweb:render_page(404, "board_404", Req, State0),
       mcweb:chain_fail(Req1, State1);
@@ -110,7 +110,7 @@ chain_get_board_info(Req0, State0) ->
 chain_board_if_cached(Req0, State0=#mcb_html_state{ user=U })
   when U#mcb_user.level < ?USERLEVEL_MOD ->
   {BoardId, Req2}  = cowboy_req:binding(mcb_board,  Req0),
-  case macaba_board:get_dynamic(BoardId) of
+  case mcb_board:get_dynamic(BoardId) of
     {ok, BD} ->
       State = mcweb:state_set_var('_board_dynamic', BD, State0),
       {IfNoneMatch, Req3} = cowboy_req:header(<<"if-none-match">>, Req2),
@@ -151,14 +151,14 @@ chain_board_set_headers(Req0, State0) ->
 chain_get_threads(Req0, State0=#mcb_html_state{ user=U }) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
   {Page0, Req} = cowboy_req:binding(mcb_page, Req1),
-  {ok, PageSize0} = macaba_conf:get([<<"board">>, <<"page_size">>]),
-  {ok, PreviewSize0} = macaba_conf:get([<<"board">>, <<"thread">>,
+  {ok, PageSize0} = mcb_conf:get([<<"board">>, <<"page_size">>]),
+  {ok, PreviewSize0} = mcb_conf:get([<<"board">>, <<"thread">>,
                                         <<"preview_last_posts">>]),
-  Page        = macaba:as_integer(Page0, 1),
-  PageSize    = macaba:as_integer(PageSize0),
-  PreviewSize = macaba:as_integer(PreviewSize0),
+  Page        = mcb:as_integer(Page0, 1),
+  PageSize    = mcb:as_integer(PageSize0),
+  PreviewSize = mcb:as_integer(PreviewSize0),
   FilterHiddenThreads = (U#mcb_user.level < ?USERLEVEL_MOD),
-  {ok, PinnedThreads, Threads, PageNums} = macaba_board_cli:get_threads(
+  {ok, PinnedThreads, Threads, PageNums} = mcb_board_cli:get_threads(
                                              BoardId, {Page, PageSize},
                                              PreviewSize, FilterHiddenThreads
                                             ),
@@ -170,12 +170,12 @@ chain_get_threads(Req0, State0=#mcb_html_state{ user=U }) ->
 %%%-----------------------------------------------------------------------------
 %% @doc HTTP POST: Create thread on board/id/new
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_thread_new(Method :: binary(),
+-spec mcb_handle_thread_new(Method :: binary(),
                                Req :: cowboy_req:req(),
                                State :: mcweb:html_state()) ->
                                   mcweb:handler_return().
 
-macaba_handle_thread_new(<<"POST">>, Req0, State0) ->
+mcb_handle_thread_new(<<"POST">>, Req0, State0) ->
   {_, Req1, State1} = mcweb:chain_run(
                         [ fun chain_check_post_attach/2
                         , fun chain_thread_new/2
@@ -186,8 +186,8 @@ macaba_handle_thread_new(<<"POST">>, Req0, State0) ->
 %% @private
 %% @doc Checks that attach is recognized content type and doesn't exist in db
 chain_check_post_attach(Req0, State0=#mcb_html_state{post_data=PD}) ->
-  Attach = macaba:propget(<<"attach">>, PD, <<>>),
-  case macaba_attach:detect_content_type(Attach) of
+  Attach = mcb:propget(<<"attach">>, PD, <<>>),
+  case mcb_attach:detect_content_type(Attach) of
     {error, no_idea} ->
       mcweb:chain_fail(
         mcweb:render_error(<<"bad_attach_format">>, Req0, State0));
@@ -196,9 +196,9 @@ chain_check_post_attach(Req0, State0=#mcb_html_state{post_data=PD}) ->
       %% State1 = state_set_var(attach_key, <<>>, State0),
       mcweb:chain_success(Req0, State0);
     {ok, _} ->
-      %% FIXME: this is calculated twice, here and in macaba_attach:write
+      %% FIXME: this is calculated twice, here and in mcb_attach:write
       AttachKey = crypto:sha(Attach),
-      AttachMod = macaba_plugins:mod(attachments),
+      AttachMod = mcb_plugins:mod(attachments),
       case AttachMod:exists(AttachKey) of
         true ->
           mcweb:chain_fail(
@@ -216,11 +216,11 @@ chain_thread_new(Req0, State0) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
   PostOpt = get_post_create_options(Req, State0),
   ThreadOpt = orddict:from_list([]),
-  case macaba_thread:new(BoardId, ThreadOpt, PostOpt) of
+  case mcb_thread:new(BoardId, ThreadOpt, PostOpt) of
     {ok, _Thread, _Post} ->
       {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
       mcweb:chain_success(
-        mcweb:redirect("/board/" ++ macaba:as_string(BoardId), Req1, State0));
+        mcweb:redirect("/board/" ++ mcb:as_string(BoardId), Req1, State0));
     {error, E} ->
       EStr = iolist_to_binary(io_lib:format("~p", [E])),
       mcweb:chain_fail(mcweb:render_error(EStr, Req, State0))
@@ -229,12 +229,12 @@ chain_thread_new(Req0, State0) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Create post in thread on board/b_id/thread/t_id/post/new
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_post_new(Method :: binary(),
+-spec mcb_handle_post_new(Method :: binary(),
                              Req :: cowboy_req:req(),
                              State :: mcweb:html_state()) ->
                                 mcweb:handler_return().
 
-macaba_handle_post_new(<<"POST">>, Req0, State0) ->
+mcb_handle_post_new(<<"POST">>, Req0, State0) ->
   {_, Req1, State1} = mcweb:chain_run(
                         [ fun chain_check_thread_exists/2
                         , fun chain_check_post_attach/2
@@ -258,7 +258,7 @@ chain_post_new_redirect(Req0, State0) ->
 chain_post_new(Req0, State0) ->
   {BoardId, Req} = cowboy_req:binding(mcb_board, Req0),
   PostOpt = get_post_create_options(Req, State0),
-  case macaba_post:new(BoardId, PostOpt) of
+  case mcb_post:new(BoardId, PostOpt) of
     {ok, Post} ->
       State = mcweb:state_set_var(created_post, Post, State0),
       mcweb:chain_success(Req, State);
@@ -272,8 +272,8 @@ chain_post_new(Req0, State0) ->
 %% @doc Ensure that threadid posted exists
 chain_check_thread_exists(Req0, State0=#mcb_html_state{post_data=PD}) ->
   {BoardId, Req1} = cowboy_req:binding(mcb_board, Req0),
-  ThreadId = macaba:propget(<<"thread_id">>, PD, ""),
-  case macaba_thread:get(BoardId, ThreadId) of
+  ThreadId = mcb:propget(<<"thread_id">>, PD, ""),
+  case mcb_thread:get(BoardId, ThreadId) of
     {error, not_found} ->
       mcweb:chain_fail(
         mcweb:render_page(404, "thread_404", Req1, State0));
@@ -285,13 +285,13 @@ chain_check_thread_exists(Req0, State0=#mcb_html_state{post_data=PD}) ->
 %% @private
 get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
   %% {ok, PostVals, Req1} = cowboy_req:body_qs(Req0),
-  ThreadId = macaba:propget(<<"thread_id">>, PD, <<>>),
-  Author   = macaba:propget(<<"author">>,    PD, <<>>),
-  Email    = macaba:propget(<<"email">>,     PD, <<>>),
-  Subject  = macaba:propget(<<"subject">>,   PD, <<>>),
-  Message  = macaba:propget(<<"message">>,   PD, <<>>),
-  Attach1  = macaba:propget(<<"attach">>,    PD, <<>>),
-  DeletePw = macaba:propget(<<"deletepw">>,  PD, <<>>),
+  ThreadId = mcb:propget(<<"thread_id">>, PD, <<>>),
+  Author   = mcb:propget(<<"author">>,    PD, <<>>),
+  Email    = mcb:propget(<<"email">>,     PD, <<>>),
+  Subject  = mcb:propget(<<"subject">>,   PD, <<>>),
+  Message  = mcb:propget(<<"message">>,   PD, <<>>),
+  Attach1  = mcb:propget(<<"attach">>,    PD, <<>>),
+  DeletePw = mcb:propget(<<"deletepw">>,  PD, <<>>),
 
   %% user identification and poster_id
   UserId   = mcweb:get_user_identification(Req0),
@@ -312,12 +312,12 @@ get_post_create_options(Req0, #mcb_html_state{post_data=PD}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Do POST board/b_id/thread/t_id/manage - delete posts by password
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_thread_manage(Method :: binary(),
+-spec mcb_handle_thread_manage(Method :: binary(),
                                   Req :: cowboy_req:req(),
                                   State :: mcweb:html_state()) ->
                                      mcweb:handler_return().
 
-macaba_handle_thread_manage(<<"POST">>, Req0, State0) ->
+mcb_handle_thread_manage(<<"POST">>, Req0, State0) ->
   {_, Req1, State} = mcweb:chain_run(
                        [ fun chain_thread_manage_delete/2
                        ], Req0, State0),
@@ -326,12 +326,12 @@ macaba_handle_thread_manage(<<"POST">>, Req0, State0) ->
   mcweb:redirect_to_thread(BoardId, ThreadId, Req3, State).
 
 chain_thread_manage_delete(Req0, State0=#mcb_html_state{post_data=PD}) ->
-  MarkedPosts = macaba:propget(<<"array_mark">>, PD),
-  Password = macaba:propget(<<"pass">>, PD),
-  FileOnly = macaba:as_bool(macaba:propget(<<"fileonly">>, PD, false)),
+  MarkedPosts = mcb:propget(<<"array_mark">>, PD),
+  Password = mcb:propget(<<"pass">>, PD),
+  FileOnly = mcb:as_bool(mcb:propget(<<"fileonly">>, PD, false)),
   {BoardId, Req1}  = cowboy_req:binding(mcb_board,  Req0),
   lists:foreach(fun(M) ->
-                    macaba_board_cli:anonymous_delete_post(
+                    mcb_board_cli:anonymous_delete_post(
                       BoardId, M, FileOnly, Password)
                 end, MarkedPosts),
   mcweb:chain_success(Req1, State0).
@@ -339,12 +339,12 @@ chain_thread_manage_delete(Req0, State0=#mcb_html_state{post_data=PD}) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET board/b_id/thread/t_id - show thread contents
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_thread(Method :: binary(),
+-spec mcb_handle_thread(Method :: binary(),
                            Req :: cowboy_req:req(),
                            State :: mcweb:html_state()) ->
                               mcweb:handler_return().
 
-macaba_handle_thread(<<"GET">>, Req0, State0) ->
+mcb_handle_thread(<<"GET">>, Req0, State0) ->
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_boards/2
                       , fun chain_get_board_info/2
@@ -365,7 +365,7 @@ chain_thread_render_page(Req0, State0) ->
 chain_get_thread_info(Req0, State0) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
   {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
-  case macaba_board_cli:get_thread(BoardId, ThreadId) of
+  case mcb_board_cli:get_thread(BoardId, ThreadId) of
     {error, not_found} ->
       mcweb:chain_fail(
         mcweb:render_page(404, "thread_404", Req, State0));
@@ -381,7 +381,7 @@ chain_thread_if_cached(Req0, State0=#mcb_html_state{ user=U })
   when U#mcb_user.level < ?USERLEVEL_MOD ->
   {ThreadId, Req1} = cowboy_req:binding(mcb_thread, Req0),
   {BoardId, Req2}  = cowboy_req:binding(mcb_board,  Req1),
-  case  macaba_thread:get_dynamic(BoardId, ThreadId) of
+  case  mcb_thread:get_dynamic(BoardId, ThreadId) of
     {ok, TD} ->
       State = mcweb:state_set_var('_thread_dynamic', TD, State0),
       {IfNoneMatch, Req3} = cowboy_req:header(<<"if-none-match">>, Req2),
@@ -407,7 +407,7 @@ chain_thread_if_cached(Req0, State0) ->
 chain_get_thread_posts(Req0, State0) ->
   {ThreadId, Req} = cowboy_req:binding(mcb_thread, Req0),
   {BoardId, Req}  = cowboy_req:binding(mcb_board,  Req0),
-  Posts = macaba_board_cli:get_thread_preview(BoardId, ThreadId, all),
+  Posts = mcb_board_cli:get_thread_preview(BoardId, ThreadId, all),
   State1 = mcweb:state_set_var(posts, Posts, State0),
   case Posts of
     [] ->
@@ -438,12 +438,12 @@ chain_thread_set_headers(Req0, State0) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_attach(Method :: binary(),
+-spec mcb_handle_attach(Method :: binary(),
                            Req :: cowboy_req:req(),
                            State :: mcweb:html_state()) ->
                               mcweb:handler_return().
 
-macaba_handle_attach(<<"GET">>, Req0, State0) ->
+mcb_handle_attach(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, false, State0),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
@@ -456,12 +456,12 @@ macaba_handle_attach(<<"GET">>, Req0, State0) ->
 %%%-----------------------------------------------------------------------------
 %% @doc Do GET attach/att_id/thumb
 %%%-----------------------------------------------------------------------------
--spec macaba_handle_attach_thumb(Method :: binary(),
+-spec mcb_handle_attach_thumb(Method :: binary(),
                                  Req :: cowboy_req:req(),
                                  State :: mcweb:html_state()) ->
                                     mcweb:handler_return().
 
-macaba_handle_attach_thumb(<<"GET">>, Req0, State0) ->
+mcb_handle_attach_thumb(<<"GET">>, Req0, State0) ->
   State1 = mcweb:state_set_var(thumbnail, true, State0),
   {_, Req, State} = mcweb:chain_run(
                       [ fun chain_get_attach/2
@@ -476,11 +476,11 @@ macaba_handle_attach_thumb(<<"GET">>, Req0, State0) ->
 %% @doc get thread info if thread exists
 chain_get_attach(Req0, State0) ->
   {AttachId0, Req} = cowboy_req:binding(mcb_attach, Req0),
-  AttachId = macaba:hexstr_to_bin(binary_to_list(AttachId0)),
+  AttachId = mcb:hexstr_to_bin(binary_to_list(AttachId0)),
   %% for primary image data attachid=attach_body_id
   State1 = mcweb:state_set_var(body_id, AttachId, State0),
 
-  AttachMod = macaba_plugins:mod(attachments),
+  AttachMod = mcb_plugins:mod(attachments),
   case AttachMod:read_header(AttachId) of
     {error, not_found} ->
       mcweb:chain_fail(
@@ -514,7 +514,7 @@ chain_attach_send(Req0, State0) ->
       Att       = mcweb:state_get_var(attach, State0),
       AttachId  = mcweb:state_get_var(body_id, State0),
       Headers   = [ {<<"Content-Type">>, Att#mcb_attachment.content_type} ],
-      AttachMod = macaba_plugins:mod(attachments),
+      AttachMod = mcb_plugins:mod(attachments),
 
       {ok, AttBody} = AttachMod:read_body(AttachId),
       {ok, Req}     = cowboy_req:reply(

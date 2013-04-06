@@ -38,7 +38,7 @@
         , check_admin_login_password/2
         ]).
 
--include_lib("macaba/include/macaba_types.hrl").
+-include_lib("mcb/include/macaba_types.hrl").
 -include_lib("mcweb/include/mcweb.hrl").
 
 -type html_state() :: #mcb_html_state{}.
@@ -55,8 +55,8 @@
 %% @doc Compares Login/Pass pair against configured admin credentials
 check_admin_login_password(Login, Password)
   when is_binary(Login), is_binary(Password) ->
-  {ok, ALogin} = macaba_conf:get([<<"board">>, <<"admin_login">>]),
-  {ok, APassword} = macaba_conf:get([<<"board">>, <<"admin_password">>]),
+  {ok, ALogin} = mcb_conf:get([<<"board">>, <<"admin_login">>]),
+  {ok, APassword} = mcb_conf:get([<<"board">>, <<"admin_password">>]),
   (ALogin =:= Login andalso APassword =:= Password).
 
 %%%------------------------------------------------------------------------
@@ -88,11 +88,11 @@ handle_helper(Module, Req0, State0 = #mcb_html_state{ mode=Mode }) ->
 
     %% site offline flag
     %% TODO: cache site config in memory or in state
-    #mcb_site_config{ offline=SiteOffline } = macaba_board:get_site_config(),
+    #mcb_site_config{ offline=SiteOffline } = mcb_board:get_site_config(),
     State3 = State2#mcb_html_state{ site_offline = SiteOffline },
     State4 = state_set_var(site_offline, SiteOffline, State3),
 
-    FnName = macaba:as_atom("macaba_handle_" ++ macaba:as_string(Mode)),
+    FnName = mcb:as_atom("mcb_handle_" ++ mcb:as_string(Mode)),
     {Req4, State5} = apply(Module, FnName, [Method, Req3, State4]),
     {ok, Req4, State5}
   catch
@@ -118,8 +118,8 @@ log_access(Method, Req0, #mcb_html_state{ user=U }) ->
 %% option. To use - set option to true and do "make minify"
 %% get_dir_or_minified_dir(Dir, MinifiedDir) ->
 %%   Priv = code:priv_dir(mcweb),
-%%   {ok, Minify} = macaba_conf:get([<<"board">>, <<"minify">>]),
-%%   case macaba:as_bool(Minify) of
+%%   {ok, Minify} = mcb_conf:get([<<"board">>, <<"minify">>]),
+%%   case mcb:as_bool(Minify) of
 %%     true ->
 %%       filename:join([Priv, MinifiedDir]);
 %%     false ->
@@ -259,7 +259,7 @@ response_json(HttpStatus, J, Req0, State=#mcb_html_state{}) ->
 
 redirect(URL, Req0, State=#mcb_html_state{}) ->
   {ok, Req} = cowboy_req:reply(
-                301, [ {<<"Location">>, macaba:as_binary(URL)}
+                301, [ {<<"Location">>, mcb:as_binary(URL)}
                      , {<<"Expires">>, <<"0">>}
                      ],
                 <<>>, Req0),
@@ -274,8 +274,8 @@ redirect(URL, Req0, State=#mcb_html_state{}) ->
                             mcweb:handler_return().
 
 redirect_to_thread(BoardId, ThreadId, Req, State) ->
-   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
-                ++ macaba:as_string(ThreadId), Req, State).
+   redirect("/board/" ++ mcb:as_string(BoardId) ++ "/thread/"
+                ++ mcb:as_string(ThreadId), Req, State).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Redirects user to thread and post in it
@@ -287,9 +287,9 @@ redirect_to_thread(BoardId, ThreadId, Req, State) ->
         State :: mcweb:html_state()) -> mcweb:handler_return().
 
 redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
-   redirect("/board/" ++ macaba:as_string(BoardId) ++ "/thread/"
-                ++ macaba:as_string(ThreadId) ++ "#i"
-                ++ macaba:as_string(PostId), Req, State).
+   redirect("/board/" ++ mcb:as_string(BoardId) ++ "/thread/"
+                ++ mcb:as_string(ThreadId) ++ "#i"
+                ++ mcb:as_string(PostId), Req, State).
 
 %%%-----------------------------------------------------------------------------
 %% @doc Renders error page with custom message
@@ -299,7 +299,7 @@ redirect_to_thread_and_post(BoardId, ThreadId, PostId, Req, State) ->
                       mcweb:handler_return().
 
 render_error(Msg, Req0, State0) ->
-  State1 = state_set_var(error, macaba:as_binary(Msg), State0),
+  State1 = state_set_var(error, mcb:as_binary(Msg), State0),
   {Req1, State2} = render_page(400, "error", Req0, State1),
   {Req1, State2}.
 
@@ -361,7 +361,7 @@ parse_multipart_form_data_1([{Headers, Value} | Rest],
   FieldName = get_multipart_field_name(Headers),
   PD1 = set_multipart_value(FieldName, Value, PD0),
 
-  ContentType = macaba:propget(<<"content-type">>, Headers, undefined),
+  ContentType = mcb:propget(<<"content-type">>, Headers, undefined),
   PD = orddict:store({content_type, FieldName}, ContentType, PD1),
 
   %% lager:debug("parse field ~p value ~p", [FieldName, Value]),
@@ -415,7 +415,7 @@ acc_multipart({eof, Req}, Acc) ->
 %% returns anonymous user. Saves result state or clears cookie in request
 get_user_save_to_state(Req0, State0) ->
   {User, Req} = get_user(Req0),
-  State = state_set_var(user, macaba:record_to_proplist(User), State0),
+  State = state_set_var(user, mcb:record_to_proplist(User), State0),
   {Req, State#mcb_html_state{user=User}}.
 
 %%%-----------------------------------------------------------------------------
@@ -455,7 +455,7 @@ create_session_for(U=#mcb_user{}, Req0, State0) ->
 
 %% @doc Gets ses cookie name from config
 ses_cookie_name() ->
-  {ok, CookieName} = macaba_conf:get([<<"board">>, <<"session_cookie_name">>]),
+  {ok, CookieName} = mcb_conf:get([<<"board">>, <<"session_cookie_name">>]),
   CookieName.
 
 %%%------------------------------------------------------------------------
