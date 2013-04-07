@@ -1,6 +1,11 @@
+%% @doc A vnode to handle get & put commands for stat data.  The vnode
+%% requests will be hashed on Client and StatName and will use a
+%% coordinator to enforce N/R/W values.
 -module(mcbd_vnode).
 -behaviour(riak_core_vnode).
--include("mcbd.hrl").
+
+-include("mcbd_internal.hrl").
+-include_lib("riak_core/include/riak_core_vnode.hrl").
 
 -export([start_vnode/1,
          init/1,
@@ -17,51 +22,143 @@
          handle_coverage/4,
          handle_exit/3]).
 
--record(state, {partition}).
+-export([
+         get/3,
+         set/4,
+         incr/3,
+         incrby/4,
+         append/4,
+         sadd/4
+        ]).
 
-%% API
+-record(state, {partition, stats}).
+
+-define(MASTER, rts_stat_vnode_master).
+-define(sync(PrefList, Command, Master),
+        riak_core_vnode_master:sync_command(PrefList, Command, Master)).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
 start_vnode(I) ->
-    riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
+  riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
+
+get(Preflist, ReqID, StatName) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {get, ReqID, StatName},
+                                 {fsm, undefined, self()},
+                                 ?MASTER).
+
+set(Preflist, ReqID, StatName, Val) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {set, ReqID, StatName, Val},
+                                 ?MASTER).
+
+%% TODO: I have to look at the Sender stuff more closely again
+incr(Preflist, ReqID, StatName) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {incr, ReqID, StatName},
+                                 {fsm, undefined, self()},
+                                 ?MASTER).
+
+incrby(Preflist, ReqID, StatName, Val) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {incrby, ReqID, StatName, Val},
+                                 {fsm, undefined, self()},
+                                 ?MASTER).
+
+append(Preflist, ReqID, StatName, Val) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {append, ReqID, StatName, Val},
+                                 ?MASTER).
+
+sadd(Preflist, ReqID, StatName, Val) ->
+  riak_core_vnode_master:command(Preflist,
+                                 {sadd, ReqID, StatName, Val},
+                                 ?MASTER).
+
+%%%===================================================================
+%%% Callbacks
+%%%===================================================================
 
 init([Partition]) ->
-    {ok, #state { partition=Partition }}.
+  {ok, #state { partition=Partition, stats=dict:new() }}.
 
-%% Sample command: respond to a ping
-handle_command(ping, _Sender, State) ->
-    {reply, {pong, State#state.partition}, State};
-handle_command(Message, _Sender, State) ->
-    ?PRINT({unhandled_command, Message}),
-    {noreply, State}.
+handle_command({get, ReqID, StatName}, _Sender, #state{stats=Stats}=State) ->
+  Reply =
+    case dict:find(StatName, Stats) of
+      error ->
+        not_found;
+      {ok, Found} ->
+        Found
+    end,
+  {reply, {ok, ReqID, Reply}, State};
 
-handle_handoff_command(_Message, _Sender, State) ->
-    {noreply, State}.
+handle_command({set, ReqID, StatName, Val}, _Sender, #state{stats=Stats0}=State) ->
+  Stats = dict:store(StatName, Val, Stats0),
+  {reply, {ok, ReqID}, State#state{stats=Stats}};
 
-handoff_starting(_TargetNode, State) ->
-    {true, State}.
+handle_command({incr, ReqID, StatName}, _Sender, #state{stats=Stats0}=State) ->
+  Stats = dict:update_counter(StatName, 1, Stats0),
+  {reply, {ok, ReqID}, State#state{stats=Stats}};
+
+handle_command({incrby, ReqID, StatName, Val}, _Sender, #state{stats=Stats0}=State) ->
+  Stats = dict:update_counter(StatName, Val, Stats0),
+  {reply, {ok, ReqID}, State#state{stats=Stats}};
+
+handle_command({append, ReqID, StatName, Val}, _Sender, #state{stats=Stats0}=State) ->
+  Stats = try dict:append(StatName, Val, Stats0)
+          catch _:_ -> dict:store(StatName, [Val], Stats0)
+          end,
+  {reply, {ok, ReqID}, State#state{stats=Stats}};
+
+handle_command({sadd, ReqID, StatName, Val}, _Sender, #state{stats=Stats0}=State) ->
+  F = fun(S) ->
+          sets:add_element(Val, S)
+      end,
+  Stats = dict:update(StatName, F, sets:from_list([Val]), Stats0),
+  {reply, {ok, ReqID}, State#state{stats=Stats}}.
+
+handle_handoff_command(?FOLD_REQ{foldfun=Fun, acc0=Acc0}, _Sender, State) ->
+  Acc = dict:fold(Fun, Acc0, State#state.stats),
+  {reply, Acc, State}.
+
+handoff_starting(_TargetNode, _State) ->
+  {true, _State}.
 
 handoff_cancelled(State) ->
-    {ok, State}.
+  {ok, State}.
 
 handoff_finished(_TargetNode, State) ->
-    {ok, State}.
+  {ok, State}.
 
-handle_handoff_data(_Data, State) ->
-    {reply, ok, State}.
+handle_handoff_data(Data, #state{stats=Stats0}=State) ->
+  {StatName, Val} = binary_to_term(Data),
+  Stats = dict:store(StatName, Val, Stats0),
+  {reply, ok, State#state{stats=Stats}}.
 
-encode_handoff_item(_ObjectName, _ObjectValue) ->
-    <<>>.
+encode_handoff_item(StatName, Val) ->
+  term_to_binary({StatName,Val}).
 
 is_empty(State) ->
-    {true, State}.
+  case dict:size(State#state.stats) of
+    0 -> {true, State};
+    _ -> {false, State}
+  end.
 
 delete(State) ->
-    {ok, State}.
+  {ok, State}.
 
 handle_coverage(_Req, _KeySpaces, _Sender, State) ->
-    {stop, not_implemented, State}.
+  {stop, not_implemented, State}.
 
 handle_exit(_Pid, _Reason, State) ->
-    {noreply, State}.
+  {noreply, State}.
 
 terminate(_Reason, _State) ->
-    ok.
+  ok.
+
+%%% Local Variables:
+%%% erlang-indent-level: 2
+%%% End:

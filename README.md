@@ -46,7 +46,7 @@ You can try it here: http://macaba.longcat.info admin login and password are "1"
 *   Imagemagick for making thumbnails and image analysis,
     (`apt-get install libmagickwand-dev` on Ubuntu)
     *   NOTE: this step is **optional** if you choose to not
-        install thumbnailer, disable it in the `macaba.config` file, option
+        install thumbnailer, disable it in the `rel/files/macaba.config` file, option
         `board.thumbnailer` also you can comment out 'eim' dependency in
         `apps/macaba/rebar.config` and `rm -rf deps/eim` to get rid of build
         errors
@@ -56,13 +56,15 @@ You can try it here: http://macaba.longcat.info admin login and password are "1"
 ### Building
 
 *   Checkout from github by using `git clone git://github.com/kvakvs/macaba.git`
-*   $ `make run` will do full recompile and start (or `make runf` to run without
-    recompiling all deps)
+*   $ `make rel` will create release in `rel/macaba` directory.
+*   Run `rel/macaba/bin/macaba` or `run.sh` to see options (run in console, or run
+    in background, stop running in background, attach remotely to a running server).
+    Do `run.sh console` to start for the first time.
 *   Open http://localhost:12000/ with your browser
 
 This will download 'rebar', check out dependencies to 'deps/' subdirectory,
 compile dependencies, compile macaba, and run locally on port 12000
-(configurable in `macaba.config`).
+(configurable in `rel/files/macaba.config`).
 
 ### Configuration tips & tricks
 
