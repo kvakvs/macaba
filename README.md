@@ -1,3 +1,9 @@
+# Current status
+
+This branch is considered a bad design and I will not develop it. If I ever have time
+to redo macaba, it will be mostly rewritten with static page generation, nginx and
+distribution in mind (to help board owner absorb DDOS using cloud resources).
+
 # macaba
 
 [![Build Status](https://secure.travis-ci.org/kvakvs/macaba.png)](https://travis-ci.org/kvakvs/macaba)
